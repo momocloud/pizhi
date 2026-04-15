@@ -32,6 +32,22 @@ class ProjectPaths:
     def chapter_index_file(self) -> Path:
         return self.chapters_dir / "index.jsonl"
 
+    @property
+    def hooks_dir(self) -> Path:
+        return self.workspace_dir / "hooks"
+
+    @property
+    def cache_dir(self) -> Path:
+        return self.workspace_dir / "cache"
+
+    @property
+    def archive_dir(self) -> Path:
+        return self.workspace_dir / "archive"
+
+    @property
+    def chapter_zero_dir(self) -> Path:
+        return self.chapters_dir / "ch000"
+
 
 def project_paths(root: Path) -> ProjectPaths:
     return ProjectPaths(root=root.resolve())

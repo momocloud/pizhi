@@ -14,6 +14,11 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
 
     init_parser = subparsers.add_parser("init", help="initialize a Pizhi project")
+    init_parser.add_argument("--project-name", required=True, help="novel title")
+    init_parser.add_argument("--genre", default="", help="genre or style")
+    init_parser.add_argument("--total-chapters", type=int, default=0, help="planned chapter count")
+    init_parser.add_argument("--per-volume", type=int, default=20, help="chapters per volume")
+    init_parser.add_argument("--pov", default="", help="point of view and narrative style")
     init_parser.set_defaults(handler=run_init)
 
     status_parser = subparsers.add_parser("status", help="show project status")
