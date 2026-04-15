@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
+
+from pizhi import __version__
+from pizhi.commands.init_cmd import run_init
+from pizhi.commands.status_cmd import run_status
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="pizhi")
+    parser.add_argument("--version", action="store_true", help="show the CLI version")
+    subparsers = parser.add_subparsers(dest="command")
+
+    init_parser = subparsers.add_parser("init", help="initialize a Pizhi project")
+    init_parser.set_defaults(handler=run_init)
+
+    status_parser = subparsers.add_parser("status", help="show project status")
+    status_parser.set_defaults(handler=run_status)
+
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.version:
+        print(__version__)
+        return 0
+
+    handler = getattr(args, "handler", None)
+    if handler is None:
+        parser.print_help()
+        return 0
+    return int(handler(args))
