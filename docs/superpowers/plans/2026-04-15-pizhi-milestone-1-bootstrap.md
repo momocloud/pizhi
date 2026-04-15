@@ -1,6 +1,6 @@
 # Pizhi Milestone 1 Bootstrap Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the first usable slice of Pizhi: a Python CLI repository that can initialize a novel project and report project status from `.pizhi/` data.
 
@@ -64,7 +64,7 @@
 - Create: `src/pizhi/services/__init__.py`
 - Test: `tests/integration/test_init_command.py`
 
-- [ ] **Step 1: Write the failing CLI smoke test**
+- [x] **Step 1: Write the failing CLI smoke test**
 
 ```python
 from subprocess import run
@@ -84,12 +84,12 @@ def test_cli_shows_top_level_help(project_root):
     assert "status" in result.stdout
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/integration/test_init_command.py::test_cli_shows_top_level_help -v`
 Expected: FAIL with import or module-not-found errors because the package entrypoint does not exist yet.
 
-- [ ] **Step 3: Write minimal package and parser implementation**
+- [x] **Step 3: Write minimal package and parser implementation**
 
 ```python
 # src/pizhi/__main__.py
@@ -112,12 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest tests/integration/test_init_command.py::test_cli_shows_top_level_help -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pyproject.toml src/pizhi tests/integration/test_init_command.py
@@ -133,7 +133,7 @@ git commit -m "feat: scaffold pizhi cli package"
 - Test: `tests/unit/test_config.py`
 - Test: `tests/unit/test_jsonl_store.py`
 
-- [ ] **Step 1: Write failing unit tests for config round-trip and JSONL updates**
+- [x] **Step 1: Write failing unit tests for config round-trip and JSONL updates**
 
 ```python
 from pizhi.core.config import default_config, load_config, save_config
@@ -157,12 +157,12 @@ def test_chapter_index_store_upserts_record(tmp_path):
     assert store.read_all()[0]["status"] == "drafted"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_config.py tests/unit/test_jsonl_store.py -v`
 Expected: FAIL because the modules do not exist yet.
 
-- [ ] **Step 3: Write the minimal data-layer implementation**
+- [x] **Step 3: Write the minimal data-layer implementation**
 
 ```python
 @dataclass(slots=True)
@@ -185,12 +185,12 @@ class ChapterIndexStore:
 
 Implement `default_config(...)`, YAML serialization, path helpers for project roots, and deterministic JSONL upsert by chapter number.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_config.py tests/unit/test_jsonl_store.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/core tests/unit/test_config.py tests/unit/test_jsonl_store.py
@@ -206,7 +206,7 @@ git commit -m "feat: add config and chapter index primitives"
 - Modify: `src/pizhi/cli.py`
 - Test: `tests/integration/test_init_command.py`
 
-- [ ] **Step 1: Extend integration test to assert the generated project tree**
+- [x] **Step 1: Extend integration test to assert the generated project tree**
 
 ```python
 def test_init_creates_expected_project_tree(project_root):
@@ -239,12 +239,12 @@ def test_init_creates_expected_project_tree(project_root):
     assert (project_root / "manuscript").is_dir()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/integration/test_init_command.py::test_init_creates_expected_project_tree -v`
 Expected: FAIL because `init` has no implementation.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 def run_init(args: argparse.Namespace) -> int:
@@ -270,12 +270,12 @@ Implement template helpers so `pizhi init` creates:
 - `.pizhi/archive/`
 - `manuscript/`
 
-- [ ] **Step 4: Run integration tests to verify they pass**
+- [x] **Step 4: Run integration tests to verify they pass**
 
 Run: `python -m pytest tests/integration/test_init_command.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/core/templates.py src/pizhi/services/project_init.py src/pizhi/commands/init_cmd.py src/pizhi/cli.py tests/integration/test_init_command.py
@@ -291,7 +291,7 @@ git commit -m "feat: add project initialization command"
 - Test: `tests/unit/test_status_report.py`
 - Test: `tests/integration/test_status_command.py`
 
-- [ ] **Step 1: Write failing tests for status reporting**
+- [x] **Step 1: Write failing tests for status reporting**
 
 ```python
 from pizhi.services.status_report import build_status_report
@@ -318,12 +318,12 @@ def test_status_command_prints_summary(initialized_project):
     assert "Next chapter: ch001" in result.stdout
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_status_report.py tests/integration/test_status_command.py -v`
 Expected: FAIL because status logic is not implemented.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 @dataclass(slots=True)
@@ -348,12 +348,12 @@ Include graceful handling for:
 - partially initialized projects missing optional files
 - status counts grouped by `planned`, `outlined`, `drafted`, `reviewed`, `compiled`
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_status_report.py tests/integration/test_status_command.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/status_report.py src/pizhi/commands/status_cmd.py src/pizhi/cli.py tests/unit/test_status_report.py tests/integration/test_status_command.py
@@ -367,11 +367,11 @@ git commit -m "feat: add project status reporting"
 - Modify: `ARCHITECTURE.md`
 - Test: none
 
-- [ ] **Step 1: Move the architecture doc into its final docs location**
+- [x] **Step 1: Move the architecture doc into its final docs location**
 
 Copy the current repository-root `ARCHITECTURE.md` into `docs/architecture/ARCHITECTURE.md` without content changes.
 
-- [ ] **Step 2: Replace the root file with a short pointer**
+- [x] **Step 2: Replace the root file with a short pointer**
 
 ```markdown
 # Architecture Pointer
@@ -379,12 +379,12 @@ Copy the current repository-root `ARCHITECTURE.md` into `docs/architecture/ARCHI
 The canonical architecture document lives at `docs/architecture/ARCHITECTURE.md`.
 ```
 
-- [ ] **Step 3: Verify the files manually**
+- [x] **Step 3: Verify the files manually**
 
 Run: `git diff -- docs/architecture/ARCHITECTURE.md ARCHITECTURE.md`
 Expected: the docs copy contains the full original content and the root file becomes a short pointer.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/architecture/ARCHITECTURE.md ARCHITECTURE.md
@@ -396,12 +396,12 @@ git commit -m "docs: move architecture into docs tree"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-15-pizhi-milestone-1-bootstrap.md`
 
-- [ ] **Step 1: Run the full milestone 1 test suite**
+- [x] **Step 1: Run the full milestone 1 test suite**
 
 Run: `python -m pytest tests/unit tests/integration -v`
 Expected: PASS
 
-- [ ] **Step 2: Run CLI smoke checks manually**
+- [x] **Step 2: Run CLI smoke checks manually**
 
 Run:
 
@@ -413,13 +413,14 @@ python -m pizhi status --help
 
 Expected: all commands exit with code 0 and show the expected options.
 
-- [ ] **Step 3: Mark completed tasks in this plan**
+- [x] **Step 3: Mark completed tasks in this plan**
 
 Update the checkbox states in this file for any completed steps so the plan stays truthful.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-15-pizhi-milestone-1-bootstrap.md
 git commit -m "docs: record milestone 1 verification state"
 ```
+
