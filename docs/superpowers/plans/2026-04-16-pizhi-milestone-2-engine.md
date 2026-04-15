@@ -1,6 +1,6 @@
 # Pizhi Milestone 2 Deterministic Engine Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build Pizhi's deterministic chapter engine so captured AI chapter output can be parsed, persisted into `.pizhi/`, structurally reviewed, and compiled into `manuscript/`.
 
@@ -65,7 +65,7 @@
 - Create: `tests/unit/test_frontmatter.py`
 - Create: `tests/unit/test_markdown_sections.py`
 
-- [ ] **Step 1: Write failing unit tests for frontmatter extraction and section splitting**
+- [x] **Step 1: Write failing unit tests for frontmatter extraction and section splitting**
 
 ```python
 from pizhi.core.frontmatter import parse_frontmatter
@@ -93,12 +93,12 @@ def test_split_chapter_sections_finds_required_named_blocks():
     assert sections.relationships_snapshot == "关系"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_frontmatter.py tests/unit/test_markdown_sections.py -v`
 Expected: FAIL because the parser primitive modules do not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```python
 def parse_frontmatter(raw: str) -> tuple[dict[str, Any], str]:
@@ -120,12 +120,12 @@ Implement strict parsing rules:
 - missing required `characters_snapshot` or `relationships_snapshot` sections is a hard error
 - optional `worldview_patch` and `synopsis_new` sections may be absent
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_frontmatter.py tests/unit/test_markdown_sections.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/core/frontmatter.py src/pizhi/core/markdown_sections.py tests/unit/test_frontmatter.py tests/unit/test_markdown_sections.py
@@ -141,7 +141,7 @@ git commit -m "feat: add chapter parser primitives"
 - Create: `tests/fixtures/chapter_outputs/ch002_response.md`
 - Create: `tests/unit/test_chapter_parser.py`
 
-- [ ] **Step 1: Write failing tests for parsing a full chapter response fixture**
+- [x] **Step 1: Write failing tests for parsing a full chapter response fixture**
 
 ```python
 from pathlib import Path
@@ -159,12 +159,12 @@ def test_parse_chapter_response_fixture():
     assert "沈轩" in parsed.sections.characters_snapshot
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_chapter_parser.py -v`
 Expected: FAIL because the parser service and fixtures do not exist yet.
 
-- [ ] **Step 3: Write minimal fixtures and parser implementation**
+- [x] **Step 3: Write minimal fixtures and parser implementation**
 
 ```python
 @dataclass(slots=True)
@@ -191,12 +191,12 @@ Implement validation rules:
 - `synopsis_changed: true` requires a `synopsis_new` section
 - invalid or missing frontmatter keys raise a parser error rather than silently defaulting
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_chapter_parser.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/chapter_parser.py tests/fixtures/chapter_outputs tests/unit/test_chapter_parser.py
@@ -218,7 +218,7 @@ git commit -m "feat: add chapter response parser"
 - Create: `tests/unit/test_timeline.py`
 - Create: `tests/integration/test_chapter_writer.py`
 
-- [ ] **Step 1: Write failing unit and integration tests for chapter application**
+- [x] **Step 1: Write failing unit and integration tests for chapter application**
 
 ```python
 from pathlib import Path
@@ -245,12 +245,12 @@ def test_apply_chapter_response_writes_chapter_and_updates_index(initialized_pro
     assert "drafted" in initialized_project.joinpath(".pizhi", "chapters", "index.jsonl").read_text(encoding="utf-8")
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_worldview.py tests/unit/test_foreshadowing.py tests/unit/test_timeline.py tests/integration/test_chapter_writer.py -v`
 Expected: FAIL because the domain helpers and writer service do not exist yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 def apply_worldview_patch(current_text: str, patch_text: str) -> str:
@@ -270,12 +270,12 @@ Implement the deterministic write rules:
 - stage `global/synopsis_candidate.md` when `synopsis_changed` is true, but do not auto-replace `synopsis.md` yet; instead write a note explaining AI coverage review is still pending
 - fail hard if a worldview `Modified` or `Retracted` title matches zero or multiple current entries
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_worldview.py tests/unit/test_foreshadowing.py tests/unit/test_timeline.py tests/integration/test_chapter_writer.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/domain src/pizhi/services/chapter_writer.py src/pizhi/core/paths.py tests/conftest.py tests/unit/test_worldview.py tests/unit/test_foreshadowing.py tests/unit/test_timeline.py tests/integration/test_chapter_writer.py
@@ -290,7 +290,7 @@ git commit -m "feat: persist parsed chapter outputs"
 - Modify: `src/pizhi/cli.py`
 - Create: `tests/integration/test_compile_command.py`
 
-- [ ] **Step 1: Write a failing integration test for `pizhi compile`**
+- [x] **Step 1: Write a failing integration test for `pizhi compile`**
 
 ```python
 from subprocess import run
@@ -314,12 +314,12 @@ def test_compile_command_writes_volume_file(initialized_project):
     assert (initialized_project / "manuscript" / "vol_01.md").exists()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/integration/test_compile_command.py -v`
 Expected: FAIL because the command and service do not exist yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 def compile_manuscript(project_root: Path) -> list[Path]:
@@ -334,12 +334,12 @@ Compilation rules for milestone 2:
 - write `manuscript/vol_XX.md`
 - update included chapter records to `compiled`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest tests/integration/test_compile_command.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/compiler.py src/pizhi/commands/compile_cmd.py src/pizhi/cli.py tests/integration/test_compile_command.py
@@ -356,7 +356,7 @@ git commit -m "feat: add manuscript compilation"
 - Create: `tests/unit/test_structural_review.py`
 - Create: `tests/integration/test_review_command.py`
 
-- [ ] **Step 1: Write failing tests for structural review**
+- [x] **Step 1: Write failing tests for structural review**
 
 ```python
 from pizhi.services.consistency.structural import run_structural_review
@@ -376,12 +376,12 @@ def test_review_command_writes_notes_file(initialized_project):
     ...
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/unit/test_structural_review.py tests/integration/test_review_command.py -v`
 Expected: FAIL because the structural review module and CLI command do not exist yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 @dataclass(slots=True)
@@ -408,12 +408,12 @@ Implement A-class checks from the architecture:
 
 Write issues to `chXXX/notes.md` using the documented notes format. `review --full` should aggregate all chapter issues but may skip AI-only semantics.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/unit/test_structural_review.py tests/integration/test_review_command.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/consistency src/pizhi/commands/review_cmd.py src/pizhi/cli.py tests/unit/test_structural_review.py tests/integration/test_review_command.py
@@ -425,12 +425,12 @@ git commit -m "feat: add structural consistency review"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-16-pizhi-milestone-2-engine.md`
 
-- [ ] **Step 1: Run the full milestone 2 test suite**
+- [x] **Step 1: Run the full milestone 2 test suite**
 
 Run: `python -m pytest tests/unit tests/integration -v`
 Expected: PASS
 
-- [ ] **Step 2: Run CLI smoke checks for the new commands**
+- [x] **Step 2: Run CLI smoke checks for the new commands**
 
 Run:
 
@@ -441,13 +441,14 @@ python -m pizhi review --help
 
 Expected: both commands exit with code 0 and show the expected options.
 
-- [ ] **Step 3: Mark completed steps in this plan**
+- [x] **Step 3: Mark completed steps in this plan**
 
 Update the checkbox states in this file so the plan remains truthful after execution.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-16-pizhi-milestone-2-engine.md
 git commit -m "docs: record milestone 2 verification state"
 ```
+
