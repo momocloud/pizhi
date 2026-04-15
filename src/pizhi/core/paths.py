@@ -48,6 +48,33 @@ class ProjectPaths:
     def chapter_zero_dir(self) -> Path:
         return self.chapters_dir / "ch000"
 
+    @property
+    def synopsis_file(self) -> Path:
+        return self.global_dir / "synopsis.md"
+
+    @property
+    def synopsis_candidate_file(self) -> Path:
+        return self.global_dir / "synopsis_candidate.md"
+
+    @property
+    def worldview_file(self) -> Path:
+        return self.global_dir / "worldview.md"
+
+    @property
+    def timeline_file(self) -> Path:
+        return self.global_dir / "timeline.md"
+
+    @property
+    def foreshadowing_file(self) -> Path:
+        return self.global_dir / "foreshadowing.md"
+
+    @property
+    def last_session_file(self) -> Path:
+        return self.cache_dir / "last_session.md"
+
+    def chapter_dir(self, chapter_number: int) -> Path:
+        return self.chapters_dir / f"ch{chapter_number:03d}"
+
 
 def project_paths(root: Path) -> ProjectPaths:
     return ProjectPaths(root=root.resolve())

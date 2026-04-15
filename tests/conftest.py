@@ -11,6 +11,14 @@ def project_root() -> Path:
 
 
 @pytest.fixture
+def fixture_text(project_root):
+    def _read(name: str) -> str:
+        return (project_root / "tests" / "fixtures" / "chapter_outputs" / name).read_text(encoding="utf-8")
+
+    return _read
+
+
+@pytest.fixture
 def initialized_project(tmp_path) -> Path:
     result = run(
         [
