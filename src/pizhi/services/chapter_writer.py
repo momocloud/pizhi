@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import json
 from pathlib import Path
 
 from pizhi.core.config import load_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
+from pizhi.domain.foreshadowing import tracker_ids_by_section
 from pizhi.domain.foreshadowing import update_foreshadowing_tracker
+from pizhi.domain.timeline import last_non_flashback_time
 from pizhi.domain.timeline import append_timeline_events
 from pizhi.domain.worldview import apply_worldview_patch
 from pizhi.services.chapter_parser import ParsedChapterResponse
@@ -38,6 +41,7 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
         _write_text(paths.worldview_file, worldview_updated)
 
     timeline_current = _read_text(paths.timeline_file, "# Timeline\n\n")
+    previous_last_non_flashback = last_non_flashback_time(timeline_current)
     timeline_updated = append_timeline_events(timeline_current, chapter_number, parsed.metadata.timeline_events)
     _write_text(paths.timeline_file, timeline_updated)
 
@@ -45,6 +49,7 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
         paths.foreshadowing_file,
         "# Foreshadowing Tracker\n\n## Active\n\n## Referenced\n\n## Resolved\n\n## Abandoned\n",
     )
+    foreshadowing_ids_before = tracker_ids_by_section(foreshadowing_current)
     foreshadowing_updated = update_foreshadowing_tracker(foreshadowing_current, parsed.metadata.foreshadowing)
     _write_text(paths.foreshadowing_file, foreshadowing_updated)
 
@@ -61,6 +66,28 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
     _write_text(
         paths.last_session_file,
         f"# Last Session\n\n- Last chapter: ch{chapter_number:03d}\n- Title: {parsed.metadata.chapter_title}\n",
+    )
+    _write_text(
+        chapter_dir / "meta.json",
+        json.dumps(
+            {
+                "chapter_title": parsed.metadata.chapter_title,
+                "word_count_estimated": parsed.metadata.word_count_estimated,
+                "characters_involved": parsed.metadata.characters_involved,
+                "worldview_changed": parsed.metadata.worldview_changed,
+                "synopsis_changed": parsed.metadata.synopsis_changed,
+                "timeline_events": parsed.metadata.timeline_events,
+                "foreshadowing": parsed.metadata.foreshadowing,
+                "review_context": {
+                    "previous_last_non_flashback": previous_last_non_flashback,
+                    "active_foreshadowing_ids": sorted(foreshadowing_ids_before["Active"]),
+                    "referenced_foreshadowing_ids": sorted(foreshadowing_ids_before["Referenced"]),
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
     )
 
     summary = " ".join(parsed.sections.body.split())[:100]

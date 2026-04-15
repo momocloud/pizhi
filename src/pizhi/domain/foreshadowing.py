@@ -44,6 +44,16 @@ def update_foreshadowing_tracker(current_text: str, operations: dict[str, Any]) 
     return "\n".join(parts).rstrip() + "\n"
 
 
+def tracker_ids_by_section(current_text: str) -> dict[str, set[str]]:
+    _, sections = _parse_sections(current_text)
+    return {
+        "Active": _entry_ids(sections["Active"]),
+        "Referenced": _entry_ids(sections["Referenced"]),
+        "Resolved": _entry_ids(sections["Resolved"]),
+        "Abandoned": _entry_ids(sections["Abandoned"]),
+    }
+
+
 def _parse_sections(current_text: str) -> tuple[str, dict[str, str]]:
     matches = list(SECTION_RE.finditer(current_text))
     if matches:

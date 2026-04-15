@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pizhi import __version__
 from pizhi.commands.compile_cmd import run_compile
 from pizhi.commands.init_cmd import run_init
+from pizhi.commands.review_cmd import run_review
 from pizhi.commands.status_cmd import run_status
 
 
@@ -24,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
     compile_parser.set_defaults(handler=run_compile)
+
+    review_parser = subparsers.add_parser("review", help="run structural consistency review")
+    review_parser.add_argument("--chapter", type=int, help="review a single chapter number")
+    review_parser.add_argument("--full", action="store_true", help="review all known chapters")
+    review_parser.set_defaults(handler=run_review)
 
     status_parser = subparsers.add_parser("status", help="show project status")
     status_parser.set_defaults(handler=run_status)
