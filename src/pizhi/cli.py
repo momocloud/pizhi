@@ -4,6 +4,7 @@ import argparse
 from collections.abc import Sequence
 
 from pizhi import __version__
+from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
 from pizhi.commands.init_cmd import run_init
 from pizhi.commands.review_cmd import run_review
@@ -22,6 +23,10 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--per-volume", type=int, default=20, help="chapters per volume")
     init_parser.add_argument("--pov", default="", help="point of view and narrative style")
     init_parser.set_defaults(handler=run_init)
+
+    brainstorm_parser = subparsers.add_parser("brainstorm", help="prepare or apply brainstorm packets")
+    brainstorm_parser.add_argument("--response-file", help="structured brainstorm response file")
+    brainstorm_parser.set_defaults(handler=run_brainstorm)
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
     compile_parser.set_defaults(handler=run_compile)
