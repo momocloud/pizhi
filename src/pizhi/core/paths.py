@@ -41,6 +41,10 @@ class ProjectPaths:
         return self.workspace_dir / "cache"
 
     @property
+    def prompts_dir(self) -> Path:
+        return self.cache_dir / "prompts"
+
+    @property
     def archive_dir(self) -> Path:
         return self.workspace_dir / "archive"
 
