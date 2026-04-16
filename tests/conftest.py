@@ -13,7 +13,12 @@ def project_root() -> Path:
 @pytest.fixture
 def fixture_text(project_root):
     def _read(name: str) -> str:
-        return (project_root / "tests" / "fixtures" / "chapter_outputs" / name).read_text(encoding="utf-8")
+        fixtures_root = project_root / "tests" / "fixtures"
+        for relative_dir in ("chapter_outputs", "orchestration"):
+            candidate = fixtures_root / relative_dir / name
+            if candidate.exists():
+                return candidate.read_text(encoding="utf-8")
+        raise FileNotFoundError(name)
 
     return _read
 

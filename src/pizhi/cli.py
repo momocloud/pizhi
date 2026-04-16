@@ -10,6 +10,7 @@ from pizhi.commands.init_cmd import run_init
 from pizhi.commands.outline_cmd import run_outline_expand
 from pizhi.commands.review_cmd import run_review
 from pizhi.commands.status_cmd import run_status
+from pizhi.commands.write_cmd import run_write
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_parser = subparsers.add_parser("status", help="show project status")
     status_parser.set_defaults(handler=run_status)
+
+    write_parser = subparsers.add_parser("write", help="prepare or apply chapter writing packets")
+    write_parser.add_argument("--chapter", required=True, type=int, help="chapter number")
+    write_parser.add_argument("--response-file", help="chapter response file")
+    write_parser.set_defaults(handler=run_write)
 
     return parser
 
