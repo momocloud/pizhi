@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pizhi import __version__
 from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
+from pizhi.commands.continue_cmd import run_continue
 from pizhi.commands.init_cmd import run_init
 from pizhi.commands.outline_cmd import run_outline_expand
 from pizhi.commands.review_cmd import run_review
@@ -41,6 +42,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
     compile_parser.set_defaults(handler=run_compile)
+
+    continue_parser = subparsers.add_parser("continue", help="continue outlining and writing chapters")
+    continue_parser.add_argument("--count", required=True, type=int, help="number of chapters to continue")
+    continue_parser.add_argument("--direction", help="extra steering note")
+    continue_parser.add_argument("--outline-response-file", help="outline response file")
+    continue_parser.add_argument("--chapter-responses-dir", help="directory containing chapter response files")
+    continue_parser.set_defaults(handler=run_continue)
 
     review_parser = subparsers.add_parser("review", help="run structural consistency review")
     review_parser.add_argument("--chapter", type=int, help="review a single chapter number")

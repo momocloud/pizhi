@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 
 def initial_markdown_files(project_name: str, genre: str) -> dict[Path, str]:
@@ -23,3 +24,18 @@ def initial_markdown_files(project_name: str, genre: str) -> dict[Path, str]:
         Path("cache/last_session.md"): "# Last Session\n\n",
         Path("cache/pending_actions.md"): "# Pending Actions\n\n",
     }
+
+
+def render_checkpoint_summary(chapters: list[dict[str, Any]]) -> str:
+    lines = ["# Checkpoint Summary", ""]
+    for chapter in chapters:
+        lines.append(f"## ch{chapter['number']:03d} | {chapter['title']}")
+        lines.append(f"- Summary: {chapter['summary']}")
+        lines.append(f"- Character State: {chapter['character_state']}")
+        lines.append(f"- Relationship State: {chapter['relationship_state']}")
+        introduced = ", ".join(chapter["introduced_ids"]) if chapter["introduced_ids"] else "none"
+        resolved = ", ".join(chapter["resolved_ids"]) if chapter["resolved_ids"] else "none"
+        lines.append(f"- Foreshadowing Introduced: {introduced}")
+        lines.append(f"- Foreshadowing Resolved: {resolved}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
