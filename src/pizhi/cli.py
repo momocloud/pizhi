@@ -7,6 +7,7 @@ from pizhi import __version__
 from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
 from pizhi.commands.init_cmd import run_init
+from pizhi.commands.outline_cmd import run_outline_expand
 from pizhi.commands.review_cmd import run_review
 from pizhi.commands.status_cmd import run_status
 
@@ -27,6 +28,15 @@ def build_parser() -> argparse.ArgumentParser:
     brainstorm_parser = subparsers.add_parser("brainstorm", help="prepare or apply brainstorm packets")
     brainstorm_parser.add_argument("--response-file", help="structured brainstorm response file")
     brainstorm_parser.set_defaults(handler=run_brainstorm)
+
+    outline_parser = subparsers.add_parser("outline", help="prepare or apply outline expansion packets")
+    outline_subparsers = outline_parser.add_subparsers(dest="outline_command")
+
+    outline_expand_parser = outline_subparsers.add_parser("expand", help="expand chapter outlines")
+    outline_expand_parser.add_argument("--chapters", required=True, help="chapter range such as 1-3")
+    outline_expand_parser.add_argument("--direction", help="extra steering note")
+    outline_expand_parser.add_argument("--response-file", help="structured outline response file")
+    outline_expand_parser.set_defaults(handler=run_outline_expand)
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
     compile_parser.set_defaults(handler=run_compile)
