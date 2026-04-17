@@ -360,12 +360,12 @@ git commit -m "feat: add full structural review dashboard"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-16-pizhi-milestone-4-maintenance.md`
 
-- [ ] **Step 1: Run the full milestone 4 test suite**
+- [x] **Step 1: Run the full milestone 4 test suite**
 
 Run: `python -m pytest tests/unit tests/integration -v`
 Expected: PASS
 
-- [ ] **Step 2: Run CLI smoke checks for the maintenance commands**
+- [x] **Step 2: Run CLI smoke checks for the maintenance commands**
 
 Run:
 
@@ -380,11 +380,11 @@ Expected:
 - both help commands exit with code 0
 - `review --full` exits with code 0 in a test project and writes `.pizhi/cache/review_full.md`
 
-- [ ] **Step 3: Mark completed steps in this plan**
+- [x] **Step 3: Mark completed steps in this plan**
 
 Update the checkbox states in this file so the plan remains truthful after execution.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-16-pizhi-milestone-4-maintenance.md
