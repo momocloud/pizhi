@@ -119,6 +119,32 @@ def test_build_status_report_treats_referenced_entries_as_tracked(initialized_pr
     assert [entry.entry_id for entry in report.overdue_foreshadowing] == ["F900"]
 
 
+def test_build_status_report_treats_referenced_entries_as_near_payoff_tracked(initialized_project):
+    paths = project_paths(initialized_project)
+    _upsert_status(initialized_project, 4, "outlined", title="第四章 旧档案")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+
+## Referenced
+### F901 | Priority: medium
+- **Description**: 已引用且临近回收窗口的伏笔
+- **Planned Payoff**: ch010
+- **Related Characters**: 沈轩
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = build_status_report(initialized_project)
+
+    assert [entry.entry_id for entry in report.near_payoff_foreshadowing] == ["F901"]
+
+
 def test_build_status_report_marks_range_payoff_near_five_chapters_before_window(initialized_project):
     paths = project_paths(initialized_project)
     _upsert_status(initialized_project, 4, "outlined", title="第四章 前哨")
