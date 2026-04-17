@@ -137,3 +137,36 @@ def test_parse_tracker_entries_skips_invalid_entry_and_keeps_valid_entries():
     entries = parse_tracker_entries(text)
 
     assert [entry.entry_id for entry in entries] == ["F001", "F003"]
+
+
+def test_parse_tracker_entries_skips_invalid_header_block_and_keeps_neighbors():
+    text = """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 合法伏笔一
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+### BROKEN
+- **Description**: 坏掉的头部
+- **Planned Payoff**: ch999
+
+### F003 | Priority: low
+- **Description**: 合法伏笔二
+- **Planned Payoff**: ch018
+- **Related Characters**: 阿坤
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+"""
+
+    entries = parse_tracker_entries(text)
+
+    assert [entry.entry_id for entry in entries] == ["F001", "F003"]
+    assert entries[0].description == "合法伏笔一"
+    assert entries[0].planned_payoff.start_chapter == 5
+    assert entries[1].description == "合法伏笔二"

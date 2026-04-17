@@ -10,7 +10,8 @@ SECTION_RE = re.compile(
     r"^## (?P<name>Active|Referenced|Resolved|Abandoned)\s*$\n(?P<content>.*?)(?=^## (?:Active|Referenced|Resolved|Abandoned)\s*$|\Z)",
     re.MULTILINE | re.DOTALL,
 )
-ENTRY_RE = re.compile(r"^### (?P<id>F\d+).*?(?=^### F\d+|\Z)", re.MULTILINE | re.DOTALL)
+ENTRY_BLOCK_RE = re.compile(r"^### .+?(?=^### |\Z)", re.MULTILINE | re.DOTALL)
+ENTRY_ID_RE = re.compile(r"^### (?P<id>F\d+)(?:\s|\Z)", re.MULTILINE)
 PAYOFF_RE = re.compile(r"^ch(?P<start>\d{3})(?:(?:-ch(?P<end>\d{3}))|(?P<open>\+))?$", re.IGNORECASE)
 ENTRY_HEADER_RE = re.compile(r"^### (?P<id>F\d+)(?: \| Priority: (?P<priority>.+))?$")
 ENTRY_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+)\*\*: ?(?P<value>.*)$")
@@ -97,7 +98,7 @@ def parse_tracker_entries(current_text: str) -> list[ForeshadowingEntry]:
     _, sections = _parse_sections(current_text)
     entries: list[ForeshadowingEntry] = []
     for section_name in SECTION_NAMES:
-        for match in ENTRY_RE.finditer(sections[section_name]):
+        for match in ENTRY_BLOCK_RE.finditer(sections[section_name]):
             entry = _try_parse_entry_block(match.group(0), section_name)
             if entry is not None:
                 entries.append(entry)
@@ -141,13 +142,13 @@ def _upsert_entry(section_text: str, entry_id: str, new_block: str) -> str:
 
 
 def _remove_entry(section_text: str, entry_id: str) -> str:
-    blocks = [match.group(0).strip() for match in ENTRY_RE.finditer(section_text)]
-    kept = [block for block in blocks if not block.startswith(f"### {entry_id}")]
+    blocks = [match.group(0).strip() for match in ENTRY_BLOCK_RE.finditer(section_text)]
+    kept = [block for block in blocks if _entry_block_id(block) != entry_id]
     return "\n\n".join(kept).strip()
 
 
 def _entry_ids(section_text: str) -> set[str]:
-    return {match.group("id") for match in ENTRY_RE.finditer(section_text)}
+    return {match.group("id") for match in ENTRY_ID_RE.finditer(section_text)}
 
 
 def _parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry:
@@ -181,3 +182,11 @@ def _try_parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry 
         return _parse_entry_block(block, section_name)
     except ValueError:
         return None
+
+
+def _entry_block_id(block: str) -> str | None:
+    first_line = block.strip().splitlines()[0]
+    header_match = ENTRY_HEADER_RE.fullmatch(first_line)
+    if header_match is None:
+        return None
+    return header_match.group("id")
