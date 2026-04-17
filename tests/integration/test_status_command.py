@@ -60,3 +60,41 @@ def test_status_command_prints_dashboard_sections(initialized_project, fixture_t
     assert "Foreshadowing:" in result.stdout
     assert "ch001" in result.stdout
     assert "F001" in result.stdout
+
+
+def test_status_command_preserves_full_payoff_windows(initialized_project):
+    paths = project_paths(initialized_project)
+    _upsert_status(initialized_project, 9, "outlined", title="第九章 前夜")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F020 | Priority: medium
+- **Description**: 区间 payoff 伏笔
+- **Planned Payoff**: ch010-ch015
+- **Related Characters**: 沈轩
+
+### F030 | Priority: high
+- **Description**: 开放式 payoff 伏笔
+- **Planned Payoff**: ch030+
+- **Related Characters**: 阿坤
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "status"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "F020 (ch010-ch015)" in result.stdout
+    assert "F030 (ch030+)" in result.stdout

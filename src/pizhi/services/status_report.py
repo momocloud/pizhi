@@ -10,7 +10,7 @@ from pizhi.services.project_snapshot import load_project_snapshot
 
 STATUS_ORDER = ("planned", "outlined", "drafted", "reviewed", "compiled")
 PENDING_QUEUE_ORDER = ("outlined", "drafted", "reviewed")
-NEAR_PAYOFF_WINDOW = 3
+NEAR_PAYOFF_LEAD = 5
 
 
 @dataclass(slots=True)
@@ -24,6 +24,7 @@ class StatusReport:
     compiled_volumes: int
     recent_chapters: list[ChapterState]
     pending_chapters: dict[str, list[ChapterState]]
+    active_foreshadowing: list[ForeshadowingEntry]
     active_foreshadowing_count: int
     near_payoff_foreshadowing: list[ForeshadowingEntry]
     overdue_foreshadowing: list[ForeshadowingEntry]
@@ -69,6 +70,7 @@ def build_status_report(project_root: Path) -> StatusReport:
         compiled_volumes=compiled_volumes,
         recent_chapters=snapshot.recent_chapters,
         pending_chapters=pending_chapters,
+        active_foreshadowing=active_foreshadowing,
         active_foreshadowing_count=len(active_foreshadowing),
         near_payoff_foreshadowing=near_payoff_foreshadowing,
         overdue_foreshadowing=overdue_foreshadowing,
@@ -78,7 +80,15 @@ def build_status_report(project_root: Path) -> StatusReport:
 def _is_near_payoff(entry: ForeshadowingEntry, next_chapter: int) -> bool:
     if entry.planned_payoff is None:
         return False
-    return entry.planned_payoff.start_chapter <= next_chapter + NEAR_PAYOFF_WINDOW
+
+    start_chapter = entry.planned_payoff.start_chapter
+    near_window_start = start_chapter - NEAR_PAYOFF_LEAD
+
+    if entry.planned_payoff.open_ended:
+        return near_window_start <= next_chapter <= start_chapter
+
+    end_chapter = entry.planned_payoff.end_chapter or start_chapter
+    return near_window_start <= next_chapter <= end_chapter
 
 
 def _is_overdue(entry: ForeshadowingEntry, next_chapter: int) -> bool:

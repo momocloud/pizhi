@@ -80,3 +80,84 @@ def test_build_status_report_marks_overdue_foreshadowing(initialized_project):
     assert report.active_foreshadowing_count == 1
     assert report.near_payoff_foreshadowing == []
     assert [entry.entry_id for entry in report.overdue_foreshadowing] == ["F010"]
+
+
+def test_build_status_report_marks_range_payoff_near_five_chapters_before_window(initialized_project):
+    paths = project_paths(initialized_project)
+    _upsert_status(initialized_project, 4, "outlined", title="第四章 前哨")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F020 | Priority: medium
+- **Description**: 区间 payoff 伏笔
+- **Planned Payoff**: ch010-ch015
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = build_status_report(initialized_project)
+
+    assert [entry.entry_id for entry in report.near_payoff_foreshadowing] == ["F020"]
+    assert report.overdue_foreshadowing == []
+
+
+def test_build_status_report_marks_range_payoff_overdue_after_window(initialized_project):
+    paths = project_paths(initialized_project)
+    _upsert_status(initialized_project, 16, "outlined", title="第十六章 错过窗口")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F021 | Priority: medium
+- **Description**: 已过期的区间 payoff
+- **Planned Payoff**: ch010-ch015
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = build_status_report(initialized_project)
+
+    assert report.near_payoff_foreshadowing == []
+    assert [entry.entry_id for entry in report.overdue_foreshadowing] == ["F021"]
+
+
+def test_build_status_report_does_not_keep_open_ended_payoff_near_forever(initialized_project):
+    paths = project_paths(initialized_project)
+    _upsert_status(initialized_project, 31, "outlined", title="第三十一章 余波")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F030 | Priority: high
+- **Description**: 开放式 payoff 伏笔
+- **Planned Payoff**: ch030+
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = build_status_report(initialized_project)
+
+    assert report.near_payoff_foreshadowing == []
+    assert report.overdue_foreshadowing == []

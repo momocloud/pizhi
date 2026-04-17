@@ -38,6 +38,7 @@ def run_status(args: argparse.Namespace) -> int:
 
     print("Foreshadowing:")
     print(f"  Active: {report.active_foreshadowing_count}")
+    print(f"  Active windows: {_format_foreshadowing_entries(report.active_foreshadowing)}")
     print(f"  Near payoff: {_format_foreshadowing_entries(report.near_payoff_foreshadowing)}")
     print(f"  Overdue: {_format_foreshadowing_entries(report.overdue_foreshadowing)}")
     return 0
@@ -60,6 +61,19 @@ def _format_foreshadowing_entries(entries: list) -> str:
         if entry.planned_payoff is None:
             formatted.append(entry.entry_id)
             continue
-        payoff = f"ch{entry.planned_payoff.start_chapter:03d}"
+        payoff = _format_payoff_window(entry)
         formatted.append(f"{entry.entry_id} ({payoff})")
     return ", ".join(formatted)
+
+
+def _format_payoff_window(entry) -> str:
+    planned_payoff = entry.planned_payoff
+    if planned_payoff is None:
+        return ""
+    start = f"ch{planned_payoff.start_chapter:03d}"
+    if planned_payoff.open_ended:
+        return f"{start}+"
+    end = planned_payoff.end_chapter or planned_payoff.start_chapter
+    if end == planned_payoff.start_chapter:
+        return start
+    return f"{start}-ch{end:03d}"
