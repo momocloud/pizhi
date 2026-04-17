@@ -21,6 +21,18 @@ def test_load_project_snapshot_tracks_chapter_artifacts(initialized_project, fix
     assert snapshot.chapters[1].artifacts.meta_exists is True
 
 
+def test_load_project_snapshot_tolerates_malformed_meta_json(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    meta_path = initialized_project / ".pizhi" / "chapters" / "ch001" / "meta.json"
+    meta_path.write_text("{not valid json", encoding="utf-8")
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert snapshot.latest_chapter == 1
+    assert snapshot.chapters[1].artifacts.meta_exists is True
+    assert snapshot.chapters[1].metadata == {}
+
+
 def test_load_project_snapshot_includes_foreshadowing_entries(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
 

@@ -54,6 +54,17 @@ def test_build_status_report_includes_pending_queues_and_foreshadowing(initializ
     assert report.overdue_foreshadowing == []
 
 
+def test_build_status_report_tolerates_malformed_meta_json(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    meta_path = initialized_project / ".pizhi" / "chapters" / "ch001" / "meta.json"
+    meta_path.write_text("{not valid json", encoding="utf-8")
+
+    report = build_status_report(initialized_project)
+
+    assert report.latest_chapter == 1
+    assert [chapter.number for chapter in report.recent_chapters] == [1]
+
+
 def test_build_status_report_marks_overdue_foreshadowing(initialized_project):
     paths = project_paths(initialized_project)
     _upsert_status(initialized_project, 4, "outlined", title="第四章 旧档案")

@@ -66,4 +66,7 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
 def _load_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
