@@ -109,3 +109,31 @@ def test_parse_tracker_entries_reads_all_sections():
     assert entries[2].resolution == "真相已经揭露"
     assert entries[3].section == "Abandoned"
     assert entries[3].planned_payoff.open_ended is True
+
+
+def test_parse_tracker_entries_skips_invalid_entry_and_keeps_valid_entries():
+    text = """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 合法伏笔
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+### F002 | Priority: medium
+- **Description**: 坏掉的伏笔
+- **Planned Payoff**: someday
+- **Related Characters**: 阿坤
+
+## Referenced
+### F003
+- **Referenced**: true
+
+## Resolved
+
+## Abandoned
+"""
+
+    entries = parse_tracker_entries(text)
+
+    assert [entry.entry_id for entry in entries] == ["F001", "F003"]

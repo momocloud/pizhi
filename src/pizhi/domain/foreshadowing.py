@@ -98,7 +98,9 @@ def parse_tracker_entries(current_text: str) -> list[ForeshadowingEntry]:
     entries: list[ForeshadowingEntry] = []
     for section_name in SECTION_NAMES:
         for match in ENTRY_RE.finditer(sections[section_name]):
-            entries.append(_parse_entry_block(match.group(0), section_name))
+            entry = _try_parse_entry_block(match.group(0), section_name)
+            if entry is not None:
+                entries.append(entry)
     return entries
 
 
@@ -172,3 +174,10 @@ def _parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry:
         resolution=fields.get("Resolution"),
         referenced=fields.get("Referenced", "").lower() == "true",
     )
+
+
+def _try_parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry | None:
+    try:
+        return _parse_entry_block(block, section_name)
+    except ValueError:
+        return None

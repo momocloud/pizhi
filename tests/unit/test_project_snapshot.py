@@ -40,3 +40,33 @@ def test_load_project_snapshot_handles_missing_foreshadowing_file(initialized_pr
     snapshot = load_project_snapshot(initialized_project)
 
     assert snapshot.foreshadowing_entries == []
+
+
+def test_load_project_snapshot_skips_invalid_foreshadowing_entries(initialized_project):
+    foreshadowing_file = initialized_project / ".pizhi" / "global" / "foreshadowing.md"
+    foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 合法伏笔
+- **Planned Payoff**: ch018
+- **Related Characters**: 沈轩
+
+### F002 | Priority: medium
+- **Description**: 坏掉的伏笔
+- **Planned Payoff**: ????
+- **Related Characters**: 阿坤
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert [entry.entry_id for entry in snapshot.foreshadowing_entries] == ["F001"]
