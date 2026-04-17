@@ -10,6 +10,7 @@ from pizhi.services.project_snapshot import load_project_snapshot
 
 STATUS_ORDER = ("planned", "outlined", "drafted", "reviewed", "compiled")
 PENDING_QUEUE_ORDER = ("outlined", "drafted", "reviewed")
+TRACKED_FORESHADOWING_SECTIONS = {"Active", "Referenced"}
 NEAR_PAYOFF_LEAD = 5
 
 
@@ -47,12 +48,15 @@ def build_status_report(project_root: Path) -> StatusReport:
     active_foreshadowing = [
         entry for entry in snapshot.foreshadowing_entries if entry.section == "Active"
     ]
+    tracked_foreshadowing = [
+        entry for entry in snapshot.foreshadowing_entries if entry.section in TRACKED_FORESHADOWING_SECTIONS
+    ]
     overdue_foreshadowing = [
-        entry for entry in active_foreshadowing if _is_overdue(entry, snapshot.next_chapter)
+        entry for entry in tracked_foreshadowing if _is_overdue(entry, snapshot.next_chapter)
     ]
     near_payoff_foreshadowing = [
         entry
-        for entry in active_foreshadowing
+        for entry in tracked_foreshadowing
         if not _is_overdue(entry, snapshot.next_chapter)
         and _is_near_payoff(entry, snapshot.next_chapter)
     ]

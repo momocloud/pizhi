@@ -119,6 +119,17 @@ def _review_chapter(snapshot, paths, chapter_number: int) -> list[StructuralIssu
     chapter_dir = paths.chapter_dir(chapter_number)
     issues: list[StructuralIssue] = []
 
+    if chapter_number > 1 and (chapter_number - 1) not in snapshot.chapters:
+        issues.append(
+            StructuralIssue(
+                category="章节号连续性",
+                severity="高",
+                description=f"第 {chapter_number} 章之前缺少 ch{chapter_number - 1:03d}。",
+                evidence=f"available chapters: {sorted(snapshot.chapters)}",
+                suggestion="补回缺失章节，或修正错误的索引/目录状态。",
+            )
+        )
+
     for artifact_name in REQUIRED_ARTIFACT_NAMES:
         artifact_path = chapter_dir / artifact_name
         if not _path_has_content(artifact_path):

@@ -24,6 +24,14 @@ def test_structural_review_tolerates_malformed_meta_json(initialized_project, fi
     assert report.chapter_issues[1] == []
 
 
+def test_structural_review_single_chapter_flags_missing_previous_chapter(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 4, fixture_text("ch001_response.md"))
+
+    report = run_structural_review(initialized_project, chapter_number=4)
+
+    assert any(issue.category == "章节号连续性" for issue in report.chapter_issues[4])
+
+
 def test_structural_review_full_flags_overdue_foreshadowing(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
