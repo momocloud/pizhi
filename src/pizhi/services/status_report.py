@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from pizhi.core.config import default_config
-from pizhi.core.config import load_config
-from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
+from pizhi.domain.foreshadowing import ForeshadowingEntry
+from pizhi.domain.project_state import ChapterState
+from pizhi.services.project_snapshot import load_project_snapshot
 
 STATUS_ORDER = ("planned", "outlined", "drafted", "reviewed", "compiled")
+PENDING_QUEUE_ORDER = ("outlined", "drafted", "reviewed")
+NEAR_PAYOFF_WINDOW = 3
 
 
 @dataclass(slots=True)
@@ -20,37 +22,69 @@ class StatusReport:
     latest_chapter: int | None
     next_chapter: int
     compiled_volumes: int
+    recent_chapters: list[ChapterState]
+    pending_chapters: dict[str, list[ChapterState]]
+    active_foreshadowing_count: int
+    near_payoff_foreshadowing: list[ForeshadowingEntry]
+    overdue_foreshadowing: list[ForeshadowingEntry]
 
 
 def build_status_report(project_root: Path) -> StatusReport:
-    paths = project_paths(project_root)
-    if paths.config_file.exists():
-        config = load_config(paths.config_file)
-    else:
-        config = default_config(name=project_root.name)
-
-    records = ChapterIndexStore(paths.chapter_index_file).read_all()
+    snapshot = load_project_snapshot(project_root)
     chapter_counts = {status: 0 for status in STATUS_ORDER}
-    latest_chapter: int | None = None
+    pending_chapters = {status: [] for status in PENDING_QUEUE_ORDER}
 
-    for record in records:
-        status = str(record.get("status", "planned"))
-        chapter_counts.setdefault(status, 0)
-        chapter_counts[status] += 1
+    for chapter in snapshot.chapters.values():
+        chapter_counts.setdefault(chapter.status, 0)
+        chapter_counts[chapter.status] += 1
+        if chapter.status in pending_chapters:
+            pending_chapters[chapter.status].append(chapter)
 
-        number = int(record["n"])
-        if latest_chapter is None or number > latest_chapter:
-            latest_chapter = number
+    for status in pending_chapters:
+        pending_chapters[status].sort(key=lambda chapter: chapter.number)
 
+    active_foreshadowing = [
+        entry for entry in snapshot.foreshadowing_entries if entry.section == "Active"
+    ]
+    overdue_foreshadowing = [
+        entry for entry in active_foreshadowing if _is_overdue(entry, snapshot.next_chapter)
+    ]
+    near_payoff_foreshadowing = [
+        entry
+        for entry in active_foreshadowing
+        if not _is_overdue(entry, snapshot.next_chapter)
+        and _is_near_payoff(entry, snapshot.next_chapter)
+    ]
+
+    paths = project_paths(project_root)
     compiled_volumes = len(list(paths.manuscript_dir.glob("vol_*.md"))) if paths.manuscript_dir.exists() else 0
-    next_chapter = 1 if latest_chapter is None else latest_chapter + 1
 
     return StatusReport(
-        project_name=config.project.name,
-        total_planned=config.chapters.total_planned,
-        per_volume=config.chapters.per_volume,
+        project_name=snapshot.project_name,
+        total_planned=snapshot.total_planned,
+        per_volume=snapshot.per_volume,
         chapter_counts=chapter_counts,
-        latest_chapter=latest_chapter,
-        next_chapter=next_chapter,
+        latest_chapter=snapshot.latest_chapter,
+        next_chapter=snapshot.next_chapter,
         compiled_volumes=compiled_volumes,
+        recent_chapters=snapshot.recent_chapters,
+        pending_chapters=pending_chapters,
+        active_foreshadowing_count=len(active_foreshadowing),
+        near_payoff_foreshadowing=near_payoff_foreshadowing,
+        overdue_foreshadowing=overdue_foreshadowing,
     )
+
+
+def _is_near_payoff(entry: ForeshadowingEntry, next_chapter: int) -> bool:
+    if entry.planned_payoff is None:
+        return False
+    return entry.planned_payoff.start_chapter <= next_chapter + NEAR_PAYOFF_WINDOW
+
+
+def _is_overdue(entry: ForeshadowingEntry, next_chapter: int) -> bool:
+    if entry.planned_payoff is None:
+        return False
+    if entry.planned_payoff.open_ended:
+        return False
+    deadline = entry.planned_payoff.end_chapter or entry.planned_payoff.start_chapter
+    return deadline < next_chapter

@@ -12,13 +12,54 @@ def run_status(args: argparse.Namespace) -> int:
     report = build_status_report(Path.cwd())
     latest = "none" if report.latest_chapter is None else f"ch{report.latest_chapter:03d}"
 
-    print(f"Project: {report.project_name}")
-    print(f"Total planned chapters: {report.total_planned}")
-    print(f"Chapters per volume: {report.per_volume}")
-    print(f"Latest chapter: {latest}")
-    print(f"Next chapter: ch{report.next_chapter:03d}")
-    print(f"Compiled volumes: {report.compiled_volumes}")
-    print("Chapter counts:")
+    print("Project:")
+    print(f"  Name: {report.project_name}")
+    print(f"  Total planned chapters: {report.total_planned}")
+    print(f"  Chapters per volume: {report.per_volume}")
+    print(f"  Latest chapter: {latest}")
+    print(f"  Next chapter: ch{report.next_chapter:03d}")
+    print(f"  Compiled volumes: {report.compiled_volumes}")
+    print("  Chapter counts:")
     for status in STATUS_ORDER:
-        print(f"  {status}: {report.chapter_counts.get(status, 0)}")
+        print(f"    {status}: {report.chapter_counts.get(status, 0)}")
+
+    print("Recent chapters:")
+    if report.recent_chapters:
+        for chapter in report.recent_chapters[:5]:
+            title = chapter.title or "(untitled)"
+            print(f"  ch{chapter.number:03d} [{chapter.status}] {title}")
+    else:
+        print("  none")
+
+    print("Pending chapters:")
+    _print_pending_queue("outlined -> drafted", report.pending_chapters["outlined"])
+    _print_pending_queue("drafted -> reviewed", report.pending_chapters["drafted"])
+    _print_pending_queue("reviewed -> compiled", report.pending_chapters["reviewed"])
+
+    print("Foreshadowing:")
+    print(f"  Active: {report.active_foreshadowing_count}")
+    print(f"  Near payoff: {_format_foreshadowing_entries(report.near_payoff_foreshadowing)}")
+    print(f"  Overdue: {_format_foreshadowing_entries(report.overdue_foreshadowing)}")
     return 0
+
+
+def _print_pending_queue(label: str, chapters: list) -> None:
+    if chapters:
+        chapter_list = ", ".join(f"ch{chapter.number:03d}" for chapter in chapters)
+    else:
+        chapter_list = "none"
+    print(f"  {label}: {chapter_list}")
+
+
+def _format_foreshadowing_entries(entries: list) -> str:
+    if not entries:
+        return "none"
+
+    formatted: list[str] = []
+    for entry in entries:
+        if entry.planned_payoff is None:
+            formatted.append(entry.entry_id)
+            continue
+        payoff = f"ch{entry.planned_payoff.start_chapter:03d}"
+        formatted.append(f"{entry.entry_id} ({payoff})")
+    return ", ".join(formatted)
