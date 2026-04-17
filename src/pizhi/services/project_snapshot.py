@@ -8,6 +8,7 @@ from pizhi.core.config import default_config
 from pizhi.core.config import load_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
+from pizhi.domain.foreshadowing import parse_tracker_entries
 from pizhi.domain.project_state import ChapterArtifacts
 from pizhi.domain.project_state import ChapterState
 from pizhi.domain.project_state import ProjectSnapshot
@@ -46,6 +47,9 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     recent_chapters = [chapters[number] for number in sorted(chapters, reverse=True)]
     latest_chapter = recent_chapters[0].number if recent_chapters else None
     next_chapter = 1 if latest_chapter is None else latest_chapter + 1
+    foreshadowing_entries = []
+    if paths.foreshadowing_file.exists():
+        foreshadowing_entries = parse_tracker_entries(paths.foreshadowing_file.read_text(encoding="utf-8"))
 
     return ProjectSnapshot(
         project_name=config.project.name,
@@ -55,6 +59,7 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
         latest_chapter=latest_chapter,
         next_chapter=next_chapter,
         recent_chapters=recent_chapters,
+        foreshadowing_entries=foreshadowing_entries,
     )
 
 

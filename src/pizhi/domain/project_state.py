@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pizhi.domain.foreshadowing import ForeshadowingEntry
+
 
 @dataclass(slots=True)
 class ChapterArtifacts:
@@ -35,3 +37,4 @@ class ProjectSnapshot:
     latest_chapter: int | None
     next_chapter: int
     recent_chapters: list[ChapterState]
+    foreshadowing_entries: list[ForeshadowingEntry]

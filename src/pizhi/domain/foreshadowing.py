@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import re
 from typing import Any
 
@@ -10,6 +11,28 @@ SECTION_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 ENTRY_RE = re.compile(r"^### (?P<id>F\d+).*?(?=^### F\d+|\Z)", re.MULTILINE | re.DOTALL)
+PAYOFF_RE = re.compile(r"^ch(?P<start>\d{3})(?:(?:-ch(?P<end>\d{3}))|(?P<open>\+))?$", re.IGNORECASE)
+ENTRY_HEADER_RE = re.compile(r"^### (?P<id>F\d+)(?: \| Priority: (?P<priority>.+))?$")
+ENTRY_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+)\*\*: ?(?P<value>.*)$")
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedPayoff:
+    start_chapter: int
+    end_chapter: int | None
+    open_ended: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ForeshadowingEntry:
+    entry_id: str
+    section: str
+    description: str
+    planned_payoff: PlannedPayoff | None
+    priority: str | None
+    related_characters: list[str]
+    resolution: str | None
+    referenced: bool
 
 
 def update_foreshadowing_tracker(current_text: str, operations: dict[str, Any]) -> str:
@@ -52,6 +75,31 @@ def tracker_ids_by_section(current_text: str) -> dict[str, set[str]]:
         "Resolved": _entry_ids(sections["Resolved"]),
         "Abandoned": _entry_ids(sections["Abandoned"]),
     }
+
+
+def parse_planned_payoff(value: str) -> PlannedPayoff:
+    match = PAYOFF_RE.fullmatch(value.strip())
+    if not match:
+        raise ValueError(f"Unsupported planned payoff value: {value!r}")
+
+    start_chapter = int(match.group("start"))
+    end_value = match.group("end")
+    open_ended = match.group("open") == "+"
+    end_chapter = None if open_ended else int(end_value) if end_value else start_chapter
+    return PlannedPayoff(
+        start_chapter=start_chapter,
+        end_chapter=end_chapter,
+        open_ended=open_ended,
+    )
+
+
+def parse_tracker_entries(current_text: str) -> list[ForeshadowingEntry]:
+    _, sections = _parse_sections(current_text)
+    entries: list[ForeshadowingEntry] = []
+    for section_name in SECTION_NAMES:
+        for match in ENTRY_RE.finditer(sections[section_name]):
+            entries.append(_parse_entry_block(match.group(0), section_name))
+    return entries
 
 
 def _parse_sections(current_text: str) -> tuple[str, dict[str, str]]:
@@ -98,3 +146,29 @@ def _remove_entry(section_text: str, entry_id: str) -> str:
 
 def _entry_ids(section_text: str) -> set[str]:
     return {match.group("id") for match in ENTRY_RE.finditer(section_text)}
+
+
+def _parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry:
+    lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
+    header_match = ENTRY_HEADER_RE.fullmatch(lines[0])
+    if header_match is None:
+        raise ValueError(f"Unsupported foreshadowing header: {lines[0]!r}")
+
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        field_match = ENTRY_FIELD_RE.fullmatch(line)
+        if field_match:
+            fields[field_match.group("name")] = field_match.group("value")
+
+    payoff_text = fields.get("Planned Payoff", "")
+    related_text = fields.get("Related Characters", "")
+    return ForeshadowingEntry(
+        entry_id=header_match.group("id"),
+        section=section_name,
+        description=fields.get("Description", ""),
+        planned_payoff=parse_planned_payoff(payoff_text) if payoff_text else None,
+        priority=header_match.group("priority"),
+        related_characters=[name.strip() for name in related_text.split(",") if name.strip()],
+        resolution=fields.get("Resolution"),
+        referenced=fields.get("Referenced", "").lower() == "true",
+    )

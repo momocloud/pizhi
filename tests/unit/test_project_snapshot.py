@@ -19,3 +19,24 @@ def test_load_project_snapshot_tracks_chapter_artifacts(initialized_project, fix
     assert snapshot.latest_chapter == 1
     assert snapshot.chapters[1].artifacts.text_exists is True
     assert snapshot.chapters[1].artifacts.meta_exists is True
+
+
+def test_load_project_snapshot_includes_foreshadowing_entries(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert len(snapshot.foreshadowing_entries) == 1
+    assert snapshot.foreshadowing_entries[0].entry_id == "F001"
+    assert snapshot.foreshadowing_entries[0].section == "Active"
+    assert snapshot.foreshadowing_entries[0].planned_payoff.start_chapter == 5
+    assert snapshot.foreshadowing_entries[0].planned_payoff.end_chapter == 5
+
+
+def test_load_project_snapshot_handles_missing_foreshadowing_file(initialized_project):
+    foreshadowing_file = initialized_project / ".pizhi" / "global" / "foreshadowing.md"
+    foreshadowing_file.unlink()
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert snapshot.foreshadowing_entries == []
