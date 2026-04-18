@@ -10,8 +10,8 @@ from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.domain.foreshadowing import tracker_ids_by_section
 from pizhi.domain.foreshadowing import update_foreshadowing_tracker
-from pizhi.domain.timeline import last_non_flashback_time
 from pizhi.domain.timeline import append_timeline_events
+from pizhi.domain.timeline import parse_timeline_entries
 from pizhi.domain.worldview import apply_worldview_patch
 from pizhi.services.chapter_parser import ParsedChapterResponse
 from pizhi.services.chapter_parser import parse_chapter_response
@@ -41,7 +41,7 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
         _write_text(paths.worldview_file, worldview_updated)
 
     timeline_current = _read_text(paths.timeline_file, "# Timeline\n\n")
-    previous_last_non_flashback = last_non_flashback_time(timeline_current)
+    previous_last_non_flashback = _previous_last_non_flashback(paths, timeline_current)
     timeline_updated = append_timeline_events(timeline_current, chapter_number, parsed.metadata.timeline_events)
     _write_text(paths.timeline_file, timeline_updated)
 
@@ -112,3 +112,16 @@ def _read_text(path: Path, default: str) -> str:
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def _previous_last_non_flashback(paths, live_timeline_text: str) -> str | None:
+    entries = []
+    if paths.archive_dir.exists():
+        for archive_path in sorted(paths.archive_dir.glob("timeline_ch*.md")):
+            entries.extend(parse_timeline_entries(archive_path.read_text(encoding="utf-8")))
+    entries.extend(parse_timeline_entries(live_timeline_text))
+
+    for entry in reversed(entries):
+        if not entry.is_flashback:
+            return entry.at
+    return None
