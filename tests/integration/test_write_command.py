@@ -92,6 +92,145 @@ major_turning_points:
 """
 
 
+def _stale_candidate_response() -> str:
+    return """---
+chapter_title: "第一章 雨夜访客"
+word_count_estimated: 3200
+characters_involved:
+  - 沈轩
+  - 阿坤
+worldview_changed: false
+synopsis_changed: true
+timeline_events:
+  - at: "1986-03-14 夜"
+    event: "沈轩抵达码头三号仓"
+    is_flashback: false
+    is_major_turning_point: false
+  - at: "1986-03-15 凌晨"
+    event: "沈轩发现血衣"
+    is_flashback: false
+    is_major_turning_point: true
+foreshadowing:
+  introduced:
+    - id: F001
+      desc: "码头血衣的来源"
+      planned_payoff: "ch005"
+      priority: high
+      related_characters:
+        - 沈轩
+  referenced: []
+  resolved: []
+---
+
+沈轩在雨夜里来到码头三号仓，先一步意识到血衣不是巧合。
+
+---
+
+## characters_snapshot
+
+# 第一章角色状态
+
+## 沈轩
+- **位置**：香港，葵涌码头
+- **状态**：刚察觉血衣可能牵出更深的旧案
+
+## 阿坤
+- **位置**：香港，葵涌码头
+- **状态**：故作镇定，仍在观察沈轩的反应
+
+## relationships_snapshot
+
+# 第一章人物关系
+
+## 当前关系状态
+
+| 从 | 到 | 关系 | 信任度 | 备注 |
+|----|----|------|--------|------|
+| 沈轩 | 阿坤 | 合作 | 中 | 暂时同行，但彼此保留 |
+
+## 本章变化
+
+| 关系 | 变化前 | 变化后 | 触发原因 |
+|------|--------|--------|---------|
+| 沈轩 → 阿坤 | 无 | 合作 | 一同进入码头查仓 |
+
+## synopsis_new
+
+# Synopsis
+
+沈轩卷入码头血衣谜团，这份遗留概要还提前写入了下一章才会补齐的维护标记。
+
+## coverage_markers
+foreshadowing_ids:
+- F001
+- F002
+major_turning_points:
+- T001-02
+- T002-01
+"""
+
+
+def _second_chapter_without_synopsis_update() -> str:
+    return """---
+chapter_title: "第二章 血衣余波"
+word_count_estimated: 3300
+characters_involved:
+  - 沈轩
+  - 阿坤
+worldview_changed: false
+synopsis_changed: false
+timeline_events:
+  - at: "1986-03-15 上午"
+    event: "沈轩确认血衣还牵出新的目击者"
+    is_flashback: false
+    is_major_turning_point: true
+foreshadowing:
+  introduced:
+    - id: F002
+      desc: "血衣目击者留下的第二条线索"
+      planned_payoff: "ch006"
+      priority: high
+      related_characters:
+        - 沈轩
+  referenced:
+    - id: F001
+  resolved: []
+---
+
+沈轩和阿坤离开码头后，确认血衣背后还有新的目击者。
+
+---
+
+## characters_snapshot
+
+# 第二章角色状态
+
+## 沈轩
+- **位置**：香港，旺角
+- **状态**：意识到血衣线索开始外溢
+
+## 阿坤
+- **位置**：香港，旺角
+- **状态**：继续回避关键问题
+
+## relationships_snapshot
+
+# 第二章人物关系
+
+## 当前关系状态
+
+| 从 | 到 | 关系 | 信任度 | 备注 |
+|----|----|------|--------|------|
+| 沈轩 | 阿坤 | 合作 + 怀疑 | 低 | 彼此都知道仍有隐瞒 |
+
+## 本章变化
+
+| 关系 | 变化前 | 变化后 | 触发原因 |
+|------|--------|--------|---------|
+| 沈轩 → 阿坤 | 合作 | 合作 + 怀疑 | 新目击者线索让沈轩更不信任阿坤 |
+"""
+
+
 def test_write_command_applies_response_file(initialized_project, fixture_text):
     chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
     chapter_dir.mkdir(parents=True, exist_ok=True)
@@ -171,6 +310,72 @@ def test_write_command_keeps_invalid_synopsis_candidate_and_writes_review_cache(
     assert candidate_path.exists()
     assert review_path.exists()
     assert "rejected" in review_path.read_text(encoding="utf-8")
+
+
+def test_write_and_full_review_do_not_promote_stale_synopsis_candidate(initialized_project):
+    chapter_one_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+    chapter_one_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_one_dir / "outline.md").write_text(
+        "# 第001章 雨夜访客\n\n- 沈轩在码头发现血衣。\n",
+        encoding="utf-8",
+    )
+    chapter_two_dir = initialized_project / ".pizhi" / "chapters" / "ch002"
+    chapter_two_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_two_dir / "outline.md").write_text(
+        "# 第002章 血衣余波\n\n- 沈轩确认血衣牵出新的目击者。\n",
+        encoding="utf-8",
+    )
+
+    ch1_response = initialized_project / "ch001_response_stale_candidate.md"
+    ch1_response.write_text(_stale_candidate_response(), encoding="utf-8")
+    ch2_response = initialized_project / "ch002_response_no_synopsis.md"
+    ch2_response.write_text(_second_chapter_without_synopsis_update(), encoding="utf-8")
+
+    first_result = run(
+        [sys.executable, "-m", "pizhi", "write", "--chapter", "1", "--response-file", str(ch1_response)],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    paths = project_paths(initialized_project)
+    stale_review_text = (paths.cache_dir / "synopsis_review.md").read_text(encoding="utf-8")
+
+    assert first_result.returncode == 0, first_result.stderr
+    assert paths.synopsis_candidate_file.exists()
+    assert "status: rejected" in stale_review_text
+    assert "unexpected foreshadowing ids: F002" in stale_review_text
+    assert "unexpected major turning points: T002-01" in stale_review_text
+
+    second_result = run(
+        [sys.executable, "-m", "pizhi", "write", "--chapter", "2", "--response-file", str(ch2_response)],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    synopsis_text_after_write = paths.synopsis_file.read_text(encoding="utf-8")
+    review_text_after_write = (paths.cache_dir / "synopsis_review.md").read_text(encoding="utf-8")
+
+    assert second_result.returncode == 0, second_result.stderr
+    assert paths.synopsis_candidate_file.exists()
+    assert "沈轩卷入码头血衣谜团，这份遗留概要还提前写入了下一章才会补齐的维护标记。" not in synopsis_text_after_write
+    assert review_text_after_write == stale_review_text
+
+    full_review_result = run(
+        [sys.executable, "-m", "pizhi", "review", "--full"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    full_report = (paths.cache_dir / "review_full.md").read_text(encoding="utf-8")
+    review_text_after_full = (paths.cache_dir / "synopsis_review.md").read_text(encoding="utf-8")
+
+    assert full_review_result.returncode == 0, full_review_result.stderr
+    assert paths.synopsis_candidate_file.exists()
+    assert review_text_after_full == stale_review_text
+    assert "- Synopsis review: not run." in full_report
 
 
 def test_write_command_repeated_maintenance_runs_do_not_duplicate_archive_output(initialized_project, fixture_text):

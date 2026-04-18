@@ -15,6 +15,9 @@ from pizhi.domain.timeline import parse_timeline_entries
 from pizhi.domain.worldview import apply_worldview_patch
 from pizhi.services.chapter_parser import ParsedChapterResponse
 from pizhi.services.chapter_parser import parse_chapter_response
+from pizhi.services.maintenance import clear_synopsis_review_pending
+from pizhi.services.maintenance import mark_synopsis_review_pending
+from pizhi.services.project_snapshot import load_trusted_archived_timeline_entries
 
 
 @dataclass(slots=True)
@@ -41,7 +44,7 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
         _write_text(paths.worldview_file, worldview_updated)
 
     timeline_current = _read_text(paths.timeline_file, "# Timeline\n\n")
-    previous_last_non_flashback = _previous_last_non_flashback(paths, timeline_current)
+    previous_last_non_flashback = _previous_last_non_flashback(project_root, live_timeline_text=timeline_current)
     timeline_updated = append_timeline_events(timeline_current, chapter_number, parsed.metadata.timeline_events)
     _write_text(paths.timeline_file, timeline_updated)
 
@@ -59,6 +62,9 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
 
     if parsed.metadata.synopsis_changed and parsed.sections.synopsis_new:
         _write_text(paths.synopsis_candidate_file, parsed.sections.synopsis_new + "\n")
+        mark_synopsis_review_pending(project_root)
+    else:
+        clear_synopsis_review_pending(project_root)
 
     _write_text(
         paths.last_session_file,
@@ -114,11 +120,8 @@ def _write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline="\n")
 
 
-def _previous_last_non_flashback(paths, live_timeline_text: str) -> str | None:
-    entries = []
-    if paths.archive_dir.exists():
-        for archive_path in sorted(paths.archive_dir.glob("timeline_ch*.md")):
-            entries.extend(parse_timeline_entries(archive_path.read_text(encoding="utf-8")))
+def _previous_last_non_flashback(project_root: Path, live_timeline_text: str) -> str | None:
+    entries = load_trusted_archived_timeline_entries(project_root)
     entries.extend(parse_timeline_entries(live_timeline_text))
 
     for entry in reversed(entries):

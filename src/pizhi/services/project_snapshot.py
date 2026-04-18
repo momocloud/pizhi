@@ -100,6 +100,17 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     )
 
 
+def load_trusted_archived_timeline_entries(project_root: Path) -> list[TimelineEntry]:
+    snapshot = load_project_snapshot(project_root)
+    paths = project_paths(project_root)
+    trusted_ranges = _trusted_timeline_archive_ranges(
+        snapshot.existing_timeline_archive_ranges,
+        snapshot.eligible_archive_ranges,
+        snapshot.timeline_entries,
+    )
+    return _load_archived_timeline_entries(paths, trusted_ranges)
+
+
 def _load_live_timeline_entries(paths) -> list[TimelineEntry]:
     entries: list[TimelineEntry] = []
     if paths.timeline_file.exists():

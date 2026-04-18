@@ -27,7 +27,7 @@ def test_apply_chapter_response_writes_chapter_and_updates_index(initialized_pro
     assert "F001" in foreshadowing_text
 
 
-def test_apply_chapter_response_keeps_archived_non_flashback_context_for_review(initialized_project):
+def test_apply_chapter_response_ignores_untrusted_archive_for_previous_non_flashback_context(initialized_project):
     paths = project_paths(initialized_project)
     paths.archive_dir.mkdir(parents=True, exist_ok=True)
     (paths.archive_dir / "timeline_ch001-050.md").write_text(
@@ -78,11 +78,11 @@ def test_apply_chapter_response_keeps_archived_non_flashback_context_for_review(
 
     meta = json.loads((paths.chapter_dir(52) / "meta.json").read_text(encoding="utf-8"))
 
-    assert meta["review_context"]["previous_last_non_flashback"] == "1986-03-20 夜"
+    assert meta["review_context"]["previous_last_non_flashback"] is None
 
     report = run_structural_review(initialized_project, chapter_number=52)
 
-    assert any(issue.category == "时间线单调性" for issue in report.chapter_issues[52])
+    assert not any(issue.category == "时间线单调性" for issue in report.chapter_issues[52])
 
 
 def _chapter_response(*, chapter_title: str, body: str, timeline_events: list[dict]) -> str:

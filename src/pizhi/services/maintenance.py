@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from pizhi.core.paths import project_paths
 from pizhi.services.archive_service import ArchiveResult
 from pizhi.services.archive_service import rotate_archives
 from pizhi.services.synopsis_review import SynopsisReviewResult
@@ -22,6 +23,18 @@ class MaintenanceResult:
     findings: list[MaintenanceFinding]
 
 
+def mark_synopsis_review_pending(project_root: Path) -> None:
+    marker_path = _synopsis_review_pending_path(project_root)
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text("pending\n", encoding="utf-8", newline="\n")
+
+
+def clear_synopsis_review_pending(project_root: Path) -> None:
+    marker_path = _synopsis_review_pending_path(project_root)
+    if marker_path.exists():
+        marker_path.unlink()
+
+
 def run_after_write(project_root: Path) -> MaintenanceResult:
     return _run_maintenance(project_root)
 
@@ -32,9 +45,11 @@ def run_full_maintenance(project_root: Path) -> MaintenanceResult:
 
 def _run_maintenance(project_root: Path) -> MaintenanceResult:
     synopsis_review = None
-    candidate_path = project_root / ".pizhi" / "global" / "synopsis_candidate.md"
-    if candidate_path.exists():
+    candidate_path = project_paths(project_root).synopsis_candidate_file
+    marker_path = _synopsis_review_pending_path(project_root)
+    if marker_path.exists() and candidate_path.exists():
         synopsis_review = review_synopsis_candidate(project_root)
+    clear_synopsis_review_pending(project_root)
 
     archive_result = rotate_archives(project_root)
     findings = _build_findings(synopsis_review, archive_result)
@@ -119,3 +134,7 @@ def format_checkpoint_maintenance(chapter_results: list[tuple[int, MaintenanceRe
             lines.append(f"  archive: {'; '.join(archive_details)}")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _synopsis_review_pending_path(project_root: Path) -> Path:
+    return project_paths(project_root).cache_dir / "synopsis_review.pending"
