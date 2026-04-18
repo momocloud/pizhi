@@ -50,7 +50,11 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
         "# Foreshadowing Tracker\n\n## Active\n\n## Referenced\n\n## Resolved\n\n## Abandoned\n",
     )
     foreshadowing_ids_before = tracker_ids_by_section(foreshadowing_current)
-    foreshadowing_updated = update_foreshadowing_tracker(foreshadowing_current, parsed.metadata.foreshadowing)
+    foreshadowing_updated = update_foreshadowing_tracker(
+        foreshadowing_current,
+        parsed.metadata.foreshadowing,
+        chapter_number=chapter_number,
+    )
     _write_text(paths.foreshadowing_file, foreshadowing_updated)
 
     if parsed.metadata.synopsis_changed and parsed.sections.synopsis_new:

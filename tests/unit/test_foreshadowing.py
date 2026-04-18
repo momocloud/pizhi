@@ -25,6 +25,26 @@ def test_foreshadowing_tracker_adds_introduced_item_to_active_section():
     assert "码头血衣的来源" in updated
 
 
+def test_foreshadowing_tracker_writes_resolved_in_for_resolved_items():
+    current = "# Foreshadowing Tracker\n\n## Active\n\n## Referenced\n\n## Resolved\n\n## Abandoned\n"
+    operations = {
+        "introduced": [],
+        "referenced": [],
+        "resolved": [
+            {
+                "id": "F002",
+                "resolution": "真相已经揭露",
+            }
+        ],
+    }
+
+    updated = update_foreshadowing_tracker(current, operations, chapter_number=12)
+
+    assert "### F002" in updated
+    assert "- **Resolution**: 真相已经揭露" in updated
+    assert "- **Resolved In**: ch012" in updated
+
+
 def test_parse_planned_payoff_range():
     payoff = parse_planned_payoff("ch010-ch015")
 

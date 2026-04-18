@@ -38,7 +38,11 @@ class ForeshadowingEntry:
     referenced: bool
 
 
-def update_foreshadowing_tracker(current_text: str, operations: dict[str, Any]) -> str:
+def update_foreshadowing_tracker(
+    current_text: str,
+    operations: dict[str, Any],
+    chapter_number: int | None = None,
+) -> str:
     header, sections = _parse_sections(current_text)
 
     for item in operations.get("introduced", []):
@@ -49,7 +53,11 @@ def update_foreshadowing_tracker(current_text: str, operations: dict[str, Any]) 
         resolved_id = item["id"]
         sections["Active"] = _remove_entry(sections["Active"], resolved_id)
         sections["Referenced"] = _remove_entry(sections["Referenced"], resolved_id)
-        sections["Resolved"] = _upsert_entry(sections["Resolved"], resolved_id, _format_resolved_entry(item))
+        sections["Resolved"] = _upsert_entry(
+            sections["Resolved"],
+            resolved_id,
+            _format_resolved_entry(item, chapter_number),
+        )
 
     for item in operations.get("referenced", []):
         referenced_id = item["id"] if isinstance(item, dict) else str(item)
@@ -129,11 +137,14 @@ def _format_introduced_entry(item: dict[str, Any]) -> str:
     )
 
 
-def _format_resolved_entry(item: dict[str, Any]) -> str:
-    return (
-        f"### {item['id']}\n"
-        f"- **Resolution**: {item.get('resolution', '')}\n"
-    )
+def _format_resolved_entry(item: dict[str, Any], chapter_number: int | None = None) -> str:
+    lines = [
+        f"### {item['id']}",
+        f"- **Resolution**: {item.get('resolution', '')}",
+    ]
+    if chapter_number is not None:
+        lines.append(f"- **Resolved In**: ch{chapter_number:03d}")
+    return "\n".join(lines) + "\n"
 
 
 def _upsert_entry(section_text: str, entry_id: str, new_block: str) -> str:
