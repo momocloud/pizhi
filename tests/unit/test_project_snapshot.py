@@ -1,3 +1,4 @@
+from pizhi.domain.project_state import ArchiveRange
 from pizhi.services.chapter_writer import apply_chapter_response
 from pizhi.services.project_snapshot import load_project_snapshot
 
@@ -43,6 +44,63 @@ def test_load_project_snapshot_includes_foreshadowing_entries(initialized_projec
     assert snapshot.foreshadowing_entries[0].section == "Active"
     assert snapshot.foreshadowing_entries[0].planned_payoff.start_chapter == 5
     assert snapshot.foreshadowing_entries[0].planned_payoff.end_chapter == 5
+
+
+def test_load_project_snapshot_discovers_existing_archive_ranges(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+
+    archive_dir = initialized_project / ".pizhi" / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    (archive_dir / "timeline_ch001-050.md").write_text(
+        """# Timeline Archive: ch001-ch050
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+""",
+        encoding="utf-8",
+    )
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert snapshot.existing_timeline_archive_ranges == [ArchiveRange(1, 50)]
+    assert snapshot.existing_foreshadowing_archive_ranges == []
+    assert [entry.entry_id for entry in snapshot.active_or_referenced_foreshadowing] == ["F001"]
+
+
+def test_load_project_snapshot_includes_archived_major_turning_points(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    (initialized_project / ".pizhi" / "global" / "timeline.md").write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    archive_dir = initialized_project / ".pizhi" / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    (archive_dir / "timeline_ch051-100.md").write_text(
+        """# Timeline Archive: ch051-ch100
+
+## T060-02
+- **时间**: 1986-05-01 夜
+- **事件**: 被掩盖的证词重现
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert [entry.event_id for entry in snapshot.major_turning_points] == ["T001-01", "T060-02"]
 
 
 def test_load_project_snapshot_handles_missing_foreshadowing_file(initialized_project):

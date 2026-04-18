@@ -15,6 +15,7 @@ ENTRY_ID_RE = re.compile(r"^### (?P<id>F\d+)(?:\s|\Z)", re.MULTILINE)
 PAYOFF_RE = re.compile(r"^ch(?P<start>\d{3})(?:(?:-ch(?P<end>\d{3}))|(?P<open>\+))?$", re.IGNORECASE)
 ENTRY_HEADER_RE = re.compile(r"^### (?P<id>F\d+)(?: \| Priority: (?P<priority>.+))?$")
 ENTRY_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+)\*\*: ?(?P<value>.*)$")
+CLOSE_CHAPTER_RE = re.compile(r"^ch(?P<chapter>\d{3})$", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +34,7 @@ class ForeshadowingEntry:
     priority: str | None
     related_characters: list[str]
     resolution: str | None
+    closed_in_chapter: int | None
     referenced: bool
 
 
@@ -165,6 +167,7 @@ def _parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry:
 
     payoff_text = fields.get("Planned Payoff", "")
     related_text = fields.get("Related Characters", "")
+    closed_in_chapter = _parse_closed_in_chapter(fields)
     return ForeshadowingEntry(
         entry_id=header_match.group("id"),
         section=section_name,
@@ -173,6 +176,7 @@ def _parse_entry_block(block: str, section_name: str) -> ForeshadowingEntry:
         priority=header_match.group("priority"),
         related_characters=[name.strip() for name in related_text.split(",") if name.strip()],
         resolution=fields.get("Resolution"),
+        closed_in_chapter=closed_in_chapter,
         referenced=fields.get("Referenced", "").lower() == "true",
     )
 
@@ -190,3 +194,15 @@ def _entry_block_id(block: str) -> str | None:
     if header_match is None:
         return None
     return header_match.group("id")
+
+
+def _parse_closed_in_chapter(fields: dict[str, str]) -> int | None:
+    for field_name in ("Resolved In", "Abandoned In"):
+        value = fields.get(field_name)
+        if not value:
+            continue
+        match = CLOSE_CHAPTER_RE.fullmatch(value.strip())
+        if match is None:
+            continue
+        return int(match.group("chapter"))
+    return None

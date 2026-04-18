@@ -34,6 +34,10 @@ class TimelineEntry:
     is_flashback: bool
     is_major_turning_point: bool
 
+    @property
+    def event_id(self) -> str:
+        return f"T{self.chapter_number:03d}-{self.event_index:02d}"
+
 
 def append_timeline_events(current_text: str, chapter_number: int, events: list[dict[str, Any]]) -> str:
     base = current_text.rstrip() if current_text.strip() else "# Timeline"

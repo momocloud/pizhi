@@ -111,6 +111,36 @@ def test_parse_tracker_entries_reads_all_sections():
     assert entries[3].planned_payoff.open_ended is True
 
 
+def test_parse_tracker_entries_reads_resolved_in_and_abandoned_in():
+    text = """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 码头血衣的来源
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+### F002
+- **Resolution**: 真相已经揭露
+- **Resolved In**: ch005
+
+## Abandoned
+### F003 | Priority: low
+- **Description**: 被废弃的支线
+- **Planned Payoff**: ch030+
+- **Related Characters**: 雷老板
+- **Abandoned In**: ch010
+"""
+
+    entries = parse_tracker_entries(text)
+
+    assert entries[1].closed_in_chapter == 5
+    assert entries[2].closed_in_chapter == 10
+
+
 def test_parse_tracker_entries_skips_invalid_entry_and_keeps_valid_entries():
     text = """# Foreshadowing Tracker
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from pizhi.domain.foreshadowing import ForeshadowingEntry
+from pizhi.domain.timeline import TimelineEntry
 
 
 @dataclass(slots=True)
@@ -28,6 +29,12 @@ class ChapterState:
     metadata: dict[str, Any]
 
 
+@dataclass(frozen=True, slots=True)
+class ArchiveRange:
+    start_chapter: int
+    end_chapter: int
+
+
 @dataclass(slots=True)
 class ProjectSnapshot:
     project_name: str
@@ -37,4 +44,10 @@ class ProjectSnapshot:
     latest_chapter: int | None
     next_chapter: int
     recent_chapters: list[ChapterState]
+    timeline_entries: list[TimelineEntry]
+    active_or_referenced_foreshadowing: list[ForeshadowingEntry]
+    major_turning_points: list[TimelineEntry]
+    eligible_archive_ranges: list[ArchiveRange]
+    existing_timeline_archive_ranges: list[ArchiveRange]
+    existing_foreshadowing_archive_ranges: list[ArchiveRange]
     foreshadowing_entries: list[ForeshadowingEntry]
