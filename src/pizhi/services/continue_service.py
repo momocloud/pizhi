@@ -9,6 +9,7 @@ from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.core.templates import render_checkpoint_summary
 from pizhi.services.outline_service import OutlineService
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.write_service import WriteService
 
 
@@ -43,19 +44,21 @@ class ContinueService:
         )
 
         written_numbers: list[int] = []
+        maintenance_by_chapter: dict[int, MaintenanceResult | None] = {}
         if chapter_responses_dir is not None:
             for chapter_number in range(start, end + 1):
                 response_path = chapter_responses_dir / f"ch{chapter_number:03d}_response.md"
                 if not response_path.exists():
                     raise FileNotFoundError(response_path)
-                self.write_service.write(chapter_number=chapter_number, response_file=response_path)
+                write_result = self.write_service.write(chapter_number=chapter_number, response_file=response_path)
                 written_numbers.append(chapter_number)
+                maintenance_by_chapter[chapter_number] = write_result.maintenance_result
 
         checkpoint_paths: list[Path] = []
         interval = self.config.consistency.checkpoint_interval
         for offset in range(interval, len(written_numbers) + 1, interval):
             chunk = written_numbers[offset - interval : offset]
-            checkpoint_paths.append(self._write_checkpoint(chunk))
+            checkpoint_paths.append(self._write_checkpoint(chunk, maintenance_by_chapter))
 
         return ContinueResult(
             chapter_range=chapter_range,
@@ -70,7 +73,11 @@ class ContinueService:
         end = start + count - 1
         return start, end
 
-    def _write_checkpoint(self, chapter_numbers: list[int]) -> Path:
+    def _write_checkpoint(
+        self,
+        chapter_numbers: list[int],
+        maintenance_by_chapter: dict[int, MaintenanceResult | None],
+    ) -> Path:
         entries: list[dict[str, object]] = []
         for chapter_number in chapter_numbers:
             chapter_dir = self.paths.chapter_dir(chapter_number)
@@ -89,12 +96,13 @@ class ContinueService:
                     "resolved_ids": [item["id"] for item in meta["foreshadowing"]["resolved"]],
                 }
             )
+        maintenance_results = [maintenance_by_chapter.get(chapter_number) for chapter_number in chapter_numbers]
 
         checkpoint_path = self.paths.cache_dir / (
             f"checkpoint-ch{chapter_numbers[0]:03d}-ch{chapter_numbers[-1]:03d}.md"
         )
         checkpoint_path.write_text(
-            render_checkpoint_summary(entries),
+            render_checkpoint_summary(entries, maintenance_results=maintenance_results),
             encoding="utf-8",
             newline="\n",
         )

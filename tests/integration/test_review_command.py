@@ -38,3 +38,21 @@ def test_review_command_full_writes_cache_report(initialized_project, fixture_te
     assert result.returncode == 0
     assert report_path.exists()
     assert "Global issues:" in result.stdout
+
+
+def test_review_command_full_backfills_archive_and_reports_maintenance(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 50, fixture_text("ch001_response.md"))
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "review", "--full"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    timeline_archive = initialized_project / ".pizhi" / "archive" / "timeline_ch001-050.md"
+
+    assert result.returncode == 0, result.stderr
+    assert "Maintenance findings:" in result.stdout
+    assert timeline_archive.exists()
