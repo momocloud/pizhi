@@ -51,6 +51,84 @@ def test_archive_service_rotates_sealed_timeline_range(initialized_project):
     assert "## T051-01" in timeline_text
 
 
+def test_archive_service_treats_existing_matching_timeline_archive_as_noop(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_latest_chapter(paths, 50)
+    paths.archive_dir.mkdir(parents=True, exist_ok=True)
+    expected_archive = """# Timeline Archive: ch001-ch050
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+"""
+    (paths.archive_dir / "timeline_ch001-050.md").write_text(expected_archive, encoding="utf-8")
+    paths.timeline_file.write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+
+## T051-01
+- **时间**: 1986-05-01 夜
+- **事件**: 被掩盖的证词重现
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    result = rotate_archives(initialized_project)
+
+    assert result.findings == []
+    assert (paths.archive_dir / "timeline_ch001-050.md").read_text(encoding="utf-8") == expected_archive
+    assert "## T001-01" not in paths.timeline_file.read_text(encoding="utf-8")
+    assert "## T051-01" in paths.timeline_file.read_text(encoding="utf-8")
+
+
+def test_archive_service_reports_conflicting_existing_foreshadowing_archive(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_latest_chapter(paths, 50)
+    paths.archive_dir.mkdir(parents=True, exist_ok=True)
+    conflicting_archive = """# Foreshadowing Archive: ch001-ch050
+
+## Resolved
+### F010
+- **Resolution**: wrong content
+
+## Abandoned
+"""
+    archive_path = paths.archive_dir / "foreshadowing_ch001-050.md"
+    archive_path.write_text(conflicting_archive, encoding="utf-8")
+    live_text = """# Foreshadowing Tracker
+
+## Active
+
+## Referenced
+
+## Resolved
+### F010 | Priority: high
+- **Description**: 正常关闭的伏笔
+- **Resolution**: 真相揭露
+- **Resolved In**: ch012
+
+## Abandoned
+"""
+    paths.foreshadowing_file.write_text(live_text, encoding="utf-8")
+
+    result = rotate_archives(initialized_project)
+
+    assert archive_path.read_text(encoding="utf-8") == conflicting_archive
+    assert "F010" in paths.foreshadowing_file.read_text(encoding="utf-8")
+    assert result.findings
+    assert result.findings[0].artifact == "foreshadowing"
+    assert "conflict" in result.findings[0].description
+
+
 def test_archive_service_keeps_closed_foreshadowing_without_close_chapter_live(initialized_project):
     paths = project_paths(initialized_project)
     _seed_latest_chapter(paths, 50)

@@ -31,19 +31,8 @@ def rotate_archives(project_root: Path) -> ArchiveResult:
     paths = project_paths(project_root)
     findings: list[ArchiveFinding] = []
 
-    pending_timeline_ranges = [
-        archive_range
-        for archive_range in snapshot.eligible_archive_ranges
-        if archive_range not in snapshot.existing_timeline_archive_ranges
-    ]
-    pending_foreshadowing_ranges = [
-        archive_range
-        for archive_range in snapshot.eligible_archive_ranges
-        if archive_range not in snapshot.existing_foreshadowing_archive_ranges
-    ]
-
-    _rotate_timeline_archives(paths, snapshot.timeline_entries, pending_timeline_ranges, findings)
-    _rotate_foreshadowing_archives(paths, snapshot.foreshadowing_entries, pending_foreshadowing_ranges, findings)
+    _rotate_timeline_archives(paths, snapshot.timeline_entries, snapshot.eligible_archive_ranges, findings)
+    _rotate_foreshadowing_archives(paths, snapshot.foreshadowing_entries, snapshot.eligible_archive_ranges, findings)
     return ArchiveResult(findings=findings)
 
 
