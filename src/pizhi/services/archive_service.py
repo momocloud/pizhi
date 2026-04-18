@@ -46,6 +46,11 @@ def _rotate_timeline_archives(
     findings: list[ArchiveFinding],
 ) -> None:
     live_text = _read_text(paths.timeline_file, DEFAULT_TIMELINE_TEXT)
+    raw_blocks = _collect_block_text(
+        live_text,
+        header_re=TIMELINE_HEADER_RE,
+        stop_prefixes=("## ",),
+    )
     archived_timeline_entries: list[TimelineEntry] = []
 
     for archive_range in pending_ranges:
@@ -53,7 +58,7 @@ def _rotate_timeline_archives(
         if not ranged_entries:
             continue
 
-        expected_text = _render_timeline_archive(archive_range, ranged_entries)
+        expected_text = _render_timeline_archive(archive_range, ranged_entries, raw_blocks=raw_blocks)
         archive_path = _archive_path(paths.archive_dir, "timeline", archive_range)
         if not _sync_archive_file(archive_path, expected_text):
             findings.append(
@@ -82,6 +87,11 @@ def _rotate_foreshadowing_archives(
     findings: list[ArchiveFinding],
 ) -> None:
     live_text = _read_text(paths.foreshadowing_file, DEFAULT_FORESHADOWING_TEXT)
+    raw_blocks = _collect_block_text(
+        live_text,
+        header_re=FORESHADOWING_HEADER_RE,
+        stop_prefixes=("### ", "## "),
+    )
     archived_entries: list[ForeshadowingEntry] = []
 
     for entry in foreshadowing_entries:
@@ -99,7 +109,7 @@ def _rotate_foreshadowing_archives(
         if not ranged_entries:
             continue
 
-        expected_text = _render_foreshadowing_archive(archive_range, ranged_entries)
+        expected_text = _render_foreshadowing_archive(archive_range, ranged_entries, raw_blocks=raw_blocks)
         archive_path = _archive_path(paths.archive_dir, "foreshadowing", archive_range)
         if not _sync_archive_file(archive_path, expected_text):
             findings.append(
@@ -165,19 +175,17 @@ def _sync_archive_file(path: Path, expected_text: str) -> bool:
     return True
 
 
-def _render_timeline_archive(archive_range: ArchiveRange, entries: list[TimelineEntry]) -> str:
+def _render_timeline_archive(
+    archive_range: ArchiveRange,
+    entries: list[TimelineEntry],
+    *,
+    raw_blocks: dict[str, str] | None = None,
+) -> str:
     lines = [f"# Timeline Archive: ch{archive_range.start_chapter:03d}-ch{archive_range.end_chapter:03d}", ""]
     for entry in sorted(entries, key=lambda item: (item.chapter_number, item.event_index)):
-        lines.extend(
-            [
-                f"## {entry.event_id}",
-                f"- **时间**: {entry.at}",
-                f"- **事件**: {entry.event}",
-                f"- **闪回**: {'是' if entry.is_flashback else '否'}",
-                f"- **重大转折**: {'是' if entry.is_major_turning_point else '否'}",
-                "",
-            ]
-        )
+        block = raw_blocks.get(entry.event_id) if raw_blocks is not None else None
+        lines.append((block or _render_timeline_entry(entry)).rstrip())
+        lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -187,24 +195,22 @@ def _render_timeline_live(entries: list[TimelineEntry]) -> str:
 
     lines = ["# Timeline", ""]
     for entry in sorted(entries, key=lambda item: (item.chapter_number, item.event_index)):
-        lines.extend(
-            [
-                f"## {entry.event_id}",
-                f"- **时间**: {entry.at}",
-                f"- **事件**: {entry.event}",
-                f"- **闪回**: {'是' if entry.is_flashback else '否'}",
-                f"- **重大转折**: {'是' if entry.is_major_turning_point else '否'}",
-                "",
-            ]
-        )
+        lines.append(_render_timeline_entry(entry))
+        lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _render_foreshadowing_archive(archive_range: ArchiveRange, entries: list[ForeshadowingEntry]) -> str:
+def _render_foreshadowing_archive(
+    archive_range: ArchiveRange,
+    entries: list[ForeshadowingEntry],
+    *,
+    raw_blocks: dict[str, str] | None = None,
+) -> str:
     return _render_foreshadowing_sections(
         f"# Foreshadowing Archive: ch{archive_range.start_chapter:03d}-ch{archive_range.end_chapter:03d}",
         sorted(entries, key=_foreshadowing_archive_sort_key),
         sections=("Resolved", "Abandoned"),
+        raw_blocks=raw_blocks,
     )
 
 
@@ -216,7 +222,13 @@ def _render_foreshadowing_live(entries: list[ForeshadowingEntry]) -> str:
     )
 
 
-def _render_foreshadowing_sections(header: str, entries: list[ForeshadowingEntry], *, sections: tuple[str, ...]) -> str:
+def _render_foreshadowing_sections(
+    header: str,
+    entries: list[ForeshadowingEntry],
+    *,
+    sections: tuple[str, ...],
+    raw_blocks: dict[str, str] | None = None,
+) -> str:
     grouped: dict[str, list[ForeshadowingEntry]] = {section: [] for section in sections}
     for entry in entries:
         if entry.section in grouped:
@@ -229,7 +241,8 @@ def _render_foreshadowing_sections(header: str, entries: list[ForeshadowingEntry
         if section_entries:
             lines.append("")
             for entry in sorted(section_entries, key=_foreshadowing_archive_sort_key):
-                lines.extend(_render_foreshadowing_entry(entry))
+                block = raw_blocks.get(entry.entry_id) if raw_blocks is not None else None
+                lines.extend(_render_foreshadowing_entry(entry, raw_block=block))
                 lines.append("")
         else:
             lines.append("")
@@ -278,7 +291,48 @@ def _remove_block_text(
     return "\n".join(remaining).rstrip() + ("\n" if remaining else "")
 
 
-def _render_foreshadowing_entry(entry: ForeshadowingEntry) -> list[str]:
+def _collect_block_text(
+    text: str,
+    *,
+    header_re: re.Pattern[str],
+    stop_prefixes: tuple[str, ...],
+) -> dict[str, str]:
+    lines = text.splitlines()
+    blocks: dict[str, str] = {}
+    index = 0
+
+    while index < len(lines):
+        header_match = header_re.fullmatch(lines[index])
+        if header_match is None:
+            index += 1
+            continue
+
+        start = index
+        entry_id = header_match.group("id")
+        index += 1
+        while index < len(lines) and not lines[index].startswith(stop_prefixes):
+            index += 1
+        blocks[entry_id] = "\n".join(lines[start:index])
+
+    return blocks
+
+
+def _render_timeline_entry(entry: TimelineEntry) -> str:
+    return "\n".join(
+        [
+            f"## {entry.event_id}",
+            f"- **时间**: {entry.at}",
+            f"- **事件**: {entry.event}",
+            f"- **闪回**: {'是' if entry.is_flashback else '否'}",
+            f"- **重大转折**: {'是' if entry.is_major_turning_point else '否'}",
+        ]
+    )
+
+
+def _render_foreshadowing_entry(entry: ForeshadowingEntry, *, raw_block: str | None = None) -> list[str]:
+    if raw_block is not None:
+        return raw_block.strip().splitlines()
+
     lines = [f"### {entry.entry_id}" + (f" | Priority: {entry.priority}" if entry.priority else "")]
     if entry.section in {"Active", "Abandoned"}:
         lines.append(f"- **Description**: {entry.description}")

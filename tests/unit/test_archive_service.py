@@ -88,6 +88,39 @@ def test_archive_service_rotates_sealed_timeline_range(initialized_project):
     assert "## T051-01" in timeline_text
 
 
+def test_archive_service_preserves_raw_timeline_block_content_when_rotating(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
+    paths.timeline_file.write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+- 手工备注: 这行不属于标准字段，但必须随归档一起保留
+
+## T051-01
+- **时间**: 1986-05-01 夜
+- **事件**: 被掩盖的证词重现
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    rotate_archives(initialized_project)
+
+    archive_text = (paths.archive_dir / "timeline_ch001-050.md").read_text(encoding="utf-8")
+    live_text = paths.timeline_file.read_text(encoding="utf-8")
+
+    assert "- 手工备注: 这行不属于标准字段，但必须随归档一起保留" in archive_text
+    assert "- 手工备注: 这行不属于标准字段，但必须随归档一起保留" not in live_text
+    assert "## T001-01" not in live_text
+    assert "## T051-01" in live_text
+
+
 def test_archive_service_treats_existing_matching_timeline_archive_as_noop(initialized_project):
     paths = project_paths(initialized_project)
     _seed_chapter_range(paths, 1, 50, status="drafted")
@@ -259,6 +292,45 @@ def test_archive_service_archives_resolved_and_abandoned_foreshadowing_without_d
     assert "### F001 | Priority: high" in live_text
     assert "### F002" in live_text
     assert "### BROKEN" in live_text
+    assert "### F010" not in live_text
+    assert "### F020" not in live_text
+
+
+def test_archive_service_preserves_raw_closed_foreshadowing_block_content_when_rotating(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+
+## Referenced
+
+## Resolved
+### F010 | Priority: high
+- **Description**: 已完成伏笔
+- **Resolution**: 真相揭露
+- **Resolved In**: ch012
+- 手工备注: resolved 附加说明必须保留
+
+## Abandoned
+### F020 | Priority: low
+- **Description**: 已放弃伏笔
+- **Abandoned In**: ch045
+- 手工备注: abandoned 附加说明也必须保留
+""",
+        encoding="utf-8",
+    )
+
+    rotate_archives(initialized_project)
+
+    archive_text = (paths.archive_dir / "foreshadowing_ch001-050.md").read_text(encoding="utf-8")
+    live_text = paths.foreshadowing_file.read_text(encoding="utf-8")
+
+    assert "- 手工备注: resolved 附加说明必须保留" in archive_text
+    assert "- 手工备注: abandoned 附加说明也必须保留" in archive_text
+    assert "- 手工备注: resolved 附加说明必须保留" not in live_text
+    assert "- 手工备注: abandoned 附加说明也必须保留" not in live_text
     assert "### F010" not in live_text
     assert "### F020" not in live_text
 
