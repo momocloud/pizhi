@@ -202,6 +202,42 @@ def test_review_synopsis_candidate_rejects_unknown_marker_ids(initialized_projec
     assert "T999-99" in review_text
 
 
+def test_review_synopsis_candidate_rejects_malformed_or_empty_candidates(initialized_project):
+    paths = project_paths(initialized_project)
+    existing_synopsis = "# Synopsis\n\n现有概要\n"
+    paths.synopsis_file.write_text(existing_synopsis, encoding="utf-8")
+
+    cases = [
+        (
+            "概要正文。\n\n"
+            "## coverage_markers\n"
+            "foreshadowing_ids:\n"
+            "- F001\n",
+            "missing marker sections: major_turning_points",
+        ),
+        (
+            "## coverage_markers\n"
+            "foreshadowing_ids:\n"
+            "- F001\n"
+            "major_turning_points:\n"
+            "- T001-02\n",
+            "synopsis candidate body cannot be empty",
+        ),
+    ]
+
+    for index, (candidate, expected_error) in enumerate(cases, start=1):
+        paths.synopsis_candidate_file.write_text(candidate, encoding="utf-8")
+
+        review_result = review_synopsis_candidate(initialized_project)
+        review_text = paths.cache_dir.joinpath("synopsis_review.md").read_text(encoding="utf-8")
+
+        assert review_result.promoted is False
+        assert review_result.review_text == review_text
+        assert paths.synopsis_candidate_file.exists()
+        assert paths.synopsis_file.read_text(encoding="utf-8") == existing_synopsis
+        assert f"error: {expected_error}" in review_text, index
+
+
 def test_parse_synopsis_candidate_rejects_malformed_markers():
     raw = (
         "概要正文。\n\n"

@@ -61,7 +61,7 @@ def review_synopsis_candidate(project_root: Path) -> SynopsisReviewResult:
     try:
         body, markers = parse_synopsis_candidate(raw_candidate)
     except ValueError as exc:
-        review_text = _render_review(False, (), (), error=str(exc))
+        review_text = _render_review(False, (), (), (), (), error=str(exc))
         _write_text(review_path, review_text)
         return SynopsisReviewResult(
             promoted=False,
