@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from pizhi.services.maintenance import MaintenanceResult
-
 
 def initial_markdown_files(project_name: str, genre: str) -> dict[Path, str]:
     title_suffix = f" for {project_name}" if project_name else ""
@@ -30,7 +28,7 @@ def initial_markdown_files(project_name: str, genre: str) -> dict[Path, str]:
 
 def render_checkpoint_summary(
     chapters: list[dict[str, Any]],
-    maintenance_results: list[MaintenanceResult | None] | None = None,
+    maintenance_text: str | None = None,
 ) -> str:
     lines = ["# Checkpoint Summary", ""]
     for chapter in chapters:
@@ -44,54 +42,8 @@ def render_checkpoint_summary(
         lines.append(f"- Foreshadowing Resolved: {resolved}")
         lines.append("")
 
-    if maintenance_results:
-        lines.extend(_render_maintenance_block(maintenance_results))
-
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def format_maintenance_summary(maintenance_result: MaintenanceResult | None) -> str:
-    if maintenance_result is None:
-        return "## Maintenance\n\n- No maintenance run.\n"
-
-    lines = ["## Maintenance", ""]
-    if maintenance_result.synopsis_review is None:
-        lines.append("- Synopsis review: not run.")
-    else:
-        status = "promoted" if maintenance_result.synopsis_review.promoted else "rejected"
-        lines.append(f"- Synopsis review: {status}.")
-
-    archive_findings = maintenance_result.archive_result.findings if maintenance_result.archive_result is not None else []
-    if archive_findings:
-        lines.append(f"- Archive findings: {len(archive_findings)}.")
-    else:
-        lines.append("- Archive findings: none.")
-
-    if maintenance_result.findings:
+    if maintenance_text:
+        lines.append(maintenance_text.rstrip())
         lines.append("")
-        for finding in maintenance_result.findings:
-            lines.append(f"- {finding.category}: {finding.detail}")
+
     return "\n".join(lines).rstrip() + "\n"
-
-
-def _render_maintenance_block(maintenance_results: list[MaintenanceResult | None]) -> list[str]:
-    synopsis_summary: str | None = None
-    archive_findings: list[str] = []
-
-    for result in maintenance_results:
-        if result is None:
-            continue
-        if result.synopsis_review is not None:
-            synopsis_summary = "promoted" if result.synopsis_review.promoted else "rejected"
-        archive_findings.extend(finding.detail for finding in result.findings if finding.category == "Archive")
-
-    lines = ["## Maintenance", ""]
-    lines.append(
-        "- Synopsis review: " + (f"{synopsis_summary}." if synopsis_summary is not None else "not run.")
-    )
-    if archive_findings:
-        lines.append("- Archive findings: " + "; ".join(archive_findings))
-    else:
-        lines.append("- Archive findings: none.")
-    lines.append("")
-    return lines

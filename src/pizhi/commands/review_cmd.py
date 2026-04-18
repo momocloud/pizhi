@@ -4,9 +4,9 @@ import argparse
 from pathlib import Path
 
 from pizhi.core.paths import project_paths
-from pizhi.core.templates import format_maintenance_summary
 from pizhi.services.consistency.structural import format_structural_report
 from pizhi.services.consistency.structural import run_structural_review
+from pizhi.services.maintenance import format_maintenance_summary
 from pizhi.services.maintenance import run_full_maintenance
 
 

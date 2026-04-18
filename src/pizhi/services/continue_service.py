@@ -8,6 +8,7 @@ from pizhi.core.config import load_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.core.templates import render_checkpoint_summary
+from pizhi.services.maintenance import format_checkpoint_maintenance
 from pizhi.services.outline_service import OutlineService
 from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.write_service import WriteService
@@ -96,13 +97,15 @@ class ContinueService:
                     "resolved_ids": [item["id"] for item in meta["foreshadowing"]["resolved"]],
                 }
             )
-        maintenance_results = [maintenance_by_chapter.get(chapter_number) for chapter_number in chapter_numbers]
+        maintenance_text = format_checkpoint_maintenance(
+            [(chapter_number, maintenance_by_chapter.get(chapter_number)) for chapter_number in chapter_numbers]
+        )
 
         checkpoint_path = self.paths.cache_dir / (
             f"checkpoint-ch{chapter_numbers[0]:03d}-ch{chapter_numbers[-1]:03d}.md"
         )
         checkpoint_path.write_text(
-            render_checkpoint_summary(entries, maintenance_results=maintenance_results),
+            render_checkpoint_summary(entries, maintenance_text=maintenance_text),
             encoding="utf-8",
             newline="\n",
         )

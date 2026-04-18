@@ -52,7 +52,10 @@ def test_review_command_full_backfills_archive_and_reports_maintenance(initializ
     )
 
     timeline_archive = initialized_project / ".pizhi" / "archive" / "timeline_ch001-050.md"
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
 
     assert result.returncode == 0, result.stderr
     assert "Maintenance findings:" in result.stdout
     assert timeline_archive.exists()
+    assert "## Maintenance" in report_path.read_text(encoding="utf-8")
+    assert "Archive findings" in report_path.read_text(encoding="utf-8")

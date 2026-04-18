@@ -73,3 +73,49 @@ def _build_findings(
             )
 
     return findings
+
+
+def format_maintenance_summary(maintenance_result: MaintenanceResult | None) -> str:
+    if maintenance_result is None:
+        return "## Maintenance\n\n- No maintenance run.\n"
+
+    lines = ["## Maintenance", ""]
+    if maintenance_result.synopsis_review is None:
+        lines.append("- Synopsis review: not run.")
+    else:
+        status = "promoted" if maintenance_result.synopsis_review.promoted else "rejected"
+        lines.append(f"- Synopsis review: {status}.")
+
+    archive_findings = maintenance_result.archive_result.findings if maintenance_result.archive_result is not None else []
+    if archive_findings:
+        lines.append(f"- Archive findings: {len(archive_findings)}.")
+    else:
+        lines.append("- Archive findings: none.")
+
+    if maintenance_result.findings:
+        lines.append("")
+        for finding in maintenance_result.findings:
+            lines.append(f"- {finding.category}: {finding.detail}")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def format_checkpoint_maintenance(chapter_results: list[tuple[int, MaintenanceResult | None]]) -> str:
+    lines = ["## Maintenance", ""]
+
+    for chapter_number, result in chapter_results:
+        if result is None:
+            lines.append(f"- ch{chapter_number:03d}: no maintenance run.")
+            continue
+
+        if result.synopsis_review is None:
+            synopsis_state = "no synopsis review"
+        else:
+            synopsis_state = "promoted" if result.synopsis_review.promoted else "rejected"
+            synopsis_state = f"Synopsis review {synopsis_state}"
+        lines.append(f"- ch{chapter_number:03d}: {synopsis_state}")
+
+        archive_details = [finding.detail for finding in result.findings if finding.category == "Archive"]
+        if archive_details:
+            lines.append(f"  archive: {'; '.join(archive_details)}")
+
+    return "\n".join(lines).rstrip() + "\n"
