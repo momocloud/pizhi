@@ -1,7 +1,25 @@
 from subprocess import run
 import sys
 
+from pizhi.core.jsonl_store import ChapterIndexStore
+from pizhi.core.paths import project_paths
 from pizhi.services.chapter_writer import apply_chapter_response
+
+
+def _seed_drafted_block(initialized_project, start_chapter: int = 1, end_chapter: int = 50) -> None:
+    paths = project_paths(initialized_project)
+    store = ChapterIndexStore(paths.chapter_index_file)
+    for chapter_number in range(start_chapter, end_chapter + 1):
+        store.upsert(
+            {
+                "n": chapter_number,
+                "title": f"第{chapter_number:03d}章",
+                "vol": 1,
+                "status": "drafted",
+                "summary": "",
+                "updated": "2026-04-18",
+            }
+        )
 
 
 def test_review_command_writes_notes_file(initialized_project, fixture_text):
@@ -41,6 +59,7 @@ def test_review_command_full_writes_cache_report(initialized_project, fixture_te
 
 
 def test_review_command_full_backfills_archive_and_reports_maintenance(initialized_project, fixture_text):
+    _seed_drafted_block(initialized_project)
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 50, fixture_text("ch001_response.md"))
 

@@ -1,7 +1,25 @@
 from subprocess import run
 import sys
 
+from pizhi.core.jsonl_store import ChapterIndexStore
+from pizhi.core.paths import project_paths
 from pizhi.services.chapter_writer import apply_chapter_response
+
+
+def _seed_drafted_block(initialized_project, start_chapter: int = 1, end_chapter: int = 50) -> None:
+    paths = project_paths(initialized_project)
+    store = ChapterIndexStore(paths.chapter_index_file)
+    for chapter_number in range(start_chapter, end_chapter + 1):
+        store.upsert(
+            {
+                "n": chapter_number,
+                "title": f"第{chapter_number:03d}章",
+                "vol": 1,
+                "status": "drafted",
+                "summary": "",
+                "updated": "2026-04-18",
+            }
+        )
 
 
 def test_write_command_applies_response_file(initialized_project, fixture_text):
@@ -86,6 +104,7 @@ def test_write_command_keeps_invalid_synopsis_candidate_and_writes_review_cache(
 
 
 def test_write_command_repeated_maintenance_runs_do_not_duplicate_archive_output(initialized_project, fixture_text):
+    _seed_drafted_block(initialized_project)
     chapter_one_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
     chapter_one_dir.mkdir(parents=True, exist_ok=True)
     (chapter_one_dir / "outline.md").write_text("# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n", encoding="utf-8")
