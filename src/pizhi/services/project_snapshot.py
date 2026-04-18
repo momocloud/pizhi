@@ -58,14 +58,18 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     recent_chapters = [chapters[number] for number in sorted(chapters, reverse=True)]
     latest_chapter = recent_chapters[0].number if recent_chapters else None
     next_chapter = 1 if latest_chapter is None else latest_chapter + 1
-    timeline_entries = _load_timeline_entries(paths)
+    timeline_entries = _load_live_timeline_entries(paths)
     foreshadowing_entries: list[ForeshadowingEntry] = []
     if paths.foreshadowing_file.exists():
         foreshadowing_entries = parse_tracker_entries(paths.foreshadowing_file.read_text(encoding="utf-8"))
     active_or_referenced_foreshadowing = [
         entry for entry in foreshadowing_entries if entry.section in {"Active", "Referenced"}
     ]
-    major_turning_points = [entry for entry in timeline_entries if entry.is_major_turning_point]
+    major_turning_points = [
+        entry
+        for entry in timeline_entries + _load_archived_timeline_entries(paths)
+        if entry.is_major_turning_point
+    ]
 
     return ProjectSnapshot(
         project_name=config.project.name,
@@ -85,11 +89,16 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     )
 
 
-def _load_timeline_entries(paths) -> list[TimelineEntry]:
+def _load_live_timeline_entries(paths) -> list[TimelineEntry]:
     entries: list[TimelineEntry] = []
     if paths.timeline_file.exists():
         entries.extend(parse_timeline_entries(paths.timeline_file.read_text(encoding="utf-8")))
+    entries.sort(key=lambda entry: (entry.chapter_number, entry.event_index))
+    return entries
 
+
+def _load_archived_timeline_entries(paths) -> list[TimelineEntry]:
+    entries: list[TimelineEntry] = []
     for archive_path in _archive_paths(paths.archive_dir, "timeline"):
         entries.extend(parse_timeline_entries(archive_path.read_text(encoding="utf-8")))
 

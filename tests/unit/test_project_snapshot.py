@@ -100,6 +100,7 @@ def test_load_project_snapshot_includes_archived_major_turning_points(initialize
 
     snapshot = load_project_snapshot(initialized_project)
 
+    assert [entry.event_id for entry in snapshot.timeline_entries] == ["T001-01"]
     assert [entry.event_id for entry in snapshot.major_turning_points] == ["T001-01", "T060-02"]
 
 
