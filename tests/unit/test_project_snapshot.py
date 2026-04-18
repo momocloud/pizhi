@@ -106,6 +106,8 @@ def test_load_project_snapshot_requires_contiguous_drafted_block_for_archive_ran
 
 def test_load_project_snapshot_includes_archived_major_turning_points(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    for chapter_number in range(2, 101):
+        _upsert_status(initialized_project, chapter_number, "drafted", title=f"第{chapter_number:03d}章")
     (initialized_project / ".pizhi" / "global" / "timeline.md").write_text(
         """# Timeline
 
@@ -136,6 +138,32 @@ def test_load_project_snapshot_includes_archived_major_turning_points(initialize
 
     assert [entry.event_id for entry in snapshot.timeline_entries] == ["T001-01"]
     assert [entry.event_id for entry in snapshot.major_turning_points] == ["T001-01", "T060-02"]
+
+
+def test_load_project_snapshot_skips_overlapping_archive_major_turning_points(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    for chapter_number in range(2, 51):
+        _upsert_status(initialized_project, chapter_number, "drafted", title=f"第{chapter_number:03d}章")
+
+    archive_dir = initialized_project / ".pizhi" / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    (archive_dir / "timeline_ch001-050.md").write_text(
+        """# Timeline Archive: ch001-ch050
+
+## T050-02
+- **时间**: 1986-04-01 夜
+- **事件**: 伪造的封档转折
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert snapshot.existing_timeline_archive_ranges == [ArchiveRange(1, 50)]
+    assert snapshot.eligible_archive_ranges == [ArchiveRange(1, 50)]
+    assert [entry.event_id for entry in snapshot.major_turning_points] == ["T001-02"]
 
 
 def test_load_project_snapshot_handles_missing_foreshadowing_file(initialized_project):

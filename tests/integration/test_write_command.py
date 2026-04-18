@@ -229,6 +229,55 @@ def test_write_prompt_includes_synopsis_coverage_contract_and_archived_turning_p
     assert "T050-02" in prompt_text
 
 
+def test_write_prompt_requires_new_synopsis_coverage_ids_for_first_chapter(initialized_project):
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第001章 雨夜访客\n\n- 沈轩首次发现关键线索。\n",
+        encoding="utf-8",
+    )
+
+    prompt_artifact = WriteService(initialized_project).write(chapter_number=1).prompt_artifact
+    prompt_text = prompt_artifact.prompt_path.read_text(encoding="utf-8")
+
+    assert "If the pre-write lists below show `- (none)`" in prompt_text
+    assert "You must still list every foreshadowing ID newly introduced or newly referenced in this chapter" in prompt_text
+    assert "For this chapter, timeline event #1 is `T001-01`, event #2 is `T001-02`" in prompt_text
+    assert "If you introduce `F001` and the second timeline event is a major turning point" in prompt_text
+
+
+def test_write_prompt_ignores_overlapping_archive_turning_points(initialized_project, fixture_text):
+    _seed_drafted_block(initialized_project)
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+
+    archive_dir = initialized_project / ".pizhi" / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    (archive_dir / "timeline_ch001-050.md").write_text(
+        """# Timeline Archive: ch001-ch050
+
+## T050-02
+- **时间**: 1986-04-01 夜
+- **事件**: 伪造的封档转折
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch002"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第002章 继续追查\n\n- 沈轩延续第一章的调查。\n",
+        encoding="utf-8",
+    )
+
+    prompt_artifact = WriteService(initialized_project).write(chapter_number=2).prompt_artifact
+    prompt_text = prompt_artifact.prompt_path.read_text(encoding="utf-8")
+
+    assert "T001-02" in prompt_text
+    assert "T050-02" not in prompt_text
+
+
 def test_write_command_promotes_synopsis_candidate_covering_archived_turning_points(initialized_project, fixture_text):
     _prepare_archived_write_context(initialized_project, fixture_text)
     response_file = initialized_project / "ch051_response_synopsis_archived.md"

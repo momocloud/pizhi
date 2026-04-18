@@ -60,6 +60,8 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     latest_chapter = recent_chapters[0].number if recent_chapters else None
     next_chapter = 1 if latest_chapter is None else latest_chapter + 1
     timeline_entries = _load_live_timeline_entries(paths)
+    eligible_archive_ranges = _sealed_ranges(chapters)
+    existing_timeline_archive_ranges = _discover_archive_ranges(paths.archive_dir, "timeline")
     foreshadowing_entries: list[ForeshadowingEntry] = []
     if paths.foreshadowing_file.exists():
         foreshadowing_entries = parse_tracker_entries(paths.foreshadowing_file.read_text(encoding="utf-8"))
@@ -68,7 +70,15 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
     ]
     major_turning_points = [
         entry
-        for entry in timeline_entries + _load_archived_timeline_entries(paths)
+        for entry in timeline_entries
+        + _load_archived_timeline_entries(
+            paths,
+            _trusted_timeline_archive_ranges(
+                existing_timeline_archive_ranges,
+                eligible_archive_ranges,
+                timeline_entries,
+            ),
+        )
         if entry.is_major_turning_point
     ]
 
@@ -83,8 +93,8 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
         timeline_entries=timeline_entries,
         active_or_referenced_foreshadowing=active_or_referenced_foreshadowing,
         major_turning_points=major_turning_points,
-        eligible_archive_ranges=_sealed_ranges(chapters),
-        existing_timeline_archive_ranges=_discover_archive_ranges(paths.archive_dir, "timeline"),
+        eligible_archive_ranges=eligible_archive_ranges,
+        existing_timeline_archive_ranges=existing_timeline_archive_ranges,
         existing_foreshadowing_archive_ranges=_discover_archive_ranges(paths.archive_dir, "foreshadowing"),
         foreshadowing_entries=foreshadowing_entries,
     )
@@ -98,13 +108,35 @@ def _load_live_timeline_entries(paths) -> list[TimelineEntry]:
     return entries
 
 
-def _load_archived_timeline_entries(paths) -> list[TimelineEntry]:
+def _load_archived_timeline_entries(paths, trusted_ranges: list[ArchiveRange]) -> list[TimelineEntry]:
     entries: list[TimelineEntry] = []
-    for archive_path in _archive_paths(paths.archive_dir, "timeline"):
+    for archive_range in trusted_ranges:
+        archive_path = paths.archive_dir / (
+            f"timeline_ch{archive_range.start_chapter:03d}-{archive_range.end_chapter:03d}.md"
+        )
+        if not archive_path.exists():
+            continue
         entries.extend(parse_timeline_entries(archive_path.read_text(encoding="utf-8")))
 
     entries.sort(key=lambda entry: (entry.chapter_number, entry.event_index))
     return entries
+
+
+def _trusted_timeline_archive_ranges(
+    existing_ranges: list[ArchiveRange],
+    eligible_ranges: list[ArchiveRange],
+    live_entries: list[TimelineEntry],
+) -> list[ArchiveRange]:
+    eligible_set = set(eligible_ranges)
+    live_chapters = {entry.chapter_number for entry in live_entries}
+    trusted_ranges: list[ArchiveRange] = []
+    for archive_range in existing_ranges:
+        if archive_range not in eligible_set:
+            continue
+        if any(archive_range.start_chapter <= chapter <= archive_range.end_chapter for chapter in live_chapters):
+            continue
+        trusted_ranges.append(archive_range)
+    return trusted_ranges
 
 
 def _sealed_ranges(chapters: dict[int, ChapterState]) -> list[ArchiveRange]:
