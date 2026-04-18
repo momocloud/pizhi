@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from pizhi.core.paths import project_paths
 from pizhi.domain.foreshadowing import ForeshadowingEntry
@@ -12,6 +13,8 @@ from pizhi.services.project_snapshot import load_project_snapshot
 
 DEFAULT_TIMELINE_TEXT = "# Timeline\n"
 DEFAULT_FORESHADOWING_TEXT = "# Foreshadowing Tracker\n\n## Active\n\n## Referenced\n\n## Resolved\n\n## Abandoned\n"
+TIMELINE_HEADER_RE = re.compile(r"^## (?P<id>T\d{3}-\d{2})$")
+FORESHADOWING_HEADER_RE = re.compile(r"^### (?P<id>F\d+)(?: \| Priority: .+)?$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,14 +46,14 @@ def _rotate_timeline_archives(
     findings: list[ArchiveFinding],
 ) -> None:
     live_text = _read_text(paths.timeline_file, DEFAULT_TIMELINE_TEXT)
-    archived_ranges: list[ArchiveRange] = []
+    archived_timeline_entries: list[TimelineEntry] = []
 
     for archive_range in pending_ranges:
-        archived_entries = _timeline_entries_for_range(timeline_entries, archive_range)
-        if not archived_entries:
+        ranged_entries = _timeline_entries_for_range(timeline_entries, archive_range)
+        if not ranged_entries:
             continue
 
-        expected_text = _render_timeline_archive(archive_range, archived_entries)
+        expected_text = _render_timeline_archive(archive_range, ranged_entries)
         archive_path = _archive_path(paths.archive_dir, "timeline", archive_range)
         if not _sync_archive_file(archive_path, expected_text):
             findings.append(
@@ -64,15 +67,10 @@ def _rotate_timeline_archives(
             )
             continue
 
-        archived_ranges.append(archive_range)
+        archived_timeline_entries.extend(ranged_entries)
 
-    if archived_ranges:
-        remaining_entries = [
-            entry
-            for entry in timeline_entries
-            if not any(_range_contains(archive_range, entry.chapter_number) for archive_range in archived_ranges)
-        ]
-        updated_text = _render_timeline_live(remaining_entries)
+    if archived_timeline_entries:
+        updated_text = _remove_timeline_entries_from_text(live_text, archived_timeline_entries)
         if updated_text != live_text:
             _write_text(paths.timeline_file, updated_text)
 
@@ -84,7 +82,7 @@ def _rotate_foreshadowing_archives(
     findings: list[ArchiveFinding],
 ) -> None:
     live_text = _read_text(paths.foreshadowing_file, DEFAULT_FORESHADOWING_TEXT)
-    archived_ranges: list[ArchiveRange] = []
+    archived_entries: list[ForeshadowingEntry] = []
 
     for entry in foreshadowing_entries:
         if entry.section in {"Resolved", "Abandoned"} and entry.closed_in_chapter is None:
@@ -97,11 +95,11 @@ def _rotate_foreshadowing_archives(
             )
 
     for archive_range in pending_ranges:
-        archived_entries = _foreshadowing_entries_for_range(foreshadowing_entries, archive_range)
-        if not archived_entries:
+        ranged_entries = _foreshadowing_entries_for_range(foreshadowing_entries, archive_range)
+        if not ranged_entries:
             continue
 
-        expected_text = _render_foreshadowing_archive(archive_range, archived_entries)
+        expected_text = _render_foreshadowing_archive(archive_range, ranged_entries)
         archive_path = _archive_path(paths.archive_dir, "foreshadowing", archive_range)
         if not _sync_archive_file(archive_path, expected_text):
             findings.append(
@@ -116,15 +114,10 @@ def _rotate_foreshadowing_archives(
             )
             continue
 
-        archived_ranges.append(archive_range)
+        archived_entries.extend(ranged_entries)
 
-    if archived_ranges:
-        remaining_entries = [
-            entry
-            for entry in foreshadowing_entries
-            if not (_is_archivable_foreshadowing(entry) and any(_range_contains(archive_range, _entry_close_chapter(entry)) for archive_range in archived_ranges))
-        ]
-        updated_text = _render_foreshadowing_live(remaining_entries)
+    if archived_entries:
+        updated_text = _remove_foreshadowing_entries_from_text(live_text, archived_entries)
         if updated_text != live_text:
             _write_text(paths.foreshadowing_file, updated_text)
 
@@ -138,11 +131,12 @@ def _timeline_entries_for_range(entries: list[TimelineEntry], archive_range: Arc
 
 
 def _foreshadowing_entries_for_range(entries: list[ForeshadowingEntry], archive_range: ArchiveRange) -> list[ForeshadowingEntry]:
-    return [
+    archivable = [
         entry
         for entry in entries
         if _is_archivable_foreshadowing(entry) and _range_contains(archive_range, _entry_close_chapter(entry))
     ]
+    return sorted(archivable, key=_foreshadowing_archive_sort_key)
 
 
 def _is_archivable_foreshadowing(entry: ForeshadowingEntry) -> bool:
@@ -209,7 +203,7 @@ def _render_timeline_live(entries: list[TimelineEntry]) -> str:
 def _render_foreshadowing_archive(archive_range: ArchiveRange, entries: list[ForeshadowingEntry]) -> str:
     return _render_foreshadowing_sections(
         f"# Foreshadowing Archive: ch{archive_range.start_chapter:03d}-ch{archive_range.end_chapter:03d}",
-        entries,
+        sorted(entries, key=_foreshadowing_archive_sort_key),
         sections=("Resolved", "Abandoned"),
     )
 
@@ -234,12 +228,54 @@ def _render_foreshadowing_sections(header: str, entries: list[ForeshadowingEntry
         section_entries = grouped[section]
         if section_entries:
             lines.append("")
-            for entry in section_entries:
+            for entry in sorted(section_entries, key=_foreshadowing_archive_sort_key):
                 lines.extend(_render_foreshadowing_entry(entry))
                 lines.append("")
         else:
             lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _foreshadowing_archive_sort_key(entry: ForeshadowingEntry) -> tuple[int, int, str]:
+    section_order = {"Resolved": 0, "Abandoned": 1}.get(entry.section, 2)
+    close_chapter = entry.closed_in_chapter if entry.closed_in_chapter is not None else 10**9
+    return section_order, close_chapter, entry.entry_id
+
+
+def _remove_timeline_entries_from_text(text: str, entries: list[TimelineEntry]) -> str:
+    target_ids = {entry.event_id for entry in entries}
+    return _remove_block_text(text, target_ids=target_ids, header_re=TIMELINE_HEADER_RE, stop_prefixes=("## ",))
+
+
+def _remove_foreshadowing_entries_from_text(text: str, entries: list[ForeshadowingEntry]) -> str:
+    target_ids = {entry.entry_id for entry in entries}
+    return _remove_block_text(text, target_ids=target_ids, header_re=FORESHADOWING_HEADER_RE, stop_prefixes=("### ", "## "))
+
+
+def _remove_block_text(
+    text: str,
+    *,
+    target_ids: set[str],
+    header_re: re.Pattern[str],
+    stop_prefixes: tuple[str, ...],
+) -> str:
+    lines = text.splitlines()
+    remaining: list[str] = []
+    index = 0
+
+    while index < len(lines):
+        line = lines[index]
+        header_match = header_re.fullmatch(line)
+        if header_match is not None and header_match.group("id") in target_ids:
+            index += 1
+            while index < len(lines) and not lines[index].startswith(stop_prefixes):
+                index += 1
+            continue
+
+        remaining.append(line)
+        index += 1
+
+    return "\n".join(remaining).rstrip() + ("\n" if remaining else "")
 
 
 def _render_foreshadowing_entry(entry: ForeshadowingEntry) -> list[str]:

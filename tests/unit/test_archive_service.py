@@ -173,3 +173,115 @@ def test_archive_service_keeps_closed_foreshadowing_without_close_chapter_live(i
     assert "F099" in paths.foreshadowing_file.read_text(encoding="utf-8")
     assert result.findings
     assert "missing close chapter" in result.findings[0].description
+
+
+def test_archive_service_archives_resolved_and_abandoned_foreshadowing_without_dropping_live_content(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_latest_chapter(paths, 50)
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 活动伏笔
+- **Planned Payoff**: ch055
+- **Related Characters**: 沈轩
+
+## Referenced
+### F002
+- **Referenced**: true
+
+### BROKEN
+- **Description**: malformed block that must stay live
+
+## Resolved
+### F010 | Priority: high
+- **Description**: 已完成伏笔
+- **Resolution**: 真相揭露
+- **Resolved In**: ch012
+
+## Abandoned
+### F020 | Priority: low
+- **Description**: 已放弃伏笔
+- **Abandoned In**: ch045
+- **Related Characters**: 阿坤
+""",
+        encoding="utf-8",
+    )
+
+    result = rotate_archives(initialized_project)
+
+    archive_text = (paths.archive_dir / "foreshadowing_ch001-050.md").read_text(encoding="utf-8")
+    live_text = paths.foreshadowing_file.read_text(encoding="utf-8")
+
+    assert result.findings == []
+    assert "### F010" in archive_text
+    assert "### F020" in archive_text
+    assert "### F001" not in archive_text
+    assert "### F002" not in archive_text
+    assert "### F001 | Priority: high" in live_text
+    assert "### F002" in live_text
+    assert "### BROKEN" in live_text
+    assert "### F010" not in live_text
+    assert "### F020" not in live_text
+
+
+def test_archive_service_keeps_archiving_other_artifact_when_one_conflicts(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_latest_chapter(paths, 50)
+    paths.archive_dir.mkdir(parents=True, exist_ok=True)
+    (paths.archive_dir / "timeline_ch001-050.md").write_text(
+        """# Timeline Archive: ch001-ch050
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: already archived but conflicting
+- **闪回**: 否
+- **重大转折**: 否
+""",
+        encoding="utf-8",
+    )
+    paths.timeline_file.write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+
+## T051-01
+- **时间**: 1986-05-01 夜
+- **事件**: 被掩盖的证词重现
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+
+## Referenced
+
+## Resolved
+### F010 | Priority: high
+- **Description**: 已完成伏笔
+- **Resolution**: 真相揭露
+- **Resolved In**: ch012
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    result = rotate_archives(initialized_project)
+
+    assert any(finding.artifact == "timeline" for finding in result.findings)
+    assert (paths.archive_dir / "timeline_ch001-050.md").read_text(encoding="utf-8").startswith(
+        "# Timeline Archive: ch001-ch050"
+    )
+    assert (paths.archive_dir / "foreshadowing_ch001-050.md").exists()
+    assert "F010" not in paths.foreshadowing_file.read_text(encoding="utf-8")
+    assert "## T001-01" in paths.timeline_file.read_text(encoding="utf-8")
