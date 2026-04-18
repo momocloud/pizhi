@@ -4,6 +4,8 @@ import sys
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.services.chapter_writer import apply_chapter_response
+from pizhi.services.maintenance import run_full_maintenance
+from pizhi.services.write_service import WriteService
 
 
 def _seed_drafted_block(initialized_project, start_chapter: int = 1, end_chapter: int = 50) -> None:
@@ -20,6 +22,74 @@ def _seed_drafted_block(initialized_project, start_chapter: int = 1, end_chapter
                 "updated": "2026-04-18",
             }
         )
+
+
+def _prepare_archived_write_context(initialized_project, fixture_text) -> None:
+    _seed_drafted_block(initialized_project)
+    apply_chapter_response(initialized_project, 50, fixture_text("ch001_response.md"))
+    run_full_maintenance(initialized_project)
+
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch051"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第051章 封档之后\n\n- 新章节需要承接已封档的关键转折。\n",
+        encoding="utf-8",
+    )
+
+
+def _archived_synopsis_response() -> str:
+    return """---
+chapter_title: "第五十一章 封档之后"
+word_count_estimated: 1800
+characters_involved:
+  - 沈轩
+worldview_changed: false
+synopsis_changed: true
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+
+封档后的章节继续推进沈轩对血衣来源的追查。
+
+## characters_snapshot
+
+# 第五十一章角色状态
+
+## 沈轩
+- **位置**：香港，旺角
+- **状态**：仍在追查封档前遗留的血衣线索
+
+## relationships_snapshot
+
+# 第五十一章人物关系
+
+## 当前关系状态
+
+| 从 | 到 | 关系 | 信任度 | 备注 |
+|----|----|------|--------|------|
+| 沈轩 | 阿坤 | 怀疑 | 低 | 沈轩仍记得封档前的关键发现 |
+
+## 本章变化
+
+| 关系 | 变化前 | 变化后 | 触发原因 |
+|------|--------|--------|---------|
+| 沈轩 → 阿坤 | 怀疑 | 怀疑 | 封档后仍未消除对血衣来源的疑虑 |
+
+## synopsis_new
+
+# Synopsis
+
+封档后的概要继续承接沈轩发现血衣这一重大转折，并说明他仍在追查这条旧线索。
+
+## coverage_markers
+foreshadowing_ids:
+ - F001
+major_turning_points:
+- T050-02
+"""
 
 
 def test_write_command_applies_response_file(initialized_project, fixture_text):
@@ -143,3 +213,40 @@ def test_write_command_repeated_maintenance_runs_do_not_duplicate_archive_output
     assert second_result.returncode == 0, second_result.stderr
     assert archive_text.count("## T050-01") == 1
     assert "## T050-01" not in live_timeline_text
+
+
+def test_write_prompt_includes_synopsis_coverage_contract_and_archived_turning_points(initialized_project, fixture_text):
+    _prepare_archived_write_context(initialized_project, fixture_text)
+
+    prompt_artifact = WriteService(initialized_project).write(chapter_number=51).prompt_artifact
+    prompt_text = prompt_artifact.prompt_path.read_text(encoding="utf-8")
+
+    assert "## synopsis_new" in prompt_text
+    assert "## coverage_markers" in prompt_text
+    assert "foreshadowing_ids:" in prompt_text
+    assert "major_turning_points:" in prompt_text
+    assert "archived" in prompt_text
+    assert "T050-02" in prompt_text
+
+
+def test_write_command_promotes_synopsis_candidate_covering_archived_turning_points(initialized_project, fixture_text):
+    _prepare_archived_write_context(initialized_project, fixture_text)
+    response_file = initialized_project / "ch051_response_synopsis_archived.md"
+    response_file.write_text(_archived_synopsis_response(), encoding="utf-8")
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "write", "--chapter", "51", "--response-file", str(response_file)],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    paths = project_paths(initialized_project)
+    synopsis_text = paths.synopsis_file.read_text(encoding="utf-8")
+    review_text = (paths.cache_dir / "synopsis_review.md").read_text(encoding="utf-8")
+
+    assert result.returncode == 0, result.stderr
+    assert "封档后的概要继续承接沈轩发现血衣这一重大转折" in synopsis_text
+    assert not paths.synopsis_candidate_file.exists()
+    assert "status: promoted" in review_text
+    assert "missing major turning points: none" in review_text
