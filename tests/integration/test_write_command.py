@@ -53,6 +53,9 @@ def test_write_command_promotes_valid_synopsis_candidate(initialized_project, fi
     assert "沈轩卷入码头血衣谜团" in synopsis_text
     assert not (initialized_project / ".pizhi" / "global" / "synopsis_candidate.md").exists()
     assert (initialized_project / ".pizhi" / "cache" / "synopsis_review.md").exists()
+    assert "missing coverage_markers section" not in (
+        initialized_project / ".pizhi" / "cache" / "synopsis_review.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_write_command_keeps_invalid_synopsis_candidate_and_writes_review_cache(initialized_project, fixture_text):

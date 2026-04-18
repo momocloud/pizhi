@@ -4,8 +4,10 @@ from dataclasses import dataclass
 import re
 
 
+SECTION_NAMES = ("characters_snapshot", "relationships_snapshot", "worldview_patch", "synopsis_new")
+SECTION_NAME_PATTERN = "|".join(SECTION_NAMES)
 SECTION_PATTERN = re.compile(
-    r"^## (?P<name>[a-z_]+)\s*$\n(?P<content>.*?)(?=^## [a-z_]+\s*$|\Z)",
+    rf"^## (?P<name>{SECTION_NAME_PATTERN})\s*$\n(?P<content>.*?)(?=^## (?:{SECTION_NAME_PATTERN})\s*$|\Z)",
     re.MULTILINE | re.DOTALL,
 )
 
