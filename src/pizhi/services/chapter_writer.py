@@ -55,13 +55,6 @@ def apply_chapter_response(project_root: Path, chapter_number: int, raw_response
 
     if parsed.metadata.synopsis_changed and parsed.sections.synopsis_new:
         _write_text(paths.synopsis_candidate_file, parsed.sections.synopsis_new + "\n")
-        _write_text(
-            chapter_dir / "notes.md",
-            "## 一致性检查结果\n\n### 问题 1\n- **类别**：Synopsis 覆盖性\n- **严重度**：中\n"
-            "- **描述**：已写入 synopsis_candidate.md，等待后续 AI 覆盖性审查后再替换 synopsis.md。\n"
-            "- **证据**：当前里程碑仅实现确定性写入，不执行语义覆盖校验。\n"
-            "- **建议修法**：在 milestone 3 的 AI review 层完成替换前审查。\n",
-        )
 
     _write_text(
         paths.last_session_file,
