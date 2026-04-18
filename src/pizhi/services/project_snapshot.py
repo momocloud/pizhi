@@ -23,6 +23,7 @@ ARCHIVE_FILE_RE = re.compile(
     r"^(?P<artifact>timeline|foreshadowing)_ch(?P<start>\d{3})-(?P<end>\d{3})\.md$"
 )
 ARCHIVE_BLOCK_SIZE = 50
+ARCHIVABLE_CHAPTER_STATUSES = {"drafted", "reviewed", "compiled"}
 
 
 def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
@@ -82,7 +83,7 @@ def load_project_snapshot(project_root: Path) -> ProjectSnapshot:
         timeline_entries=timeline_entries,
         active_or_referenced_foreshadowing=active_or_referenced_foreshadowing,
         major_turning_points=major_turning_points,
-        eligible_archive_ranges=_sealed_ranges(latest_chapter),
+        eligible_archive_ranges=_sealed_ranges(chapters),
         existing_timeline_archive_ranges=_discover_archive_ranges(paths.archive_dir, "timeline"),
         existing_foreshadowing_archive_ranges=_discover_archive_ranges(paths.archive_dir, "foreshadowing"),
         foreshadowing_entries=foreshadowing_entries,
@@ -106,15 +107,22 @@ def _load_archived_timeline_entries(paths) -> list[TimelineEntry]:
     return entries
 
 
-def _sealed_ranges(latest_chapter: int | None) -> list[ArchiveRange]:
-    if latest_chapter is None or latest_chapter < ARCHIVE_BLOCK_SIZE:
+def _sealed_ranges(chapters: dict[int, ChapterState]) -> list[ArchiveRange]:
+    sealed_end = _sealed_prefix_end(chapters)
+    if sealed_end < ARCHIVE_BLOCK_SIZE:
         return []
 
-    sealed_end = (latest_chapter // ARCHIVE_BLOCK_SIZE) * ARCHIVE_BLOCK_SIZE
     ranges: list[ArchiveRange] = []
     for start_chapter in range(1, sealed_end + 1, ARCHIVE_BLOCK_SIZE):
         ranges.append(ArchiveRange(start_chapter=start_chapter, end_chapter=start_chapter + ARCHIVE_BLOCK_SIZE - 1))
     return ranges
+
+
+def _sealed_prefix_end(chapters: dict[int, ChapterState]) -> int:
+    chapter_number = 1
+    while chapter_number in chapters and chapters[chapter_number].status in ARCHIVABLE_CHAPTER_STATUSES:
+        chapter_number += 1
+    return ((chapter_number - 1) // ARCHIVE_BLOCK_SIZE) * ARCHIVE_BLOCK_SIZE
 
 
 def _discover_archive_ranges(archive_dir: Path, artifact: str) -> list[ArchiveRange]:

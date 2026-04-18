@@ -1,6 +1,29 @@
+from pizhi.core.jsonl_store import ChapterIndexStore
+from pizhi.core.paths import project_paths
 from pizhi.domain.project_state import ArchiveRange
 from pizhi.services.chapter_writer import apply_chapter_response
 from pizhi.services.project_snapshot import load_project_snapshot
+
+
+def _upsert_status(initialized_project, chapter_number, status, *, title=None):
+    paths = project_paths(initialized_project)
+    store = ChapterIndexStore(paths.chapter_index_file)
+    records = {int(record["n"]): record for record in store.read_all()}
+    record = records.get(
+        chapter_number,
+        {
+            "n": chapter_number,
+            "title": title or f"Chapter {chapter_number}",
+            "vol": 1,
+            "status": status,
+            "summary": "",
+            "updated": "2026-04-18",
+        },
+    )
+    record["status"] = status
+    if title is not None:
+        record["title"] = title
+    store.upsert(record)
 
 
 def test_load_project_snapshot_for_initialized_project(initialized_project):
@@ -68,6 +91,17 @@ def test_load_project_snapshot_discovers_existing_archive_ranges(initialized_pro
     assert snapshot.existing_timeline_archive_ranges == [ArchiveRange(1, 50)]
     assert snapshot.existing_foreshadowing_archive_ranges == []
     assert [entry.entry_id for entry in snapshot.active_or_referenced_foreshadowing] == ["F001"]
+
+
+def test_load_project_snapshot_requires_contiguous_drafted_block_for_archive_ranges(initialized_project):
+    _upsert_status(initialized_project, 1, "drafted", title="第001章")
+    for chapter_number in range(2, 51):
+        _upsert_status(initialized_project, chapter_number, "outlined", title=f"第{chapter_number:03d}章")
+
+    snapshot = load_project_snapshot(initialized_project)
+
+    assert snapshot.latest_chapter == 50
+    assert snapshot.eligible_archive_ranges == []
 
 
 def test_load_project_snapshot_includes_archived_major_turning_points(initialized_project, fixture_text):

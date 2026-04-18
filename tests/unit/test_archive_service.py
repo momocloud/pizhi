@@ -16,9 +16,46 @@ def _seed_latest_chapter(paths, chapter_number: int) -> None:
     )
 
 
+def _seed_chapter_range(paths, start_chapter: int, end_chapter: int, *, status: str) -> None:
+    for chapter_number in range(start_chapter, end_chapter + 1):
+        ChapterIndexStore(paths.chapter_index_file).upsert(
+            {
+                "n": chapter_number,
+                "title": f"第{chapter_number:03d}章",
+                "vol": 1,
+                "status": status,
+                "summary": "",
+                "updated": "2026-04-18",
+            }
+        )
+
+
+def test_archive_service_does_not_rotate_outlined_only_sealed_range(initialized_project):
+    paths = project_paths(initialized_project)
+    _seed_latest_chapter(paths, 1)
+    _seed_chapter_range(paths, 2, 50, status="outlined")
+    paths.timeline_file.write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 1986-03-14 夜
+- **事件**: 沈轩抵达码头三号仓
+- **闪回**: 否
+- **重大转折**: 否
+""",
+        encoding="utf-8",
+    )
+
+    result = rotate_archives(initialized_project)
+
+    assert result.findings == []
+    assert not (paths.archive_dir / "timeline_ch001-050.md").exists()
+    assert "## T001-01" in paths.timeline_file.read_text(encoding="utf-8")
+
+
 def test_archive_service_rotates_sealed_timeline_range(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.timeline_file.write_text(
         """# Timeline
 
@@ -53,7 +90,7 @@ def test_archive_service_rotates_sealed_timeline_range(initialized_project):
 
 def test_archive_service_treats_existing_matching_timeline_archive_as_noop(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.archive_dir.mkdir(parents=True, exist_ok=True)
     expected_archive = """# Timeline Archive: ch001-ch050
 
@@ -92,7 +129,7 @@ def test_archive_service_treats_existing_matching_timeline_archive_as_noop(initi
 
 def test_archive_service_reports_conflicting_existing_foreshadowing_archive(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.archive_dir.mkdir(parents=True, exist_ok=True)
     conflicting_archive = """# Foreshadowing Archive: ch001-ch050
 
@@ -131,7 +168,7 @@ def test_archive_service_reports_conflicting_existing_foreshadowing_archive(init
 
 def test_archive_service_keeps_closed_foreshadowing_without_close_chapter_live(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.archive_dir.mkdir(parents=True, exist_ok=True)
     (paths.archive_dir / "timeline_ch001-050.md").write_text(
         """# Timeline Archive: ch001-ch050
@@ -177,7 +214,7 @@ def test_archive_service_keeps_closed_foreshadowing_without_close_chapter_live(i
 
 def test_archive_service_archives_resolved_and_abandoned_foreshadowing_without_dropping_live_content(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.foreshadowing_file.write_text(
         """# Foreshadowing Tracker
 
@@ -228,7 +265,7 @@ def test_archive_service_archives_resolved_and_abandoned_foreshadowing_without_d
 
 def test_archive_service_keeps_archiving_other_artifact_when_one_conflicts(initialized_project):
     paths = project_paths(initialized_project)
-    _seed_latest_chapter(paths, 50)
+    _seed_chapter_range(paths, 1, 50, status="drafted")
     paths.archive_dir.mkdir(parents=True, exist_ok=True)
     (paths.archive_dir / "timeline_ch001-050.md").write_text(
         """# Timeline Archive: ch001-ch050
