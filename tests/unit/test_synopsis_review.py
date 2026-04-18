@@ -84,38 +84,19 @@ def test_review_synopsis_candidate_promotes_valid_candidate(initialized_project,
     assert paths.cache_dir.joinpath("synopsis_review.md").exists()
 
 
-def test_review_synopsis_candidate_accepts_bullet_style_marker_headings(initialized_project):
+def test_review_synopsis_candidate_accepts_bullet_style_marker_headings(initialized_project, fixture_text):
+    _prepare_snapshot_with_active_and_referenced_foreshadowing(initialized_project, fixture_text)
     paths = project_paths(initialized_project)
-    paths.foreshadowing_file.write_text(
-        """# Foreshadowing Tracker
-
-## Active
-## Referenced
-
-## Resolved
-
-## Abandoned
-""",
-        encoding="utf-8",
-    )
-    paths.timeline_file.write_text(
-        """# Timeline
-
-## T001-01
-- **时间**: 1986-03-14 夜
-- **事件**: 沈轩抵达码头三号仓
-- **闪回**: 否
-- **重大转折**: 否
-""",
-        encoding="utf-8",
-    )
 
     candidate = (
         "第二章的概要正文。\n\n"
         "## coverage_markers\n"
         "- foreshadowing_ids:\n"
+        "  - F001\n"
+        "  - F002\n"
         "- major_turning_points:\n"
-        "  - T001-01\n"
+        "  - T001-02\n"
+        "  - T002-01\n"
     )
     _write_candidate(initialized_project, candidate)
 
@@ -185,6 +166,40 @@ def test_review_synopsis_candidate_preserves_invalid_candidate(initialized_proje
     assert "missing foreshadowing ids" in review_text
     assert "F002" in review_text
     assert "T002-01" in review_text
+
+
+def test_review_synopsis_candidate_rejects_unknown_marker_ids(initialized_project, fixture_text):
+    _prepare_snapshot_with_active_and_referenced_foreshadowing(initialized_project, fixture_text)
+    paths = project_paths(initialized_project)
+    existing_synopsis = "# Synopsis\n\n现有概要\n"
+    paths.synopsis_file.write_text(existing_synopsis, encoding="utf-8")
+
+    candidate = (
+        "第二章的概要正文。\n\n"
+        "## coverage_markers\n"
+        "foreshadowing_ids:\n"
+        "- F001\n"
+        "- F002\n"
+        "- F999\n"
+        "major_turning_points:\n"
+        "- T001-02\n"
+        "- T002-01\n"
+        "- T999-99\n"
+    )
+    _write_candidate(initialized_project, candidate)
+
+    review_result = review_synopsis_candidate(initialized_project)
+    review_text = paths.cache_dir.joinpath("synopsis_review.md").read_text(encoding="utf-8")
+
+    assert review_result.promoted is False
+    assert review_result.unexpected_foreshadowing_ids == ("F999",)
+    assert review_result.unexpected_major_turning_point_ids == ("T999-99",)
+    assert paths.synopsis_candidate_file.exists()
+    assert paths.synopsis_file.read_text(encoding="utf-8") == existing_synopsis
+    assert "unexpected foreshadowing ids" in review_text
+    assert "F999" in review_text
+    assert "unexpected major turning points" in review_text
+    assert "T999-99" in review_text
 
 
 def test_parse_synopsis_candidate_rejects_malformed_markers():

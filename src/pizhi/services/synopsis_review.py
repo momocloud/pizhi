@@ -28,6 +28,8 @@ class SynopsisReviewResult:
     review_path: Path
     missing_foreshadowing_ids: tuple[str, ...]
     missing_major_turning_point_ids: tuple[str, ...]
+    unexpected_foreshadowing_ids: tuple[str, ...]
+    unexpected_major_turning_point_ids: tuple[str, ...]
 
 
 def parse_synopsis_candidate(raw: str) -> tuple[str, SynopsisCandidateMarkers]:
@@ -69,6 +71,8 @@ def review_synopsis_candidate(project_root: Path) -> SynopsisReviewResult:
             review_path=review_path,
             missing_foreshadowing_ids=(),
             missing_major_turning_point_ids=(),
+            unexpected_foreshadowing_ids=(),
+            unexpected_major_turning_point_ids=(),
         )
 
     required_foreshadowing_ids = {entry.entry_id for entry in snapshot.active_or_referenced_foreshadowing}
@@ -79,12 +83,21 @@ def review_synopsis_candidate(project_root: Path) -> SynopsisReviewResult:
 
     missing_foreshadowing_ids = tuple(sorted(required_foreshadowing_ids - marker_foreshadowing_ids))
     missing_major_turning_point_ids = tuple(sorted(required_major_turning_point_ids - marker_major_turning_point_ids))
-    promoted = not missing_foreshadowing_ids and not missing_major_turning_point_ids
+    unexpected_foreshadowing_ids = tuple(sorted(marker_foreshadowing_ids - required_foreshadowing_ids))
+    unexpected_major_turning_point_ids = tuple(sorted(marker_major_turning_point_ids - required_major_turning_point_ids))
+    promoted = (
+        not missing_foreshadowing_ids
+        and not missing_major_turning_point_ids
+        and not unexpected_foreshadowing_ids
+        and not unexpected_major_turning_point_ids
+    )
 
     review_text = _render_review(
         promoted,
         missing_foreshadowing_ids,
         missing_major_turning_point_ids,
+        unexpected_foreshadowing_ids,
+        unexpected_major_turning_point_ids,
         error=None,
     )
     _write_text(review_path, review_text)
@@ -102,6 +115,8 @@ def review_synopsis_candidate(project_root: Path) -> SynopsisReviewResult:
         review_path=review_path,
         missing_foreshadowing_ids=missing_foreshadowing_ids,
         missing_major_turning_point_ids=missing_major_turning_point_ids,
+        unexpected_foreshadowing_ids=unexpected_foreshadowing_ids,
+        unexpected_major_turning_point_ids=unexpected_major_turning_point_ids,
     )
 
 
@@ -145,6 +160,8 @@ def _render_review(
     promoted: bool,
     missing_foreshadowing_ids: tuple[str, ...],
     missing_major_turning_point_ids: tuple[str, ...],
+    unexpected_foreshadowing_ids: tuple[str, ...],
+    unexpected_major_turning_point_ids: tuple[str, ...],
     *,
     error: str | None,
 ) -> str:
@@ -160,6 +177,10 @@ def _render_review(
             "missing foreshadowing ids: " + (", ".join(missing_foreshadowing_ids) if missing_foreshadowing_ids else "none"),
             "missing major turning points: "
             + (", ".join(missing_major_turning_point_ids) if missing_major_turning_point_ids else "none"),
+            "unexpected foreshadowing ids: "
+            + (", ".join(unexpected_foreshadowing_ids) if unexpected_foreshadowing_ids else "none"),
+            "unexpected major turning points: "
+            + (", ".join(unexpected_major_turning_point_ids) if unexpected_major_turning_point_ids else "none"),
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
