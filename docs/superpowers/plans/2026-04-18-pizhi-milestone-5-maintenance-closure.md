@@ -1,6 +1,6 @@
 # Pizhi Milestone 5 Maintenance Closure Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Close the maintenance loop by fixing the remaining maintenance regressions, deterministically promoting valid `synopsis_candidate.md` files, rotating fixed 50-chapter archives, and wiring shared maintenance into `write`, `continue`, and `review --full`.
 
@@ -56,7 +56,7 @@
 - Test: `tests/unit/test_status_report.py`
 - Test: `tests/unit/test_structural_review.py`
 
-- [ ] **Step 1: Write the failing regression tests**
+- [x] **Step 1: Write the failing regression tests**
 
 ```python
 def test_build_status_report_treats_referenced_entries_as_tracked(initialized_project):
@@ -69,7 +69,7 @@ def test_structural_review_single_chapter_flags_missing_previous_chapter(initial
     assert any(issue.category == "章节号连续性" for issue in report.chapter_issues[3])
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_status_report.py::test_build_status_report_treats_referenced_entries_as_tracked tests/unit/test_structural_review.py::test_structural_review_single_chapter_flags_missing_previous_chapter -v`
@@ -78,7 +78,7 @@ Expected:
 - `status_report` test fails because only `Active` entries are tracked
 - `structural_review` test fails because single-chapter review does not emit a continuity issue
 
-- [ ] **Step 3: Implement the minimal regression fixes**
+- [x] **Step 3: Implement the minimal regression fixes**
 
 ```python
 TRACKED_SECTIONS = {"Active", "Referenced"}
@@ -101,14 +101,14 @@ if chapter_number > 1 and (chapter_number - 1) not in snapshot.chapters:
     )
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_status_report.py::test_build_status_report_treats_referenced_entries_as_tracked tests/unit/test_structural_review.py::test_structural_review_single_chapter_flags_missing_previous_chapter -v`
 
 Expected: both `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/status_report.py src/pizhi/services/consistency/structural.py tests/unit/test_status_report.py tests/unit/test_structural_review.py
@@ -125,7 +125,7 @@ git commit -m "fix: restore maintenance parity checks"
 - Test: `tests/unit/test_foreshadowing.py`
 - Test: `tests/unit/test_project_snapshot.py`
 
-- [ ] **Step 1: Write the failing unit tests for close-chapter metadata and archive-aware snapshot fields**
+- [x] **Step 1: Write the failing unit tests for close-chapter metadata and archive-aware snapshot fields**
 
 ```python
 def test_parse_tracker_entries_reads_resolved_in_and_abandoned_in():
@@ -146,7 +146,7 @@ def test_load_project_snapshot_includes_archived_major_turning_points(initialize
     assert [entry.event_id for entry in snapshot.major_turning_points] == ["T001-01", "T060-02"]
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_foreshadowing.py::test_parse_tracker_entries_reads_resolved_in_and_abandoned_in tests/unit/test_project_snapshot.py::test_load_project_snapshot_discovers_existing_archive_ranges -v`
@@ -155,7 +155,7 @@ Expected:
 - parser test fails because `ForeshadowingEntry` does not expose close-chapter metadata
 - snapshot tests fail because `ProjectSnapshot` has no per-artifact archive fields and does not merge archived timeline turning points
 
-- [ ] **Step 3: Implement the domain and snapshot extensions**
+- [x] **Step 3: Implement the domain and snapshot extensions**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -182,14 +182,14 @@ return ProjectSnapshot(
 )
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_foreshadowing.py tests/unit/test_project_snapshot.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/domain/project_state.py src/pizhi/domain/foreshadowing.py src/pizhi/domain/timeline.py src/pizhi/services/project_snapshot.py tests/unit/test_foreshadowing.py tests/unit/test_project_snapshot.py
@@ -203,7 +203,7 @@ git commit -m "feat: extend snapshot inputs for maintenance"
 - Modify: `src/pizhi/services/chapter_writer.py`
 - Test: `tests/unit/test_synopsis_review.py`
 
-- [ ] **Step 1: Write the failing synopsis review unit tests**
+- [x] **Step 1: Write the failing synopsis review unit tests**
 
 ```python
 def test_review_synopsis_candidate_promotes_valid_candidate(initialized_project):
@@ -219,14 +219,14 @@ def test_review_synopsis_candidate_preserves_invalid_candidate(initialized_proje
     assert "missing foreshadowing ids" in review_text
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_synopsis_review.py -v`
 
 Expected: FAIL with import error or missing promotion logic
 
-- [ ] **Step 3: Implement synopsis parsing, validation, promotion, and stale-note cleanup**
+- [x] **Step 3: Implement synopsis parsing, validation, promotion, and stale-note cleanup**
 
 ```python
 def review_synopsis_candidate(project_root: Path) -> SynopsisReviewResult:
@@ -243,14 +243,14 @@ if parsed.metadata.synopsis_changed and parsed.sections.synopsis_new:
     # Do not write the old placeholder note here; maintenance owns review outcomes.
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_synopsis_review.py -v`
 
 Expected: all synopsis review tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/synopsis_review.py src/pizhi/services/chapter_writer.py tests/unit/test_synopsis_review.py
@@ -265,7 +265,7 @@ git commit -m "feat: add deterministic synopsis review"
 - Modify: `src/pizhi/services/chapter_writer.py`
 - Test: `tests/unit/test_archive_service.py`
 
-- [ ] **Step 1: Write the failing archive service tests**
+- [x] **Step 1: Write the failing archive service tests**
 
 ```python
 def test_archive_service_rotates_sealed_timeline_range(initialized_project):
@@ -280,14 +280,14 @@ def test_archive_service_keeps_closed_foreshadowing_without_close_chapter_live(i
     assert "missing close chapter" in result.findings[0].description
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_archive_service.py -v`
 
 Expected: FAIL because archive rotation and close-chapter formatting do not exist
 
-- [ ] **Step 3: Implement archive rotation and resolved-entry metadata**
+- [x] **Step 3: Implement archive rotation and resolved-entry metadata**
 
 ```python
 for item in operations.get("resolved", []):
@@ -310,14 +310,14 @@ def rotate_archives(project_root: Path) -> ArchiveResult:
     ...
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_archive_service.py tests/unit/test_foreshadowing.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/archive_service.py src/pizhi/domain/foreshadowing.py src/pizhi/services/chapter_writer.py tests/unit/test_archive_service.py tests/unit/test_foreshadowing.py
@@ -338,7 +338,7 @@ git commit -m "feat: add fixed-range archive rotation"
 - Create: `tests/fixtures/chapter_outputs/ch001_response_synopsis_valid.md`
 - Create: `tests/fixtures/chapter_outputs/ch001_response_synopsis_invalid.md`
 
-- [ ] **Step 1: Write the failing integration tests**
+- [x] **Step 1: Write the failing integration tests**
 
 ```python
 def test_write_command_promotes_valid_synopsis_candidate(initialized_project, fixture_text):
@@ -358,7 +358,7 @@ def test_continue_command_checkpoint_includes_maintenance_summary(initialized_pr
     assert "Synopsis review" in checkpoint_text
 ```
 
-- [ ] **Step 2: Run the targeted integration tests to verify they fail**
+- [x] **Step 2: Run the targeted integration tests to verify they fail**
 
 Run:
 `python -m pytest tests/integration/test_write_command.py tests/integration/test_continue_command.py tests/integration/test_review_command.py -v`
@@ -368,7 +368,7 @@ Expected:
 - continue test fails because checkpoint summaries do not yet include maintenance output
 - review test fails because full review does not backfill archive work or report maintenance
 
-- [ ] **Step 3: Implement the orchestration layer and entry-point wiring**
+- [x] **Step 3: Implement the orchestration layer and entry-point wiring**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -389,14 +389,14 @@ maintenance_result = run_full_maintenance(project_root)
 report_text = format_structural_report(report) + format_maintenance_summary(maintenance_result)
 ```
 
-- [ ] **Step 4: Run the targeted integration tests again**
+- [x] **Step 4: Run the targeted integration tests again**
 
 Run:
 `python -m pytest tests/integration/test_write_command.py tests/integration/test_continue_command.py tests/integration/test_review_command.py -v`
 
 Expected: all selected integration tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/maintenance.py src/pizhi/services/write_service.py src/pizhi/services/continue_service.py src/pizhi/core/templates.py src/pizhi/commands/review_cmd.py tests/integration/test_write_command.py tests/integration/test_continue_command.py tests/integration/test_review_command.py tests/fixtures/chapter_outputs/ch001_response_synopsis_valid.md tests/fixtures/chapter_outputs/ch001_response_synopsis_invalid.md
@@ -408,7 +408,7 @@ git commit -m "feat: wire maintenance into write and review flows"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md`
 
-- [ ] **Step 1: Run command smoke tests**
+- [x] **Step 1: Run command smoke tests**
 
 Run:
 - `python -m pizhi write --help`
@@ -417,18 +417,28 @@ Run:
 
 Expected: all commands exit `0`
 
-- [ ] **Step 2: Run the full test suite**
+Observed:
+
+- `python -m pizhi write --help` -> exit `0`
+- `python -m pizhi continue --help` -> exit `0`
+- `python -m pizhi review --help` -> exit `0`
+
+- [x] **Step 2: Run the full test suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
 Expected: all tests `PASSED` and count increases beyond the 48-test baseline
 
-- [ ] **Step 3: Mark verification steps complete in this plan**
+Observed:
+
+- `python -m pytest tests/unit tests/integration -v` -> `77 passed in 19.47s`
+
+- [x] **Step 3: Mark verification steps complete in this plan**
 
 Update this file so the executed verification boxes are checked and add the final observed command/test results near Task 6.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md
