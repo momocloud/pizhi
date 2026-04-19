@@ -26,3 +26,16 @@ def test_apply_command_rejects_non_success_run(initialized_project):
 
     assert result.returncode != 0
     assert "status is provider_failed" in result.stderr
+
+
+def test_apply_command_rejects_missing_run_id(initialized_project):
+    result = run(
+        [sys.executable, "-m", "pizhi", "apply", "--run-id", "run-missing"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "run run-missing does not exist" in result.stderr
+    assert "Traceback" not in result.stderr

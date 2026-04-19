@@ -19,7 +19,13 @@ class ApplyResult:
 
 
 def apply_run(project_root: Path, run_id: str) -> ApplyResult:
-    record = RunStore(project_paths(project_root).runs_dir).load(run_id)
+    runs_dir = project_paths(project_root).runs_dir
+    run_dir = runs_dir / run_id
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise ValueError(f"run {run_id} does not exist")
+
+    record = RunStore(runs_dir).load(run_id)
     if record.status != "succeeded":
         raise ValueError(f"run {run_id} status is {record.status}")
     if not record.normalized_path.exists():
@@ -31,7 +37,7 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
     elif record.command == "outline-expand":
         OutlineService(project_root).apply_response(normalized_text)
     elif record.command == "write":
-        chapter_number = int(record.metadata["chapter"])
+        chapter_number = _load_chapter_number(record.metadata, run_id)
         WriteService(project_root).apply_response(chapter_number, normalized_text)
     else:
         raise ValueError(f"unsupported run command: {record.command}")
@@ -42,3 +48,11 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
         target=record.target,
         status=record.status,
     )
+
+
+def _load_chapter_number(metadata: dict[str, object], run_id: str) -> int:
+    chapter = metadata.get("chapter")
+    try:
+        return int(chapter)
+    except (TypeError, ValueError):
+        raise ValueError(f"run {run_id} has invalid chapter metadata") from None

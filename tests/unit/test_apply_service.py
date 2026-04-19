@@ -42,6 +42,34 @@ def _seed_failed_run(initialized_project, *, status: str) -> str:
     return record.run_id
 
 
+def test_apply_run_routes_successful_brainstorm_run(initialized_project, fixture_text):
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="brainstorm",
+        target="project",
+        normalized_text=fixture_text("brainstorm_response.md"),
+    )
+
+    result = apply_run(initialized_project, run_id)
+
+    assert result.command == "brainstorm"
+    assert (initialized_project / ".pizhi" / "global" / "synopsis.md").exists()
+
+
+def test_apply_run_routes_successful_outline_expand_run(initialized_project, fixture_text):
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="outline-expand",
+        target="ch001-ch002",
+        normalized_text=fixture_text("outline_expand_response.md"),
+    )
+
+    result = apply_run(initialized_project, run_id)
+
+    assert result.command == "outline-expand"
+    assert (initialized_project / ".pizhi" / "chapters" / "ch001" / "outline.md").exists()
+
+
 def test_apply_run_routes_successful_write_run(initialized_project, fixture_text):
     run_id = _seed_successful_run(
         initialized_project,
@@ -61,4 +89,38 @@ def test_apply_run_rejects_non_success_run(initialized_project):
     run_id = _seed_failed_run(initialized_project, status="provider_failed")
 
     with pytest.raises(ValueError, match=r"status is provider_failed"):
+        apply_run(initialized_project, run_id)
+
+
+def test_apply_run_rejects_missing_run_id(initialized_project):
+    with pytest.raises(ValueError, match=r"run run-missing does not exist"):
+        apply_run(initialized_project, "run-missing")
+
+
+def test_apply_run_rejects_missing_normalized_md(initialized_project, fixture_text):
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch001",
+        normalized_text=fixture_text("ch001_response.md"),
+        metadata={"chapter": 1},
+    )
+    run_dir = initialized_project / ".pizhi" / "cache" / "runs" / run_id
+    (run_dir / "normalized.md").unlink()
+
+    with pytest.raises(ValueError, match=r"run .* is missing normalized\.md"):
+        apply_run(initialized_project, run_id)
+
+
+@pytest.mark.parametrize("metadata", [{}, {"chapter": "abc"}])
+def test_apply_run_rejects_malformed_write_chapter_metadata(initialized_project, fixture_text, metadata):
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch001",
+        normalized_text=fixture_text("ch001_response.md"),
+        metadata=metadata,
+    )
+
+    with pytest.raises(ValueError, match=r"run .* has invalid chapter metadata"):
         apply_run(initialized_project, run_id)
