@@ -284,3 +284,39 @@ def test_continue_sessions_and_checkpoints_list_real_fields(initialized_project,
     assert f"session_id={session.session_id}" in checkpoints_output.out
     assert "stage=outline" in checkpoints_output.out
     assert "status=generated" in checkpoints_output.out
+
+
+def test_checkpoint_apply_fails_preflight_when_session_manifest_is_missing(
+    initialized_project, monkeypatch, capsys
+):
+    _start_execute_session(initialized_project, monkeypatch)
+    session = _single_session(initialized_project)
+    checkpoint = _all_checkpoints(initialized_project)[0]
+    session.manifest_path.unlink()
+    capsys.readouterr()
+
+    result = main(["checkpoint", "apply", "--id", checkpoint.checkpoint_id])
+
+    captured = capsys.readouterr()
+    reloaded_checkpoint = CheckpointStore(project_paths(initialized_project).checkpoints_dir).load(
+        checkpoint.checkpoint_id
+    )
+    assert result != 0
+    assert "error:" in captured.err
+    assert reloaded_checkpoint.status != "applied"
+
+
+def test_continue_resume_fails_cleanly_when_session_manifest_is_missing(
+    initialized_project, monkeypatch, capsys
+):
+    _start_execute_session(initialized_project, monkeypatch)
+    session = _single_session(initialized_project)
+    session.manifest_path.unlink()
+    capsys.readouterr()
+
+    result = main(["continue", "resume", "--session-id", session.session_id])
+
+    captured = capsys.readouterr()
+    assert result != 0
+    assert "error:" in captured.err
+    assert "Traceback" not in captured.err

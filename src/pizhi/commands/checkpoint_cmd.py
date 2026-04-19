@@ -9,10 +9,12 @@ from pizhi.services.checkpoint_apply_service import apply_checkpoint
 from pizhi.services.checkpoint_store import CheckpointRecord
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionRecord
+from pizhi.services.continue_session_store import ContinueSessionStore
 
 
 def run_checkpoint_apply(args: argparse.Namespace) -> int:
     try:
+        _preflight_checkpoint_apply(Path.cwd(), checkpoint_id=args.id)
         result = apply_checkpoint(Path.cwd(), args.id)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -50,6 +52,12 @@ def _load_checkpoints(project_root: Path, *, session_id: str) -> list[Checkpoint
         )
         if record.session_id == session_id
     ]
+
+
+def _preflight_checkpoint_apply(project_root: Path, *, checkpoint_id: str) -> None:
+    paths = project_paths(project_root)
+    checkpoint = CheckpointStore(paths.checkpoints_dir).load(checkpoint_id)
+    ContinueSessionStore(paths.continue_sessions_dir).load(checkpoint.session_id)
 
 
 def _print_checkpoint(record: CheckpointRecord) -> None:

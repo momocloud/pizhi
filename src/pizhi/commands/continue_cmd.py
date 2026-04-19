@@ -83,7 +83,7 @@ def _run_sessions() -> int:
 def _run_resume(args: argparse.Namespace) -> int:
     try:
         result = resume_continue_execution(Path.cwd(), args.session_id)
-    except ValueError as exc:
+    except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
