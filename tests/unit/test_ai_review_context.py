@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from pizhi.core.paths import project_paths
@@ -58,6 +59,34 @@ def _write_overdue_foreshadowing(initialized_project) -> None:
     )
 
 
+def _write_alias_character_meta(initialized_project) -> None:
+    paths = project_paths(initialized_project)
+    meta_path = paths.chapter_dir(2) / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["characters_involved"] = ["轩哥"]
+    meta["foreshadowing"] = {"introduced": [], "referenced": [], "resolved": []}
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_alias_character_index(initialized_project) -> None:
+    paths = project_paths(initialized_project)
+    paths.global_dir.joinpath("characters_index.md").write_text(
+        """# Characters Index
+
+## 沈轩
+- **别名**：轩哥
+- **定位**：主角
+- **状态**：调查码头血衣
+
+## 阿坤
+- **别名**：坤哥
+- **定位**：线人
+- **状态**：对血衣来历含糊其辞
+""",
+        encoding="utf-8",
+    )
+
+
 def test_build_chapter_ai_review_context_includes_target_previous_and_globals(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
@@ -105,6 +134,39 @@ def test_build_chapter_ai_review_context_includes_target_previous_and_globals(in
     assert "高严重度问题示例。" in context.prompt_context
     assert str(Path(".pizhi/chapters/ch002/text.md")) in context.referenced_files
     assert str(Path(".pizhi/global/characters_index.md")) in context.referenced_files
+
+
+def test_build_chapter_ai_review_context_resolves_character_aliases(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
+    _write_alias_character_index(initialized_project)
+    _write_alias_character_meta(initialized_project)
+    paths = project_paths(initialized_project)
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 码头血衣的来源
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=2)
+    context = build_chapter_ai_review_context(initialized_project, 2, report.chapter_issues[2])
+
+    assert "## 沈轩" in context.prompt_context
+    assert "别名" in context.prompt_context
+    assert "轩哥" in context.prompt_context
+    assert "F001" in context.prompt_context
+    assert "码头血衣的来源" in context.prompt_context
 
 
 def test_build_full_ai_review_context_compresses_project_snapshot(initialized_project, fixture_text):

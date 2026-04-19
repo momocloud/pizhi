@@ -17,6 +17,8 @@ from pizhi.services.project_snapshot import load_project_snapshot
 
 
 CHARACTER_INDEX_ENTRY_RE = re.compile(r"^## (?P<name>.+?)\s*$", re.MULTILINE)
+CHARACTER_INDEX_ALIAS_RE = re.compile(r"^- \*\*(?:别名|Alias|Aliases)\*\*[:：]\s*(?P<value>.+)$")
+CHARACTER_INDEX_SEPARATOR_RE = re.compile(r"[，,、/|]")
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,10 +48,13 @@ def build_chapter_ai_review_context(
     previous_characters = _read_text(previous_dir / "characters.md") if previous_dir is not None else ""
     previous_relationships = _read_text(previous_dir / "relationships.md") if previous_dir is not None else ""
     worldview_text = _read_text(paths.worldview_file)
+    character_index_raw = _read_text(paths.global_dir / "characters_index.md")
+    character_alias_map = _build_character_alias_map(character_index_raw)
 
     involved_names = _collect_relevant_character_names(current_meta, previous_meta)
-    relevant_foreshadowing = _select_relevant_foreshadowing(snapshot, current_meta, previous_meta, involved_names)
-    character_index_text = _render_character_index(_read_text(paths.global_dir / "characters_index.md"), involved_names)
+    canonical_names = _canonicalize_character_names(involved_names, character_alias_map)
+    relevant_foreshadowing = _select_relevant_foreshadowing(snapshot, current_meta, previous_meta, canonical_names)
+    character_index_text = _render_character_index(character_index_raw, canonical_names, character_alias_map)
 
     prompt_context = "\n".join(
         [
@@ -290,7 +295,7 @@ def _render_structural_issues(issues: list[StructuralIssue]) -> str:
     return "\n".join(lines)
 
 
-def _render_character_index(raw_index: str, relevant_names: set[str]) -> str:
+def _render_character_index(raw_index: str, relevant_names: set[str], alias_map: dict[str, str]) -> str:
     if not raw_index.strip() or not relevant_names:
         return "- 无。"
 
@@ -301,11 +306,14 @@ def _render_character_index(raw_index: str, relevant_names: set[str]) -> str:
     rendered: list[str] = []
     for index, match in enumerate(blocks):
         name = match.group("name").strip()
-        if name not in relevant_names:
-            continue
         start = match.start()
         end = blocks[index + 1].start() if index + 1 < len(blocks) else len(raw_index)
-        rendered.append(raw_index[start:end].strip())
+        block_text = raw_index[start:end].strip()
+        aliases = _extract_character_aliases(block_text)
+        canonical_name = alias_map.get(name, name)
+        if canonical_name not in relevant_names and not relevant_names.intersection(aliases):
+            continue
+        rendered.append(block_text)
     return "\n\n".join(rendered) if rendered else "- 无。"
 
 
@@ -313,7 +321,7 @@ def _select_relevant_foreshadowing(
     snapshot: ProjectSnapshot,
     current_meta: dict[str, object],
     previous_meta: dict[str, object],
-    involved_names: set[str],
+    canonical_names: set[str],
 ) -> list[ForeshadowingEntry]:
     relevant_ids = _foreshadowing_ids_from_meta(current_meta) | _foreshadowing_ids_from_meta(previous_meta)
     relevant: list[ForeshadowingEntry] = []
@@ -323,7 +331,7 @@ def _select_relevant_foreshadowing(
         if entry.entry_id in relevant_ids:
             relevant.append(entry)
             continue
-        if involved_names.intersection(entry.related_characters):
+        if canonical_names.intersection(_canonicalize_character_names(entry.related_characters, {})):
             relevant.append(entry)
     return relevant
 
@@ -354,6 +362,43 @@ def _collect_relevant_character_names(
         if isinstance(involved, list):
             names.update(str(name) for name in involved if str(name).strip())
     return names
+
+
+def _build_character_alias_map(raw_index: str) -> dict[str, str]:
+    alias_map: dict[str, str] = {}
+    blocks = list(CHARACTER_INDEX_ENTRY_RE.finditer(raw_index))
+    for index, match in enumerate(blocks):
+        canonical_name = match.group("name").strip()
+        start = match.start()
+        end = blocks[index + 1].start() if index + 1 < len(blocks) else len(raw_index)
+        block_text = raw_index[start:end].strip()
+        alias_map[canonical_name] = canonical_name
+        for alias in _extract_character_aliases(block_text):
+            alias_map[alias] = canonical_name
+    return alias_map
+
+
+def _canonicalize_character_names(names: set[str] | list[str], alias_map: dict[str, str]) -> set[str]:
+    canonical_names: set[str] = set()
+    for name in names:
+        stripped = str(name).strip()
+        if not stripped:
+            continue
+        canonical_names.add(alias_map.get(stripped, stripped))
+    return canonical_names
+
+
+def _extract_character_aliases(block_text: str) -> set[str]:
+    aliases: set[str] = set()
+    for line in block_text.splitlines():
+        match = CHARACTER_INDEX_ALIAS_RE.fullmatch(line.strip())
+        if match is None:
+            continue
+        for alias in CHARACTER_INDEX_SEPARATOR_RE.split(match.group("value")):
+            alias = alias.strip()
+            if alias:
+                aliases.add(alias)
+    return aliases
 
 
 def _render_active_foreshadowing(snapshot: ProjectSnapshot) -> str:
