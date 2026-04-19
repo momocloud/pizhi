@@ -76,7 +76,26 @@ def execute_prompt_request(project_root: Path, request: PromptRequest, target: s
             record=record,
         )
 
-    normalized_text = _normalize_provider_content(response.content_text)
+    try:
+        normalized_text = _normalize_provider_content(response.content_text)
+    except ValueError as exc:
+        record = store.write_failure(
+            command=request.command_name,
+            target=target,
+            prompt_text=request.prompt_text,
+            raw_payload=response.raw_payload,
+            error_text=str(exc),
+            status="normalize_failed",
+            metadata=metadata,
+            referenced_files=request.referenced_files,
+        )
+        return ExecutionResult(
+            run_id=record.run_id,
+            run_dir=record.run_dir,
+            status="normalize_failed",
+            record=record,
+        )
+
     record = store.write_success(
         command=request.command_name,
         target=target,
@@ -111,4 +130,6 @@ def _load_api_key(env_name: str) -> str:
 
 
 def _normalize_provider_content(content_text: str) -> str:
+    if not content_text.strip():
+        raise ValueError("provider response did not contain text content")
     return content_text

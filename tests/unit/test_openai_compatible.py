@@ -40,3 +40,21 @@ def test_openai_compatible_adapter_extracts_content_from_response():
     assert response.raw_payload == payload
     assert response.content_text == "## normalized\n"
     assert extract_content_text(payload) == "## normalized\n"
+
+
+def test_openai_compatible_adapter_returns_empty_text_when_choices_have_no_message_text():
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [{"type": "input_image", "image_url": "https://example.com/img.png"}],
+                }
+            }
+        ]
+    }
+
+    response = parse_response(payload)
+
+    assert response.raw_payload == payload
+    assert response.content_text == ""
+    assert extract_content_text(payload) == ""

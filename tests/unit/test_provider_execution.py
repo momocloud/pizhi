@@ -100,6 +100,28 @@ def test_execute_prompt_request_persists_normalized_success(initialized_project,
     assert result.run_dir.joinpath("normalized.md").read_text(encoding="utf-8").startswith("##")
 
 
+def test_execute_prompt_request_persists_normalize_failed_when_provider_returns_no_text(
+    initialized_project, monkeypatch
+):
+    request = BrainstormService(initialized_project).build_prompt_request()
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StubAdapter(""),
+    )
+
+    result = execute_prompt_request(initialized_project, request, target="project")
+    loaded = RunStore(initialized_project / ".pizhi" / "cache" / "runs").load(result.run_id)
+
+    assert result.status == "normalize_failed"
+    assert result.record.status == "normalize_failed"
+    assert loaded.status == "normalize_failed"
+    assert loaded.raw_path.exists()
+    assert not loaded.normalized_path.exists()
+    assert loaded.error_path.read_text(encoding="utf-8").strip() == "provider response did not contain text content"
+
+
 def test_write_service_apply_response_returns_maintenance_result(initialized_project, monkeypatch):
     service = WriteService(initialized_project)
     chapter_result = object()
