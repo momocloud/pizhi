@@ -12,6 +12,7 @@ from pizhi.domain.ai_review import parse_ai_review_issues
 from pizhi.services.ai_review_context import AIReviewContext
 from pizhi.services.provider_execution import execute_prompt_request
 from pizhi.services.run_store import RunRecord
+from pizhi.services.run_store import RunStore
 
 
 NO_AI_REVIEW_ISSUES_MESSAGE = "- 未发现 B 类 AI 语义问题。\n"
@@ -109,13 +110,15 @@ def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResul
     try:
         issues = parse_ai_review_issues(rendered_markdown)
     except ValueError as exc:
+        store = RunStore(execution.record.run_dir.parent)
+        record = store.mark_failure(execution.run_id, error_text=str(exc))
         return AIReviewResult(
             status="failed",
             run_id=execution.run_id,
             issues=[],
             rendered_markdown=rendered_markdown,
             error_message=str(exc),
-            record=execution.record,
+            record=record,
         )
 
     return AIReviewResult(

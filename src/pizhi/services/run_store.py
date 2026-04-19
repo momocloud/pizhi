@@ -30,6 +30,39 @@ class RunStore:
     def __init__(self, runs_dir: Path) -> None:
         self.runs_dir = runs_dir
 
+    def mark_failure(self, run_id: str, *, error_text: str, status: str = "failed") -> RunRecord:
+        record = self.load(run_id)
+        record.error_path.write_text(error_text, encoding="utf-8", newline="\n")
+        manifest_path = record.manifest_path
+        manifest_path.write_text(
+            json.dumps(
+                self._build_manifest(
+                    run_id=record.run_id,
+                    command=record.command,
+                    target=record.target,
+                    status=status,
+                    created_at=record.created_at,
+                    metadata=record.metadata,
+                    referenced_files=record.referenced_files,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return self._record_from_paths(
+            run_id=record.run_id,
+            run_dir=record.run_dir,
+            command=record.command,
+            target=record.target,
+            status=status,
+            created_at=record.created_at,
+            metadata=record.metadata,
+            referenced_files=record.referenced_files,
+        )
+
     def write_success(
         self,
         *,

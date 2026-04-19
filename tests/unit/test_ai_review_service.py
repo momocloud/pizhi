@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from pizhi.adapters.provider_base import ProviderResponse
@@ -304,8 +305,15 @@ def test_run_ai_review_returns_failure_when_schema_is_invalid(initialized_projec
     )
 
     result = run_ai_review(initialized_project, context)
+    run_dir = result.record.run_dir
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
 
     assert result.status == "failed"
     assert result.run_id.startswith("run-")
+    assert result.record is not None
+    assert result.record.status == "failed"
     assert result.error_message is not None
     assert "unknown review category" in result.error_message
+    assert manifest["status"] == "failed"
+    assert (run_dir / "error.txt").exists()
+    assert "unknown review category" in (run_dir / "error.txt").read_text(encoding="utf-8")
