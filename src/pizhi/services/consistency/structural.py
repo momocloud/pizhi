@@ -8,7 +8,6 @@ import re
 from pizhi.core.paths import project_paths
 from pizhi.domain.foreshadowing import ForeshadowingEntry
 from pizhi.domain.timeline import time_sort_key
-from pizhi.services.review_documents import load_sectioned_markdown
 from pizhi.services.review_documents import write_chapter_review_notes
 from pizhi.services.project_snapshot import load_project_snapshot
 
@@ -67,11 +66,10 @@ def run_structural_review(project_root: Path, chapter_number: int | None = None,
         issues = _review_chapter(snapshot, paths, target)
         chapter_issues[target] = issues
         notes_path = paths.chapter_dir(target) / "notes.md"
-        existing_sections = load_sectioned_markdown(notes_path, required=["作者备注", "A 类结构检查", "B 类 AI 审查"])
         write_chapter_review_notes(
             notes_path,
             structural_markdown=_render_structural_markdown(issues),
-            ai_review_markdown=existing_sections["B 类 AI 审查"],
+            ai_review_markdown=_load_ai_review_markdown(notes_path),
         )
 
     global_issues = _review_project(snapshot, paths) if full else []
@@ -379,9 +377,23 @@ def _format_issue_list(issues: list[StructuralIssue]) -> list[str]:
 
 
 def _render_structural_markdown(issues: list[StructuralIssue]) -> str:
+    lines: list[str] = []
     if not issues:
         return "- 未发现结构化问题。"
-    return "\n".join(_format_issue_list(issues))
+
+    for index, issue in enumerate(issues, start=1):
+        lines.extend(
+            [
+                f"### 问题 {index}",
+                f"- **类别**：{issue.category}",
+                f"- **严重度**：{issue.severity}",
+                f"- **描述**：{issue.description}",
+                f"- **证据**：{issue.evidence}",
+                f"- **建议修法**：{issue.suggestion}",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip()
 
 
 def _read_text(path: Path) -> str:
@@ -401,3 +413,18 @@ def _load_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
+
+
+def _load_ai_review_markdown(path: Path) -> str:
+    if not path.exists():
+        return ""
+
+    raw = path.read_text(encoding="utf-8")
+    match = re.search(r"^## B 类 AI 审查\s*$", raw, re.MULTILINE)
+    if match is None:
+        return ""
+
+    next_section = re.search(r"^## \S", raw[match.end() :], re.MULTILINE)
+    if next_section is None:
+        return raw[match.end() :].strip()
+    return raw[match.end() : match.end() + next_section.start()].strip()

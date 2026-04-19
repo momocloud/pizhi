@@ -8,9 +8,17 @@ def test_structural_review_flags_non_monotonic_timeline(initialized_project, fix
     apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
 
     report = run_structural_review(initialized_project, chapter_number=2)
+    notes_path = project_paths(initialized_project).chapter_dir(2) / "notes.md"
+    raw_notes = notes_path.read_text(encoding="utf-8")
 
     assert report.chapter_issues[2]
     assert report.chapter_issues[2][0].category == "时间线单调性"
+    assert "### 问题 1" in raw_notes
+    assert "- **类别**：" in raw_notes
+    assert "- **严重度**：" in raw_notes
+    assert "- **描述**：" in raw_notes
+    assert "- **证据**：" in raw_notes
+    assert "- **建议修法**：" in raw_notes
 
 
 def test_structural_review_tolerates_malformed_meta_json(initialized_project, fixture_text):
