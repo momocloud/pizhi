@@ -17,6 +17,7 @@ from pizhi.services.continue_execution import start_continue_execution
 from pizhi.services.continue_session_store import ContinueSessionStore
 from pizhi.services.outline_service import OutlineService
 from pizhi.services.prompt_budget import PromptBudgetError
+from pizhi.services.run_store import RunStore
 
 
 @dataclass
@@ -53,6 +54,22 @@ def _seed_drafted_range(project_root, start: int, end: int) -> None:
     paths = project_paths(project_root)
     store = ChapterIndexStore(paths.chapter_index_file)
     for chapter_number in range(start, end + 1):
+        store.upsert(
+            {
+                "n": chapter_number,
+                "title": f"第{chapter_number:03d}章",
+                "vol": 1,
+                "status": "drafted",
+                "summary": "",
+                "updated": date.today().isoformat(),
+            }
+        )
+
+
+def _seed_drafted_chapters(project_root, chapter_numbers: list[int]) -> None:
+    paths = project_paths(project_root)
+    store = ChapterIndexStore(paths.chapter_index_file)
+    for chapter_number in chapter_numbers:
         store.upsert(
             {
                 "n": chapter_number,
@@ -109,6 +126,39 @@ def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized
     assert result.checkpoint.chapter_range == (3, 5)
     assert result.checkpoint.status == "generated"
     assert len(result.checkpoint.run_ids) == 1
+
+
+def test_start_continue_execution_splits_outline_checkpoint_when_three_chapter_prompt_exceeds_budget(
+    initialized_project, monkeypatch
+):
+    _configure_provider(initialized_project)
+    _seed_drafted_chapters(initialized_project, list(range(1, 11)))
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StubAdapter(_outline_response(11, 13)),
+    )
+    prompt_length = len(
+        OutlineService(initialized_project)
+        .build_prompt_request((11, 11), direction="push the dock war")
+        .prompt_text
+    )
+    monkeypatch.setattr(
+        "pizhi.services.continue_execution.DEFAULT_OUTLINE_MAX_PROMPT_CHARS",
+        prompt_length * 2 + 1,
+    )
+
+    result = start_continue_execution(initialized_project, count=3, direction="push the dock war")
+    assert result.checkpoint is not None
+    run_store = RunStore(project_paths(initialized_project).runs_dir)
+    run_targets = [run_store.load(run_id).target for run_id in result.checkpoint.run_ids]
+
+    assert result.session.current_range == (11, 13)
+    assert result.checkpoint.stage == "outline"
+    assert result.checkpoint.chapter_range == (11, 13)
+    assert result.checkpoint.status == "generated"
+    assert len(result.checkpoint.run_ids) == 2
+    assert run_targets == ["ch011-ch012", "ch013"]
 
 
 def test_start_continue_execution_blocks_session_on_outline_preflight_failure(initialized_project):
@@ -246,6 +296,7 @@ def test_start_continue_execution_blocks_session_on_provider_failures(
     assert session.status == "blocked"
     assert session.last_checkpoint_id == checkpoint.checkpoint_id
     assert checkpoint.status == "failed"
+    assert checkpoint.stage == "outline"
 
 
 def test_resume_continue_execution_blocks_session_on_write_budget_failure(initialized_project, monkeypatch):

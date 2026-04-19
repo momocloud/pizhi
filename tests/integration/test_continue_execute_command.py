@@ -11,6 +11,7 @@ from pizhi.core.config import save_config
 from pizhi.core.paths import project_paths
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionStore
+from pizhi.services.prompt_budget import PromptBudgetError
 
 
 CHAPTER_THREE_RESPONSE = """---
@@ -120,6 +121,20 @@ def _single_checkpoint(project_root):
     return CheckpointStore(paths.checkpoints_dir).load(checkpoint_ids[0])
 
 
+def _line_value(output: str, prefix: str) -> str:
+    for line in output.splitlines():
+        if line.startswith(prefix):
+            return line.removeprefix(prefix).strip().split()[0]
+    raise AssertionError(f"missing line starting with {prefix!r}: {output}")
+
+
+def _latest_checkpoint(project_root):
+    paths = project_paths(project_root)
+    checkpoint_ids = sorted(entry.name for entry in paths.checkpoints_dir.iterdir() if entry.is_dir())
+    assert checkpoint_ids
+    return CheckpointStore(paths.checkpoints_dir).load(checkpoint_ids[-1])
+
+
 def test_continue_execute_creates_real_session_and_outline_checkpoint(initialized_project, monkeypatch):
     monkeypatch.chdir(initialized_project)
     _configure_provider(initialized_project)
@@ -146,6 +161,46 @@ def test_continue_execute_creates_real_session_and_outline_checkpoint(initialize
     assert checkpoint.stage == "outline"
     assert checkpoint.status == "generated"
     assert checkpoint.chapter_range == (1, 3)
+
+
+def test_continue_resume_returns_error_and_blocks_session_when_write_prompt_exceeds_budget(
+    initialized_project, monkeypatch, capsys
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RoutedAdapter(outline_text=_outline_response(1, 3), chapter_responses={}),
+    )
+
+    execute_exit = main(["continue", "--count", "3", "--execute"])
+    execute_output = capsys.readouterr().out
+    session_id = _line_value(execute_output, "session_id=")
+    checkpoint_id = _line_value(execute_output, "checkpoint_id=")
+
+    assert execute_exit == 0
+    assert checkpoint_id
+
+    apply_exit = main(["checkpoint", "apply", "--id", checkpoint_id])
+    assert apply_exit == 0
+
+    monkeypatch.setattr(
+        "pizhi.services.continue_execution.ensure_write_prompt_within_budget",
+        lambda **_: (_ for _ in ()).throw(PromptBudgetError("write prompt exceeds budget for ch001")),
+    )
+
+    resume_exit = main(["continue", "resume", "--session-id", session_id])
+    captured = capsys.readouterr()
+    session = _single_session(initialized_project)
+    checkpoint = _latest_checkpoint(initialized_project)
+
+    assert resume_exit == 1
+    assert "error:" in captured.err
+    assert "write prompt exceeds budget for ch001" in captured.err
+    assert session.status == "blocked"
+    assert checkpoint.stage == "write"
+    assert checkpoint.status == "failed"
 
 
 def test_legacy_continue_prompt_only_flow_still_works(initialized_project, monkeypatch, fixture_text, capsys):
