@@ -39,3 +39,30 @@ def test_apply_command_rejects_missing_run_id(initialized_project):
     assert result.returncode != 0
     assert "run run-missing does not exist" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def test_apply_command_rejects_structurally_bad_manifest_without_traceback(initialized_project):
+    bad_runs = initialized_project / ".pizhi" / "cache" / "runs"
+
+    missing_command_run = bad_runs / "run-missing-command"
+    missing_command_run.mkdir(parents=True, exist_ok=True)
+    (missing_command_run / "manifest.json").write_text(
+        '{"run_id": "run-missing-command", "target": "ch001", "status": "succeeded"}',
+        encoding="utf-8",
+    )
+
+    malformed_json_run = bad_runs / "run-malformed-json"
+    malformed_json_run.mkdir(parents=True, exist_ok=True)
+    (malformed_json_run / "manifest.json").write_text("{not json", encoding="utf-8")
+
+    for run_id in ("run-missing-command", "run-malformed-json"):
+        result = run(
+            [sys.executable, "-m", "pizhi", "apply", "--run-id", run_id],
+            cwd=initialized_project,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode != 0
+        assert "Traceback" not in result.stderr
+        assert "invalid manifest" in result.stderr

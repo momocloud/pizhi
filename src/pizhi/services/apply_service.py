@@ -25,7 +25,11 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
     if not manifest_path.exists():
         raise ValueError(f"run {run_id} does not exist")
 
-    record = RunStore(runs_dir).load(run_id)
+    try:
+        record = RunStore(runs_dir).load(run_id)
+    except Exception as exc:
+        raise ValueError(f"run {run_id} has invalid manifest: {exc}") from None
+
     if record.status != "succeeded":
         raise ValueError(f"run {run_id} status is {record.status}")
     if not record.normalized_path.exists():
