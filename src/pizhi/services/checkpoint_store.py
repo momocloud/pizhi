@@ -16,7 +16,7 @@ class CheckpointRecord:
     session_id: str
     stage: str
     chapter_range: tuple[int, int]
-    run_ids: list[str]
+    run_ids: tuple[str, ...]
     status: str
     created_at: str
     applied_at: str | None
@@ -85,7 +85,7 @@ class CheckpointStore:
             session_id=str(manifest["session_id"]),
             stage=str(manifest["stage"]),
             chapter_range=(int(chapter_range[0]), int(chapter_range[1])),
-            run_ids=[str(run_id) for run_id in manifest.get("run_ids", [])],
+            run_ids=tuple(str(run_id) for run_id in manifest.get("run_ids", [])),
             status=str(manifest["status"]),
             created_at=str(manifest["created_at"]),
             applied_at=manifest.get("applied_at") or None,

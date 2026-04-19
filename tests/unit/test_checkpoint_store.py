@@ -26,7 +26,7 @@ def test_checkpoint_store_round_trips_run_ids_and_status(tmp_path):
     assert loaded.session_id == "session-1"
     assert loaded.stage == "outline"
     assert loaded.chapter_range == (4, 6)
-    assert loaded.run_ids == ["run-1", "run-2"]
+    assert loaded.run_ids == ("run-1", "run-2")
     assert loaded.status == "generated"
     assert loaded.applied_at is None
 
