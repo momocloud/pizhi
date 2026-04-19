@@ -141,7 +141,11 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
         content = raw[start:end]
         if name in sections:
-            raise ValueError(f"duplicate section: {name}")
+            if name in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+                author_parts.append(content)
+            else:
+                author_parts.append(raw[match.start():end])
+            continue
         sections[name] = content
 
         if name == "作者备注":

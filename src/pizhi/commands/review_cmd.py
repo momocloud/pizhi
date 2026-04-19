@@ -14,6 +14,7 @@ from pizhi.services.maintenance import run_full_maintenance
 from pizhi.services.review_documents import load_chapter_review_notes
 from pizhi.services.review_documents import write_full_review_document
 from pizhi.services.review_documents import write_chapter_review_notes
+from pizhi.services.project_snapshot import load_project_snapshot
 
 
 def run_review(args: argparse.Namespace) -> int:
@@ -23,6 +24,12 @@ def run_review(args: argparse.Namespace) -> int:
         return 2
 
     project_root = Path.cwd()
+    if execute and args.chapter is not None:
+        snapshot = load_project_snapshot(project_root)
+        if args.chapter not in snapshot.chapters:
+            print(f"error: chapter {args.chapter} does not exist in the chapter index", file=sys.stderr)
+            return 2
+
     report = run_structural_review(project_root, chapter_number=args.chapter, full=args.full)
     maintenance_result = run_full_maintenance(project_root) if args.full else None
     print(f"Chapters reviewed: {report.chapters_reviewed}")

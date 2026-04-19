@@ -71,6 +71,31 @@ def test_load_chapter_review_notes_preserves_prefix_before_supported_heading(tmp
     assert loaded.ai_review_markdown == ""
 
 
+def test_load_chapter_review_notes_preserves_duplicate_author_heading_text(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    notes_path.write_text(
+        "## 作者备注\n\n第一段手工备注。\n\n## 作者备注\n\n第二段手工备注。\n\n## A 类结构检查\n\n旧 A 内容。\n\n## B 类 AI 审查\n\n旧 B 内容。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+    write_chapter_review_notes(
+        notes_path,
+        author_notes=loaded.author_notes,
+        structural_markdown="新 A 内容。\n",
+        ai_review_markdown="新 B 内容。\n",
+    )
+
+    raw = notes_path.read_text(encoding="utf-8")
+
+    assert "第一段手工备注。" in raw
+    assert "第二段手工备注。" in raw
+    assert raw.count("## 作者备注") == 1
+    assert raw.count("## A 类结构检查") == 1
+    assert raw.count("## B 类 AI 审查") == 1
+
+
 def test_write_chapter_review_notes_preserves_author_notes_and_drops_legacy_sections(tmp_path):
     notes_path = tmp_path / "notes.md"
     notes_path.write_text(

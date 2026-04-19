@@ -218,6 +218,44 @@ def test_review_command_execute_without_scope_returns_readable_error_and_does_no
     assert notes_after == notes_before
 
 
+def test_review_command_execute_rejects_missing_chapter_without_mutation(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+
+    provider_calls = []
+
+    class RecordingReviewAdapter:
+        def execute(self, provider_request):
+            provider_calls.append(provider_request)
+            return ProviderResponse(
+                raw_payload={"id": "resp_test"},
+                content_text="### 问题 1\n- **类别**：人物一致性\n- **严重度**：高\n- **描述**：示例。\n- **证据**：示例。\n- **建议修法**：示例。\n",
+            )
+
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RecordingReviewAdapter(),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch007" / "notes.md"
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+
+    exit_code = main(["review", "--chapter", "7", "--execute"])
+    captured = capsys.readouterr()
+
+    assert exit_code != 0
+    assert "Traceback" not in captured.err
+    assert "chapter 7" in captured.err.lower()
+    assert provider_calls == []
+    assert not notes_path.exists()
+    assert not runs_dir.exists()
+
+
 def test_review_command_full_execute_failure_keeps_summary_and_maintenance(
     initialized_project, monkeypatch, capsys, fixture_text
 ):
