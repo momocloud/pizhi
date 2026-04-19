@@ -549,7 +549,7 @@ Observed: all three commands exited `0`. `review --help` and `review --chapter 1
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
-Observed after the final review fixes were applied: `232 passed in 70.67s`, which is above the 191-test baseline.
+Observed after the final review fixes and bounded-context follow-up were applied: `238 passed in 69.36s`, which is above the 191-test baseline.
 
 - [x] **Step 3: Mark verification steps complete in this plan**
 
@@ -562,4 +562,4 @@ git add docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md
 git commit -m "docs: record milestone 8 verification state"
 ```
 
-Current branch head: `d2048ae`.
+This verification record was refreshed after the final post-review fixes landed.
