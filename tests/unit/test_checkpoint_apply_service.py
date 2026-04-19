@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import pytest
 
 from pizhi.core.paths import project_paths
+from pizhi.services import checkpoint_apply_service
 from pizhi.services.checkpoint_apply_service import apply_checkpoint
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionStore
@@ -151,6 +152,88 @@ def test_apply_checkpoint_stops_on_first_failure(initialized_project, monkeypatc
     assert session.last_checkpoint_id == checkpoint_id
 
 
+def test_apply_checkpoint_rolls_back_true_source_on_late_failure(initialized_project, monkeypatch, fixture_text):
+    chapter_dir = project_paths(initialized_project).chapter_dir(1)
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "text.md").write_text("PREEXISTING\n", encoding="utf-8", newline="\n")
+    (chapter_dir / "meta.json").write_text('{"preexisting": true}\n', encoding="utf-8", newline="\n")
+
+    run_1 = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch001",
+        normalized_text=fixture_text("ch001_response.md"),
+        metadata={"chapter": 1},
+    )
+    run_2 = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch002",
+        normalized_text=fixture_text("ch002_response.md"),
+        metadata={"chapter": 2},
+    )
+    session_id, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="write",
+        run_ids=[run_1, run_2],
+    )
+
+    call_count = 0
+    original_apply_run = checkpoint_apply_service.apply_run
+
+    def _apply_then_fail(project_root, run_id):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return original_apply_run(project_root, run_id)
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("pizhi.services.checkpoint_apply_service.apply_run", _apply_then_fail)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        apply_checkpoint(initialized_project, checkpoint_id)
+
+    checkpoint = CheckpointStore(project_paths(initialized_project).checkpoints_dir).load(checkpoint_id)
+    session = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir).load(session_id)
+    assert (chapter_dir / "text.md").read_text(encoding="utf-8") == "PREEXISTING\n"
+    assert not (chapter_dir / "worldview_patch.md").exists()
+    assert (chapter_dir / "meta.json").read_text(encoding="utf-8") == '{"preexisting": true}\n'
+    assert checkpoint.status == "failed"
+    assert session.status == "blocked"
+
+
+@pytest.mark.parametrize("mutate_manifest", ["bad_target", "broken_manifest"])
+def test_apply_checkpoint_marks_failed_blocked_when_sorting_fails(initialized_project, mutate_manifest):
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch001",
+        normalized_text="# chapter 1",
+        metadata={"chapter": 1},
+    )
+    run_dir = project_paths(initialized_project).runs_dir / run_id
+    manifest_path = run_dir / "manifest.json"
+    if mutate_manifest == "bad_target":
+        manifest_text = manifest_path.read_text(encoding="utf-8").replace('"target": "ch001"', '"target": "not-a-target"')
+        manifest_path.write_text(manifest_text, encoding="utf-8", newline="\n")
+    else:
+        manifest_path.write_text("{not json}\n", encoding="utf-8", newline="\n")
+
+    session_id, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="write",
+        run_ids=[run_id],
+    )
+
+    with pytest.raises(Exception):
+        apply_checkpoint(initialized_project, checkpoint_id)
+
+    checkpoint = CheckpointStore(project_paths(initialized_project).checkpoints_dir).load(checkpoint_id)
+    session = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir).load(session_id)
+    assert checkpoint.status == "failed"
+    assert session.status == "blocked"
+
+
 def test_apply_checkpoint_appends_split_outline_blocks(initialized_project, fixture_text):
     run_1 = _seed_successful_run(
         initialized_project,
@@ -176,6 +259,40 @@ def test_apply_checkpoint_appends_split_outline_blocks(initialized_project, fixt
     assert "## ch001 | 雨夜访客" in outline_text
     assert "## ch002 | 码头血衣" in outline_text
     assert outline_text.index("## ch001 | 雨夜访客") < outline_text.index("## ch002 | 码头血衣")
+
+
+def test_apply_checkpoint_replaces_duplicate_outline_blocks_in_global_outline(initialized_project):
+    run_1 = _seed_successful_run(
+        initialized_project,
+        command="outline-expand",
+        target="ch001",
+        normalized_text=(
+            "## ch001 | 旧标题\n"
+            "- old beat\n"
+        ),
+    )
+    run_2 = _seed_successful_run(
+        initialized_project,
+        command="outline-expand",
+        target="ch001",
+        normalized_text=(
+            "## ch001 | 新标题\n"
+            "- new beat\n"
+        ),
+    )
+    _, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="outline",
+        run_ids=[run_1, run_2],
+    )
+
+    apply_checkpoint(initialized_project, checkpoint_id)
+
+    outline_text = (initialized_project / ".pizhi" / "global" / "outline_global.md").read_text(encoding="utf-8")
+    assert outline_text.count("## ch001 |") == 1
+    assert "## ch001 | 新标题" in outline_text
+    assert "- new beat" in outline_text
+    assert "旧标题" not in outline_text
 
 
 def test_apply_checkpoint_rejects_non_generated_checkpoint(initialized_project):

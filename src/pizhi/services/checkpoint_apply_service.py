@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
 import re
+import shutil
+import tempfile
 from pathlib import Path
+from contextlib import contextmanager
+from contextlib import suppress
 
 from pizhi.core.paths import project_paths
 from pizhi.services.apply_service import apply_run
@@ -31,11 +35,11 @@ def apply_checkpoint(project_root: Path, checkpoint_id: str) -> CheckpointApplyR
     if checkpoint.status != "generated":
         raise ValueError(f"checkpoint {checkpoint_id} status is {checkpoint.status}")
 
-    ordered_run_ids = _ordered_run_ids(paths.runs_dir, checkpoint.run_ids)
-
     try:
-        for run_id in ordered_run_ids:
-            apply_run(project_root, run_id)
+        with _project_state_backup(paths):
+            ordered_run_ids = _ordered_run_ids(paths.runs_dir, checkpoint.run_ids)
+            for run_id in ordered_run_ids:
+                apply_run(project_root, run_id)
     except Exception:
         checkpoint_store.update(checkpoint_id, status="failed")
         session_store.update(checkpoint.session_id, status="blocked")
@@ -72,3 +76,61 @@ def _parse_run_target(target: str) -> tuple[int, int]:
 
 def _created_at() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+@contextmanager
+def _project_state_backup(paths):
+    backup_root = Path(tempfile.mkdtemp(prefix="pizhi-checkpoint-apply-"))
+    targets = [
+        paths.global_dir,
+        paths.chapters_dir,
+        paths.archive_dir,
+        paths.last_session_file,
+        paths.cache_dir / "synopsis_review.pending",
+        paths.cache_dir / "synopsis_review.md",
+    ]
+    snapshots: list[tuple[Path, Path, bool, bool]] = []
+    try:
+        for target in targets:
+            snapshots.append(_snapshot_target(backup_root, target))
+        yield
+    except Exception:
+        for target, backup_path, existed, is_dir in reversed(snapshots):
+            _restore_target(target, backup_path, existed=existed, is_dir=is_dir)
+        raise
+    finally:
+        shutil.rmtree(backup_root, ignore_errors=True)
+
+
+def _snapshot_target(backup_root: Path, target: Path) -> tuple[Path, Path, bool, bool]:
+    exists = target.exists()
+    is_dir = target.is_dir() if exists else False
+    backup_path = backup_root / _backup_name(target)
+    if exists:
+        if is_dir:
+            shutil.copytree(target, backup_path)
+        else:
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(target, backup_path)
+    return (target, backup_path, exists, is_dir)
+
+
+def _restore_target(target: Path, backup_path: Path, *, existed: bool, is_dir: bool) -> None:
+    if target.exists():
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
+
+    if not existed:
+        return
+
+    if is_dir:
+        shutil.copytree(backup_path, target)
+    else:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_path, target)
+
+
+def _backup_name(target: Path) -> str:
+    return "__".join(target.parts[-4:]).replace(":", "_")

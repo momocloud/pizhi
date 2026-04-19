@@ -109,21 +109,12 @@ class OutlineService:
             )
 
         outline_path = self.paths.global_dir.joinpath("outline_global.md")
-        existing_text = ""
-        if outline_path.exists():
-            existing_text = outline_path.read_text(encoding="utf-8").rstrip()
-
-        outline_lines: list[str] = []
+        existing_blocks = _parse_global_outline_blocks(outline_path.read_text(encoding="utf-8")) if outline_path.exists() else []
+        merged_blocks_by_number = {block.chapter_number: block for block in existing_blocks}
         for block in blocks:
-            outline_lines.append(f"## ch{block.chapter_number:03d} | {block.title}")
-            outline_lines.append(block.body.strip())
-            outline_lines.append("")
-
-        new_text = "\n".join(outline_lines).rstrip()
-        if existing_text:
-            merged_text = f"{existing_text}\n\n{new_text}\n"
-        else:
-            merged_text = f"# Global Outline\n\n{new_text}\n"
+            merged_blocks_by_number[block.chapter_number] = block
+        merged_blocks = [merged_blocks_by_number[number] for number in sorted(merged_blocks_by_number)]
+        merged_text = _render_global_outline(merged_blocks)
         outline_path.write_text(
             merged_text,
             encoding="utf-8",
@@ -155,3 +146,25 @@ def parse_outline_response(raw: str) -> list[OutlineBlock]:
     if not blocks:
         raise ValueError("outline response is missing chapter blocks")
     return blocks
+
+
+def _parse_global_outline_blocks(raw: str) -> list[OutlineBlock]:
+    blocks: list[OutlineBlock] = []
+    for match in BLOCK_PATTERN.finditer(raw):
+        blocks.append(
+            OutlineBlock(
+                chapter_number=int(match.group("number")),
+                title=match.group("title").strip(),
+                body=match.group("body").strip(),
+            )
+        )
+    return blocks
+
+
+def _render_global_outline(blocks: list[OutlineBlock]) -> str:
+    lines = ["# Global Outline", ""]
+    for block in blocks:
+        lines.append(f"## ch{block.chapter_number:03d} | {block.title}")
+        lines.append(block.body.strip())
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
