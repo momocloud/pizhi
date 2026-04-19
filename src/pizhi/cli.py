@@ -49,10 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
     provider_subparsers = provider_parser.add_subparsers(dest="provider_command")
 
     provider_configure_parser = provider_subparsers.add_parser("configure", help="create or update provider config")
-    provider_configure_parser.add_argument("--provider", required=True, help="provider identifier")
-    provider_configure_parser.add_argument("--model", required=True, help="provider model name")
-    provider_configure_parser.add_argument("--base-url", required=True, help="provider base URL")
-    provider_configure_parser.add_argument("--api-key-env", required=True, help="environment variable name for the API key")
+    provider_configure_parser.add_argument("--provider", help="provider identifier")
+    provider_configure_parser.add_argument("--model", help="provider model name")
+    provider_configure_parser.add_argument("--base-url", help="provider base URL")
+    provider_configure_parser.add_argument("--api-key-env", help="environment variable name for the API key")
     provider_configure_parser.set_defaults(handler=run_provider_configure)
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
