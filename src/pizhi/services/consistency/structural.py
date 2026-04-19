@@ -8,6 +8,8 @@ import re
 from pizhi.core.paths import project_paths
 from pizhi.domain.foreshadowing import ForeshadowingEntry
 from pizhi.domain.timeline import time_sort_key
+from pizhi.services.review_documents import load_sectioned_markdown
+from pizhi.services.review_documents import write_chapter_review_notes
 from pizhi.services.project_snapshot import load_project_snapshot
 
 ADVANCED_CHAPTER_STATUSES = {"drafted", "reviewed", "compiled"}
@@ -64,7 +66,13 @@ def run_structural_review(project_root: Path, chapter_number: int | None = None,
     for target in targets:
         issues = _review_chapter(snapshot, paths, target)
         chapter_issues[target] = issues
-        _write_notes(paths.chapter_dir(target) / "notes.md", issues)
+        notes_path = paths.chapter_dir(target) / "notes.md"
+        existing_sections = load_sectioned_markdown(notes_path, required=["作者备注", "A 类结构检查", "B 类 AI 审查"])
+        write_chapter_review_notes(
+            notes_path,
+            structural_markdown=_render_structural_markdown(issues),
+            ai_review_markdown=existing_sections["B 类 AI 审查"],
+        )
 
     global_issues = _review_project(snapshot, paths) if full else []
     return StructuralReport(
@@ -370,6 +378,12 @@ def _format_issue_list(issues: list[StructuralIssue]) -> list[str]:
     return lines
 
 
+def _render_structural_markdown(issues: list[StructuralIssue]) -> str:
+    if not issues:
+        return "- 未发现结构化问题。"
+    return "\n".join(_format_issue_list(issues))
+
+
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
@@ -387,24 +401,3 @@ def _load_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
-
-
-def _write_notes(path: Path, issues: list[StructuralIssue]) -> None:
-    lines = ["## 一致性检查结果", ""]
-    if not issues:
-        lines.append("- 未发现结构化问题。")
-    else:
-        for index, issue in enumerate(issues, start=1):
-            lines.extend(
-                [
-                    f"### 问题 {index}",
-                    f"- **类别**：{issue.category}",
-                    f"- **严重度**：{issue.severity}",
-                    f"- **描述**：{issue.description}",
-                    f"- **证据**：{issue.evidence}",
-                    f"- **建议修法**：{issue.suggestion}",
-                    "",
-                ]
-            )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8", newline="\n")
