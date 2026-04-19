@@ -23,6 +23,10 @@ CHARACTER_INDEX_SEPARATOR_RE = re.compile(r"[，,、/|]")
 CHAPTER_TEXT_CHAR_LIMIT = 4000
 CHAPTER_SUPPORTING_TEXT_CHAR_LIMIT = 1800
 CHAPTER_META_TITLE_CHAR_LIMIT = 240
+PROJECT_NAME_CHAR_LIMIT = 240
+FORESHADOWING_DESCRIPTION_CHAR_LIMIT = 240
+TURNING_POINT_EVENT_CHAR_LIMIT = 240
+RECENT_CHAPTER_TITLE_CHAR_LIMIT = 240
 WORLDVIEW_CHAR_LIMIT = 2500
 CHARACTER_INDEX_ENTRY_CHAR_LIMIT = 1200
 CHARACTER_INDEX_ENTRY_LIMIT = 6
@@ -260,7 +264,7 @@ def build_full_ai_review_context(
 
 def _render_project_snapshot(snapshot: ProjectSnapshot) -> str:
     lines = ["## 项目快照", ""]
-    lines.append(f"- 项目名称: {snapshot.project_name}")
+    lines.append(f"- 项目名称: {_truncate_inline_text(snapshot.project_name, PROJECT_NAME_CHAR_LIMIT)}")
     lines.append(f"- 已记录章节: {len(snapshot.chapters)}")
     lines.append(f"- 最新章节: {f'ch{snapshot.latest_chapter:03d}' if snapshot.latest_chapter is not None else '无'}")
     lines.append(f"- 下一章节: ch{snapshot.next_chapter:03d}")
@@ -303,7 +307,8 @@ def _render_foreshadowing(entries: list[ForeshadowingEntry]) -> str:
     lines: list[str] = []
     for entry in entries[:CHAPTER_FORESHADOWING_LIMIT]:
         lines.append(
-            f"- {entry.entry_id} [{entry.section}]: {entry.description}"
+            f"- {entry.entry_id} [{entry.section}]: "
+            f"{_truncate_inline_text(entry.description, FORESHADOWING_DESCRIPTION_CHAR_LIMIT)}"
             + (f" | payoff {_format_payoff(entry)}" if entry.planned_payoff is not None else "")
         )
     _append_truncation_line(lines, len(entries), CHAPTER_FORESHADOWING_LIMIT)
@@ -442,7 +447,7 @@ def _render_active_foreshadowing(snapshot: ProjectSnapshot) -> str:
         return "- 无。"
 
     lines = [
-        f"- {entry.entry_id}: {entry.description}"
+        f"- {entry.entry_id}: {_truncate_inline_text(entry.description, FORESHADOWING_DESCRIPTION_CHAR_LIMIT)}"
         + (f" | payoff {_format_payoff(entry)}" if entry.planned_payoff is not None else "")
         for entry in active_entries[:FULL_SECTION_ITEM_LIMIT]
     ]
@@ -456,7 +461,8 @@ def _render_overdue_foreshadowing(snapshot: ProjectSnapshot) -> str:
         return "- 无。"
 
     lines = [
-        f"- {entry.entry_id}: {entry.description} | {_format_payoff(entry)}"
+        f"- {entry.entry_id}: {_truncate_inline_text(entry.description, FORESHADOWING_DESCRIPTION_CHAR_LIMIT)}"
+        f" | {_format_payoff(entry)}"
         for entry in overdue_entries[:FULL_SECTION_ITEM_LIMIT]
     ]
     _append_truncation_line(lines, len(overdue_entries), FULL_SECTION_ITEM_LIMIT)
@@ -483,7 +489,10 @@ def _render_major_turning_points(snapshot: ProjectSnapshot) -> str:
         return "- 无。"
 
     visible_points = snapshot.major_turning_points[-FULL_SECTION_ITEM_LIMIT:]
-    lines = [f"- {entry.event_id}: {entry.event}" for entry in visible_points]
+    lines = [
+        f"- {entry.event_id}: {_truncate_inline_text(entry.event, TURNING_POINT_EVENT_CHAR_LIMIT)}"
+        for entry in visible_points
+    ]
     _append_truncation_line(lines, len(snapshot.major_turning_points), FULL_SECTION_ITEM_LIMIT)
     return "\n".join(lines)
 
@@ -495,7 +504,8 @@ def _render_recent_chapter_status(snapshot: ProjectSnapshot) -> str:
     lines: list[str] = []
     for chapter in snapshot.recent_chapters[:FULL_METADATA_CHAPTER_LIMIT]:
         lines.append(
-            f"- ch{chapter.number:03d} [{chapter.status}]: {chapter.title}"
+            f"- ch{chapter.number:03d} [{chapter.status}]: "
+            f"{_truncate_inline_text(chapter.title, RECENT_CHAPTER_TITLE_CHAR_LIMIT)}"
         )
     return "\n".join(lines)
 
@@ -609,3 +619,13 @@ def _limit_values(values: list[str], limit: int) -> list[str]:
 
 def _render_maintenance_summary(maintenance_result: MaintenanceResult) -> str:
     return _truncate_text(format_maintenance_summary(maintenance_result).rstrip(), MAINTENANCE_SUMMARY_CHAR_LIMIT)
+
+
+def _truncate_inline_text(text: str, max_chars: int) -> str:
+    if not text:
+        return ""
+    normalized = text.strip()
+    if len(normalized) <= max_chars:
+        return normalized
+    truncated = normalized[:max_chars].rstrip()
+    return f"{truncated} ... [truncated {len(normalized) - len(truncated)} chars]"

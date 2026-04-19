@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pizhi.core.config import load_config
+from pizhi.core.config import save_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.services.ai_review_context import build_chapter_ai_review_context
@@ -342,6 +344,36 @@ def test_build_chapter_ai_review_context_bounds_large_meta_summary(initialized_p
     assert context.metadata["characters_involved"][-1] == "... [23 more]"
 
 
+def test_build_chapter_ai_review_context_bounds_large_foreshadowing_descriptions(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
+
+    paths = project_paths(initialized_project)
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: FORESHADOW-HEAD """ + ("foreshadow detail " * 500) + """ FORESHADOW-TAIL-SHOULD-NOT-APPEAR
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=2)
+    context = build_chapter_ai_review_context(initialized_project, 2, report.chapter_issues[2])
+
+    assert "FORESHADOW-HEAD" in context.prompt_context
+    assert "FORESHADOW-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "... [truncated" in context.prompt_context
+
+
 def test_build_full_ai_review_context_bounds_large_project_context_and_metadata(initialized_project):
     paths = project_paths(initialized_project)
     store = ChapterIndexStore(paths.chapter_index_file)
@@ -399,3 +431,74 @@ def test_build_full_ai_review_context_bounds_large_project_context_and_metadata(
     assert "recent_chapters" not in context.metadata
     assert context.metadata["recent_chapter_count"] == 40
     assert context.metadata["recent_chapter_targets"] == ["ch040", "ch039", "ch038", "ch037", "ch036"]
+
+
+def test_build_full_ai_review_context_bounds_large_string_fields(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+
+    paths = project_paths(initialized_project)
+    config = load_config(paths.config_file)
+    config.project.name = "PROJECT-NAME-HEAD " + ("project detail " * 300) + " PROJECT-NAME-TAIL-SHOULD-NOT-APPEAR"
+    save_config(paths.config_file, config)
+
+    store = ChapterIndexStore(paths.chapter_index_file)
+    store.upsert(
+        {
+            "n": 1,
+            "title": "RECENT-TITLE-HEAD " + ("recent title detail " * 120) + " RECENT-TITLE-TAIL-SHOULD-NOT-APPEAR",
+            "vol": 1,
+            "status": "drafted",
+            "summary": "summary",
+            "updated": "2026-04-18",
+        }
+    )
+
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: ACTIVE-HEAD """ + ("active detail " * 500) + """ ACTIVE-TAIL-SHOULD-NOT-APPEAR
+- **Planned Payoff**: ch005
+- **Related Characters**: 沈轩
+
+### F999 | Priority: medium
+- **Description**: OVERDUE-HEAD """ + ("overdue detail " * 500) + """ OVERDUE-TAIL-SHOULD-NOT-APPEAR
+- **Planned Payoff**: ch001
+- **Related Characters**: 沈轩
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+    paths.timeline_file.write_text(
+        """# Timeline
+
+## T001-01
+- **时间**: 2026-04-18 夜
+- **事件**: TURNING-HEAD """ + ("turning detail " * 500) + """ TURNING-TAIL-SHOULD-NOT-APPEAR
+- **闪回**: 否
+- **重大转折**: 是
+""",
+        encoding="utf-8",
+    )
+
+    report = run_structural_review(initialized_project, full=True)
+    maintenance_result = run_full_maintenance(initialized_project)
+    context = build_full_ai_review_context(initialized_project, report, maintenance_result)
+
+    assert "PROJECT-NAME-HEAD" in context.prompt_context
+    assert "PROJECT-NAME-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "ACTIVE-HEAD" in context.prompt_context
+    assert "ACTIVE-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "OVERDUE-HEAD" in context.prompt_context
+    assert "OVERDUE-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "TURNING-HEAD" in context.prompt_context
+    assert "TURNING-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "RECENT-TITLE-HEAD" in context.prompt_context
+    assert "RECENT-TITLE-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "... [truncated" in context.prompt_context
