@@ -152,14 +152,14 @@ def run_provider_configure(args: argparse.Namespace) -> int:
     return 0
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_config.py tests/integration/test_provider_configure_command.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/core/config.py src/pizhi/core/paths.py src/pizhi/cli.py src/pizhi/commands/provider_cmd.py tests/unit/test_config.py tests/integration/test_provider_configure_command.py
@@ -586,7 +586,7 @@ Update this file so the executed verification boxes are checked and add the fina
 
 - [x] **Step 4: Commit**
 
-Observed results on `2026-04-19`:
+Observed results on `2026-04-19` after the final blocker fixes:
 - Smoke tests passed:
   - `python -m pizhi provider configure --help`
   - `python -m pizhi runs --help`
@@ -596,11 +596,11 @@ Observed results on `2026-04-19`:
   - `python -m pizhi write --help`
 - Full suite passed:
   - `python -m pytest tests/unit tests/integration -v`
-  - Observed result: `135 passed`
+  - Observed result: `138 passed`
   - Baseline before milestone 6 implementation: `88 passed`
-- Task 5 follow-up regression after unreadable `normalized.md` fix also passed:
-  - `python -m pytest tests/unit/test_apply_service.py tests/integration/test_apply_command.py tests/integration/test_runs_command.py tests/integration/test_provider_execution_commands.py -v`
-  - Observed result: `30 passed`
+- Provider/apply follow-up regression also passed:
+  - `python -m pytest tests/unit/test_openai_compatible.py tests/unit/test_provider_execution.py tests/unit/test_apply_service.py tests/integration/test_provider_configure_command.py tests/integration/test_provider_execution_commands.py tests/integration/test_runs_command.py tests/integration/test_apply_command.py -v`
+  - Observed result: `41 passed`
 
 ```bash
 git add docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md
