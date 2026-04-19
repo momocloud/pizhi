@@ -7,6 +7,7 @@ from pizhi.core.paths import project_paths
 from pizhi.services.checkpoint_store import CheckpointRecord
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_service import ContinueService
+from pizhi.services.continue_service import validate_positive_int
 from pizhi.services.continue_session_store import ContinueSessionRecord
 from pizhi.services.continue_session_store import ContinueSessionStore
 from pizhi.services.outline_service import OutlineService
@@ -228,7 +229,10 @@ def _next_checkpoint_range(project_root: Path, session: ContinueSessionRecord) -
 
 
 def _checkpoint_batch_size(project_root: Path) -> int:
-    return ContinueService(project_root).config.consistency.checkpoint_interval
+    return validate_positive_int(
+        ContinueService(project_root).config.consistency.checkpoint_interval,
+        field_name="checkpoint_interval",
+    )
 
 
 def _format_range_target(chapter_range: tuple[int, int]) -> str:

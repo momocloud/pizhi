@@ -202,6 +202,54 @@ def test_apply_checkpoint_rolls_back_true_source_on_late_failure(initialized_pro
     assert session.status == "blocked"
 
 
+def test_apply_checkpoint_restores_truth_source_and_manifests_when_finalize_fails(
+    initialized_project, monkeypatch, fixture_text
+):
+    chapter_dir = project_paths(initialized_project).chapter_dir(1)
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "text.md").write_text("PREEXISTING\n", encoding="utf-8", newline="\n")
+    (chapter_dir / "meta.json").write_text('{"preexisting": true}\n', encoding="utf-8", newline="\n")
+
+    run_id = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch001",
+        normalized_text=fixture_text("ch001_response.md"),
+        metadata={"chapter": 1},
+    )
+    session_id, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="write",
+        run_ids=[run_id],
+    )
+
+    original_update = checkpoint_apply_service.ContinueSessionStore.update
+
+    def _fail_ready_to_resume(self, session_id, **changes):
+        if changes.get("status") == "ready_to_resume":
+            raise RuntimeError("finalize boom")
+        return original_update(self, session_id, **changes)
+
+    monkeypatch.setattr(
+        checkpoint_apply_service.ContinueSessionStore,
+        "update",
+        _fail_ready_to_resume,
+    )
+
+    with pytest.raises(RuntimeError, match="finalize boom"):
+        apply_checkpoint(initialized_project, checkpoint_id)
+
+    checkpoint = CheckpointStore(project_paths(initialized_project).checkpoints_dir).load(checkpoint_id)
+    session = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir).load(session_id)
+    assert (chapter_dir / "text.md").read_text(encoding="utf-8") == "PREEXISTING\n"
+    assert not (chapter_dir / "worldview_patch.md").exists()
+    assert (chapter_dir / "meta.json").read_text(encoding="utf-8") == '{"preexisting": true}\n'
+    assert checkpoint.status == "generated"
+    assert checkpoint.applied_at is None
+    assert session.status == "waiting_apply"
+    assert session.last_checkpoint_id == checkpoint_id
+
+
 @pytest.mark.parametrize("mutate_manifest", ["bad_target", "broken_manifest"])
 def test_apply_checkpoint_marks_failed_blocked_when_sorting_fails(initialized_project, mutate_manifest):
     run_id = _seed_successful_run(

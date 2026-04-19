@@ -14,6 +14,12 @@ from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.write_service import WriteService
 
 
+def validate_positive_int(value: int, *, field_name: str) -> int:
+    if value <= 0:
+        raise ValueError(f"{field_name} must be greater than 0")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class ContinueResult:
     chapter_range: tuple[int, int]
@@ -36,6 +42,7 @@ class ContinueService:
         chapter_responses_dir: Path | None = None,
         direction: str = "",
     ) -> ContinueResult:
+        validate_positive_int(count, field_name="count")
         chapter_range = self.determine_chapter_range(count)
         start, end = chapter_range
         self.outline_service.expand(
@@ -56,7 +63,10 @@ class ContinueService:
                 maintenance_by_chapter[chapter_number] = write_result.maintenance_result
 
         checkpoint_paths: list[Path] = []
-        interval = self.config.consistency.checkpoint_interval
+        interval = validate_positive_int(
+            self.config.consistency.checkpoint_interval,
+            field_name="checkpoint_interval",
+        )
         for offset in range(interval, len(written_numbers) + 1, interval):
             chunk = written_numbers[offset - interval : offset]
             checkpoint_paths.append(self._write_checkpoint(chunk, maintenance_by_chapter))
@@ -67,6 +77,7 @@ class ContinueService:
         )
 
     def determine_chapter_range(self, count: int) -> tuple[int, int]:
+        validate_positive_int(count, field_name="count")
         records = self.index_store.read_all()
         drafted_statuses = {"drafted", "reviewed", "compiled"}
         drafted_numbers = [int(record["n"]) for record in records if record.get("status") in drafted_statuses]

@@ -106,6 +106,20 @@ def _only_checkpoint(project_root):
     return CheckpointStore(checkpoints_dir).load(checkpoint_ids[0])
 
 
+def _session_ids(project_root) -> list[str]:
+    sessions_dir = project_paths(project_root).continue_sessions_dir
+    if not sessions_dir.exists():
+        return []
+    return [entry.name for entry in sessions_dir.iterdir() if entry.is_dir()]
+
+
+def _checkpoint_ids(project_root) -> list[str]:
+    checkpoints_dir = project_paths(project_root).checkpoints_dir
+    if not checkpoints_dir.exists():
+        return []
+    return [entry.name for entry in checkpoints_dir.iterdir() if entry.is_dir()]
+
+
 def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized_project, monkeypatch):
     _configure_provider(initialized_project)
     _seed_drafted_range(initialized_project, 1, 2)
@@ -126,6 +140,26 @@ def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized
     assert result.checkpoint.chapter_range == (3, 5)
     assert result.checkpoint.status == "generated"
     assert len(result.checkpoint.run_ids) == 1
+
+
+def test_start_continue_execution_rejects_non_positive_count_without_persisting(initialized_project):
+    with pytest.raises(ValueError, match="count must be greater than 0"):
+        start_continue_execution(initialized_project, count=0, direction="push the dock war")
+
+    assert _session_ids(initialized_project) == []
+    assert _checkpoint_ids(initialized_project) == []
+
+
+def test_start_continue_execution_rejects_non_positive_checkpoint_interval_without_persisting(initialized_project):
+    config = load_config(project_paths(initialized_project).config_file)
+    config.consistency.checkpoint_interval = 0
+    save_config(project_paths(initialized_project).config_file, config)
+
+    with pytest.raises(ValueError, match="checkpoint_interval must be greater than 0"):
+        start_continue_execution(initialized_project, count=1, direction="push the dock war")
+
+    assert _session_ids(initialized_project) == []
+    assert _checkpoint_ids(initialized_project) == []
 
 
 def test_start_continue_execution_splits_outline_checkpoint_when_three_chapter_prompt_exceeds_budget(

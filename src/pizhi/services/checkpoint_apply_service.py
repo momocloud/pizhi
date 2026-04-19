@@ -32,26 +32,33 @@ def apply_checkpoint(project_root: Path, checkpoint_id: str) -> CheckpointApplyR
     session_store = ContinueSessionStore(paths.continue_sessions_dir)
 
     checkpoint = checkpoint_store.load(checkpoint_id)
+    session = session_store.load(checkpoint.session_id)
     if checkpoint.status != "generated":
         raise ValueError(f"checkpoint {checkpoint_id} status is {checkpoint.status}")
 
+    phase = "apply"
     try:
-        with _project_state_backup(paths):
+        with _project_state_backup(
+            paths,
+            extra_targets=[checkpoint.manifest_path, session.manifest_path],
+        ):
             ordered_run_ids = _ordered_run_ids(paths.runs_dir, checkpoint.run_ids)
             for run_id in ordered_run_ids:
                 apply_run(project_root, run_id)
-    except Exception:
-        checkpoint_store.update(checkpoint_id, status="failed")
-        session_store.update(checkpoint.session_id, status="blocked")
-        raise
 
-    applied_checkpoint = checkpoint_store.update(
-        checkpoint_id,
-        status="applied",
-        applied_at=_created_at(),
-    )
-    ready_session = session_store.update(checkpoint.session_id, status="ready_to_resume")
-    return CheckpointApplyResult(checkpoint=applied_checkpoint, session=ready_session)
+            phase = "finalize"
+            applied_checkpoint = checkpoint_store.update(
+                checkpoint_id,
+                status="applied",
+                applied_at=_created_at(),
+            )
+            ready_session = session_store.update(checkpoint.session_id, status="ready_to_resume")
+            return CheckpointApplyResult(checkpoint=applied_checkpoint, session=ready_session)
+    except Exception:
+        if phase == "apply":
+            checkpoint_store.update(checkpoint_id, status="failed")
+            session_store.update(checkpoint.session_id, status="blocked")
+        raise
 
 
 def _ordered_run_ids(runs_dir: Path, run_ids: tuple[str, ...]) -> list[str]:
@@ -79,7 +86,7 @@ def _created_at() -> str:
 
 
 @contextmanager
-def _project_state_backup(paths):
+def _project_state_backup(paths, *, extra_targets: list[Path] | None = None):
     backup_root = Path(tempfile.mkdtemp(prefix="pizhi-checkpoint-apply-"))
     targets = [
         paths.global_dir,
@@ -89,6 +96,8 @@ def _project_state_backup(paths):
         paths.cache_dir / "synopsis_review.pending",
         paths.cache_dir / "synopsis_review.md",
     ]
+    if extra_targets is not None:
+        targets.extend(extra_targets)
     snapshots: list[tuple[Path, Path, bool, bool]] = []
     try:
         for target in targets:
