@@ -562,4 +562,4 @@ git add docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md
 git commit -m "docs: record milestone 8 verification state"
 ```
 
-Committed as `b27af23`.
+Committed as `8008ef2`.
