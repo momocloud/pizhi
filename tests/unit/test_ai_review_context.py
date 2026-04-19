@@ -3,12 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.services.ai_review_context import build_chapter_ai_review_context
 from pizhi.services.ai_review_context import build_full_ai_review_context
 from pizhi.services.chapter_writer import apply_chapter_response
 from pizhi.services.consistency.structural import run_structural_review
 from pizhi.services.consistency.structural import StructuralIssue
+from pizhi.services.consistency.structural import StructuralReport
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.maintenance import run_full_maintenance
 
 
@@ -243,3 +247,132 @@ def test_build_full_ai_review_context_compresses_project_snapshot(initialized_pr
     assert "A 类全书问题" in context.prompt_context
     assert "伏笔超期" in context.prompt_context
     assert "Maintenance" in context.prompt_context
+
+
+def test_build_chapter_ai_review_context_bounds_large_inputs_and_sorts_metadata(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
+
+    paths = project_paths(initialized_project)
+    chapter_two_dir = paths.chapter_dir(2)
+    chapter_one_dir = paths.chapter_dir(1)
+
+    (chapter_two_dir / "text.md").write_text(
+        "CURRENT-HEAD\n" + ("current detail " * 1600) + "\nCURRENT-TAIL-SHOULD-NOT-APPEAR\n",
+        encoding="utf-8",
+    )
+    (chapter_one_dir / "text.md").write_text(
+        "PREVIOUS-HEAD\n" + ("previous detail " * 1600) + "\nPREVIOUS-TAIL-SHOULD-NOT-APPEAR\n",
+        encoding="utf-8",
+    )
+    paths.worldview_file.write_text(
+        "WORLDVIEW-HEAD\n" + ("world detail " * 1600) + "\nWORLDVIEW-TAIL-SHOULD-NOT-APPEAR\n",
+        encoding="utf-8",
+    )
+    paths.global_dir.joinpath("characters_index.md").write_text(
+        """# Characters Index
+
+## Alpha
+- **别名**：A 哥
+- **状态**：""" + ("alpha detail " * 800) + """
+ALPHA-TAIL-SHOULD-NOT-APPEAR
+
+## Beta
+- **定位**：配角
+
+## Zeta
+- **定位**：配角
+
+## Omega
+- **定位**：无关角色
+""",
+        encoding="utf-8",
+    )
+
+    chapter_two_meta_path = chapter_two_dir / "meta.json"
+    chapter_two_meta = json.loads(chapter_two_meta_path.read_text(encoding="utf-8"))
+    chapter_two_meta["characters_involved"] = ["Zeta", "Alpha"]
+    chapter_two_meta_path.write_text(
+        json.dumps(chapter_two_meta, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    chapter_one_meta_path = chapter_one_dir / "meta.json"
+    chapter_one_meta = json.loads(chapter_one_meta_path.read_text(encoding="utf-8"))
+    chapter_one_meta["characters_involved"] = ["Beta"]
+    chapter_one_meta_path.write_text(
+        json.dumps(chapter_one_meta, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    context = build_chapter_ai_review_context(initialized_project, 2, [])
+
+    assert "CURRENT-HEAD" in context.prompt_context
+    assert "PREVIOUS-HEAD" in context.prompt_context
+    assert "WORLDVIEW-HEAD" in context.prompt_context
+    assert "CURRENT-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "PREVIOUS-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "WORLDVIEW-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "ALPHA-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "... [truncated" in context.prompt_context
+    assert len(context.prompt_context) < 20000
+    assert context.metadata["relevant_character_names"] == ["Alpha", "Beta", "Zeta"]
+
+
+def test_build_full_ai_review_context_bounds_large_project_context_and_metadata(initialized_project):
+    paths = project_paths(initialized_project)
+    store = ChapterIndexStore(paths.chapter_index_file)
+
+    for chapter_number in range(1, 41):
+        store.upsert(
+            {
+                "n": chapter_number,
+                "title": f"第{chapter_number:03d}章",
+                "vol": 1,
+                "status": "drafted",
+                "summary": f"SIG-{chapter_number:03d}-HEAD " + ("signal detail " * 120) + f" SIG-{chapter_number:03d}-TAIL",
+                "updated": "2026-04-18",
+            }
+        )
+
+    report = StructuralReport(
+        chapter_issues={
+            chapter_number: [
+                StructuralIssue(
+                    category="时间线合理性",
+                    severity="中",
+                    description=f"章节 {chapter_number} 的问题摘要。",
+                    evidence="示例证据",
+                    suggestion="示例建议",
+                )
+            ]
+            for chapter_number in range(1, 41)
+        },
+        global_issues=[
+            StructuralIssue(
+                category="伏笔超期",
+                severity="高",
+                description="存在超期伏笔。",
+                evidence="F999",
+                suggestion="尽快回收。",
+            )
+        ],
+    )
+    maintenance_result = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[
+            MaintenanceFinding(category="Archive", detail=f"archive finding {index}")
+            for index in range(1, 4)
+        ],
+    )
+
+    context = build_full_ai_review_context(initialized_project, report, maintenance_result)
+
+    assert "SIG-040-HEAD" in context.prompt_context
+    assert "SIG-001-HEAD" not in context.prompt_context
+    assert "SIG-001-TAIL" not in context.prompt_context
+    assert len(context.prompt_context) < 18000
+    assert "recent_chapters" not in context.metadata
+    assert context.metadata["recent_chapter_count"] == 40
+    assert context.metadata["recent_chapter_targets"] == ["ch040", "ch039", "ch038", "ch037", "ch036"]
