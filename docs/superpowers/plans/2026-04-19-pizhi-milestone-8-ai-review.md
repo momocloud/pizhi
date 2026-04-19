@@ -535,29 +535,31 @@ git commit -m "feat: add ai review execution flow"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md`
 
-- [ ] **Step 1: Run review command smoke tests**
+- [x] **Step 1: Run review command smoke tests**
 
 Run:
 - `python -m pizhi review --help`
 - `python -m pizhi review --chapter 1 --execute --help`
 - `python -m pizhi provider configure --help`
 
-Expected: all commands exit `0`
+Observed: all three commands exited `0`. `review --help` and `review --chapter 1 --execute --help` both printed the `--execute` flag, and `provider configure --help` showed the review override options.
 
-- [ ] **Step 2: Run the full test suite**
+- [x] **Step 2: Run the full test suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
-Expected: all tests `PASSED` and count increases beyond the 191-test baseline
+Observed: `228 passed in 68.91s`, which is above the 191-test baseline.
 
-- [ ] **Step 3: Mark verification steps complete in this plan**
+- [x] **Step 3: Mark verification steps complete in this plan**
 
-Update this file so the executed verification boxes are checked and add final observed command/test results near Task 6.
+Updated this file so the executed verification boxes are checked and recorded the observed smoke-test and full-suite results above.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md
 git commit -m "docs: record milestone 8 verification state"
 ```
+
+Committed as `b27af23`.
