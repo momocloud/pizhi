@@ -36,7 +36,7 @@ class ContinueService:
         chapter_responses_dir: Path | None = None,
         direction: str = "",
     ) -> ContinueResult:
-        chapter_range = self._determine_chapter_range(count)
+        chapter_range = self.determine_chapter_range(count)
         start, end = chapter_range
         self.outline_service.expand(
             chapter_range=chapter_range,
@@ -66,13 +66,16 @@ class ContinueService:
             checkpoint_paths=checkpoint_paths,
         )
 
-    def _determine_chapter_range(self, count: int) -> tuple[int, int]:
+    def determine_chapter_range(self, count: int) -> tuple[int, int]:
         records = self.index_store.read_all()
         drafted_statuses = {"drafted", "reviewed", "compiled"}
         drafted_numbers = [int(record["n"]) for record in records if record.get("status") in drafted_statuses]
         start = (max(drafted_numbers) + 1) if drafted_numbers else 1
         end = start + count - 1
         return start, end
+
+    def _determine_chapter_range(self, count: int) -> tuple[int, int]:
+        return self.determine_chapter_range(count)
 
     def _write_checkpoint(
         self,
