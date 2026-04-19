@@ -6,6 +6,12 @@ import re
 
 
 SECTION_HEADING_RE = re.compile(r"^## (?P<name>.+?)\s*$", re.MULTILINE)
+SUPPORTED_CHAPTER_REVIEW_HEADINGS = {
+    "作者备注",
+    "A 类结构检查",
+    "B 类 AI 审查",
+    "一致性检查结果",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,15 +28,15 @@ def load_chapter_review_notes(path: Path) -> ChapterReviewNotes:
     if not raw.strip():
         return ChapterReviewNotes(author_notes="", ai_review_markdown="")
 
-    try:
-        sections = _parse_sectioned_markdown(raw)
-    except ValueError:
+    sections = _parse_supported_chapter_review_sections(raw)
+    if sections is None:
         return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
 
-    return ChapterReviewNotes(
-        author_notes=sections.get("作者备注", ""),
-        ai_review_markdown=sections.get("B 类 AI 审查", ""),
-    )
+    author_notes = sections.get("作者备注", "")
+    if not author_notes:
+        author_notes = sections.get("一致性检查结果", "")
+
+    return ChapterReviewNotes(author_notes=author_notes, ai_review_markdown=sections.get("B 类 AI 审查", ""))
 
 
 def write_sectioned_markdown(path: Path, sections: dict[str, str], *, section_order: list[str]) -> None:
@@ -85,6 +91,26 @@ def _parse_sectioned_markdown(raw: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     for index, match in enumerate(matches):
         name = match.group("name").strip()
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
+        content = raw[start:end]
+        if name in sections:
+            raise ValueError(f"duplicate section: {name}")
+        sections[name] = content
+
+    return sections
+
+
+def _parse_supported_chapter_review_sections(raw: str) -> dict[str, str] | None:
+    matches = list(SECTION_HEADING_RE.finditer(raw))
+    if not matches:
+        return None if raw.strip() else {}
+
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        name = match.group("name").strip()
+        if name not in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+            return None
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
         content = raw[start:end]
