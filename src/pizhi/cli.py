@@ -6,10 +6,12 @@ from collections.abc import Sequence
 from pizhi import __version__
 from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
+from pizhi.commands.apply_cmd import run_apply
 from pizhi.commands.continue_cmd import run_continue
 from pizhi.commands.init_cmd import run_init
 from pizhi.commands.outline_cmd import run_outline_expand
 from pizhi.commands.provider_cmd import run_provider_configure
+from pizhi.commands.runs_cmd import run_runs
 from pizhi.commands.review_cmd import run_review
 from pizhi.commands.status_cmd import run_status
 from pizhi.commands.write_cmd import run_write
@@ -55,6 +57,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
     compile_parser.set_defaults(handler=run_compile)
+
+    runs_parser = subparsers.add_parser("runs", help="list recent runs")
+    runs_parser.set_defaults(handler=run_runs)
+
+    apply_parser = subparsers.add_parser("apply", help="apply a successful run")
+    apply_parser.add_argument("--run-id", required=True, help="run identifier to apply")
+    apply_parser.set_defaults(handler=run_apply)
 
     continue_parser = subparsers.add_parser("continue", help="continue outlining and writing chapters")
     continue_parser.add_argument("--count", required=True, type=int, help="number of chapters to continue")
