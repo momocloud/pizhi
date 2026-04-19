@@ -36,6 +36,8 @@ class CheckpointStore:
         status: str,
         applied_at: str | None = None,
     ) -> CheckpointRecord:
+        normalized_chapter_range = self._validate_int_pair(chapter_range, field_name="chapter_range")
+        normalized_run_ids = self._validate_run_ids(run_ids)
         checkpoint_id = self._new_checkpoint_id()
         checkpoint_dir = self.checkpoints_dir / checkpoint_id
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -45,8 +47,8 @@ class CheckpointStore:
             checkpoint_id=checkpoint_id,
             session_id=session_id,
             stage=stage,
-            chapter_range=chapter_range,
-            run_ids=run_ids,
+            chapter_range=normalized_chapter_range,
+            run_ids=normalized_run_ids,
             status=status,
             created_at=created_at,
             applied_at=applied_at,
@@ -64,8 +66,18 @@ class CheckpointStore:
     def update(self, checkpoint_id: str, **changes: object) -> CheckpointRecord:
         record = self.load(checkpoint_id)
         manifest = self._manifest_from_record(record)
-        if "chapter_range" in changes and isinstance(changes["chapter_range"], tuple):
-            changes = {**changes, "chapter_range": list(changes["chapter_range"])}
+        if "chapter_range" in changes:
+            changes = {
+                **changes,
+                "chapter_range": list(
+                    self._validate_int_pair(changes["chapter_range"], field_name="chapter_range")
+                ),
+            }
+        if "run_ids" in changes:
+            changes = {
+                **changes,
+                "run_ids": list(self._validate_run_ids(changes["run_ids"])),
+            }
         manifest.update(changes)
         self._write_manifest(record.manifest_path, manifest)
         return self._record_from_manifest(checkpoint_dir=record.checkpoint_dir, manifest=manifest)
@@ -76,16 +88,16 @@ class CheckpointStore:
         checkpoint_dir: Path,
         manifest: dict[str, object],
     ) -> CheckpointRecord:
-        chapter_range = manifest["chapter_range"]
-        assert isinstance(chapter_range, (list, tuple))
+        chapter_range = self._validate_int_pair(manifest.get("chapter_range"), field_name="chapter_range")
+        run_ids = self._validate_run_ids(manifest.get("run_ids"))
         return CheckpointRecord(
             checkpoint_id=str(manifest["checkpoint_id"]),
             checkpoint_dir=checkpoint_dir,
             manifest_path=checkpoint_dir / "manifest.json",
             session_id=str(manifest["session_id"]),
             stage=str(manifest["stage"]),
-            chapter_range=(int(chapter_range[0]), int(chapter_range[1])),
-            run_ids=tuple(str(run_id) for run_id in manifest.get("run_ids", [])),
+            chapter_range=chapter_range,
+            run_ids=run_ids,
             status=str(manifest["status"]),
             created_at=str(manifest["created_at"]),
             applied_at=manifest.get("applied_at") or None,
@@ -115,16 +127,41 @@ class CheckpointStore:
         created_at: str,
         applied_at: str | None,
     ) -> dict[str, object]:
+        normalized_chapter_range = self._validate_int_pair(chapter_range, field_name="chapter_range")
+        normalized_run_ids = self._validate_run_ids(run_ids)
         return {
             "checkpoint_id": checkpoint_id,
             "session_id": session_id,
             "stage": stage,
-            "chapter_range": list(chapter_range),
-            "run_ids": list(run_ids),
+            "chapter_range": list(normalized_chapter_range),
+            "run_ids": list(normalized_run_ids),
             "status": status,
             "created_at": created_at,
             "applied_at": applied_at,
         }
+
+    @staticmethod
+    def _validate_int_pair(value: object, *, field_name: str) -> tuple[int, int]:
+        if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)) or len(value) != 2:
+            raise ValueError(f"{field_name} must be a pair of integers")
+
+        first, second = value
+        if (
+            not isinstance(first, int)
+            or isinstance(first, bool)
+            or not isinstance(second, int)
+            or isinstance(second, bool)
+        ):
+            raise ValueError(f"{field_name} must be a pair of integers")
+        return (first, second)
+
+    @staticmethod
+    def _validate_run_ids(value: object) -> tuple[str, ...]:
+        if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)):
+            raise ValueError("run_ids must be a sequence of strings")
+        if any(not isinstance(run_id, str) for run_id in value):
+            raise ValueError("run_ids must be a sequence of strings")
+        return tuple(value)
 
     @staticmethod
     def _write_manifest(manifest_path: Path, manifest: dict[str, object]) -> None:

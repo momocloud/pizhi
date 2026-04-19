@@ -1,3 +1,5 @@
+import pytest
+
 from pizhi.core.paths import ProjectPaths
 from pizhi.services.checkpoint_store import CheckpointStore
 
@@ -45,3 +47,61 @@ def test_checkpoint_store_updates_status(tmp_path):
 
     assert updated.status == "applied"
     assert updated.applied_at == "2026-04-19T10:00:00Z"
+
+
+def test_checkpoint_store_rejects_string_run_ids_update(tmp_path):
+    store = CheckpointStore(tmp_path / ".pizhi" / "cache" / "checkpoints")
+    record = store.create(
+        session_id="session-1",
+        stage="write",
+        chapter_range=(7, 9),
+        run_ids=["run-3"],
+        status="generated",
+    )
+
+    with pytest.raises(ValueError, match="run_ids must be a sequence of strings"):
+        store.update(record.checkpoint_id, run_ids="run-2")
+
+
+def test_checkpoint_store_rejects_invalid_chapter_range_update(tmp_path):
+    store = CheckpointStore(tmp_path / ".pizhi" / "cache" / "checkpoints")
+    record = store.create(
+        session_id="session-1",
+        stage="write",
+        chapter_range=(7, 9),
+        run_ids=["run-3"],
+        status="generated",
+    )
+
+    with pytest.raises(ValueError, match="chapter_range must be a pair of integers"):
+        store.update(record.checkpoint_id, chapter_range=(7,))
+
+
+def test_checkpoint_store_rejects_invalid_run_ids_in_manifest(tmp_path):
+    store = CheckpointStore(tmp_path / ".pizhi" / "cache" / "checkpoints")
+    record = store.create(
+        session_id="session-1",
+        stage="outline",
+        chapter_range=(4, 6),
+        run_ids=["run-1", "run-2"],
+        status="generated",
+    )
+
+    record.manifest_path.write_text(
+        """{
+  "checkpoint_id": "checkpoint-bad",
+  "session_id": "session-1",
+  "stage": "outline",
+  "chapter_range": [4, 6],
+  "run_ids": "run-2",
+  "status": "generated",
+  "created_at": "2026-04-19T00:00:00Z",
+  "applied_at": null
+}
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    with pytest.raises(ValueError, match="run_ids must be a sequence of strings"):
+        store.load(record.checkpoint_id)

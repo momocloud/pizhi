@@ -41,6 +41,7 @@ class ContinueSessionStore:
         last_checkpoint_id: str | None = None,
         status: str,
     ) -> ContinueSessionRecord:
+        normalized_current_range = self._validate_int_pair(current_range, field_name="current_range")
         session_id = self._new_session_id()
         session_dir = self.continue_sessions_dir / session_id
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +54,7 @@ class ContinueSessionStore:
             start_chapter=start_chapter,
             target_end_chapter=target_end_chapter,
             current_stage=current_stage,
-            current_range=current_range,
+            current_range=normalized_current_range,
             last_checkpoint_id=last_checkpoint_id,
             status=status,
             created_at=created_at,
@@ -72,8 +73,11 @@ class ContinueSessionStore:
     def update(self, session_id: str, **changes: object) -> ContinueSessionRecord:
         record = self.load(session_id)
         manifest = self._manifest_from_record(record)
-        if "current_range" in changes and isinstance(changes["current_range"], tuple):
-            changes = {**changes, "current_range": list(changes["current_range"])}
+        if "current_range" in changes:
+            changes = {
+                **changes,
+                "current_range": list(self._validate_int_pair(changes["current_range"], field_name="current_range")),
+            }
         manifest.update(changes)
         manifest["updated_at"] = self._next_updated_at(record.updated_at)
         self._write_manifest(record.manifest_path, manifest)
@@ -85,8 +89,7 @@ class ContinueSessionStore:
         session_dir: Path,
         manifest: dict[str, object],
     ) -> ContinueSessionRecord:
-        current_range = manifest["current_range"]
-        assert isinstance(current_range, (list, tuple))
+        current_range = self._validate_int_pair(manifest.get("current_range"), field_name="current_range")
         return ContinueSessionRecord(
             session_id=str(manifest["session_id"]),
             session_dir=session_dir,
@@ -96,7 +99,7 @@ class ContinueSessionStore:
             start_chapter=int(manifest["start_chapter"]),
             target_end_chapter=int(manifest["target_end_chapter"]),
             current_stage=str(manifest["current_stage"]),
-            current_range=(int(current_range[0]), int(current_range[1])),
+            current_range=current_range,
             last_checkpoint_id=manifest.get("last_checkpoint_id") or None,
             status=str(manifest["status"]),
             created_at=str(manifest["created_at"]),
@@ -133,6 +136,7 @@ class ContinueSessionStore:
         created_at: str,
         updated_at: str,
     ) -> dict[str, object]:
+        normalized_current_range = self._validate_int_pair(current_range, field_name="current_range")
         return {
             "session_id": session_id,
             "count": count,
@@ -140,12 +144,27 @@ class ContinueSessionStore:
             "start_chapter": start_chapter,
             "target_end_chapter": target_end_chapter,
             "current_stage": current_stage,
-            "current_range": list(current_range),
+            "current_range": list(normalized_current_range),
             "last_checkpoint_id": last_checkpoint_id,
             "status": status,
             "created_at": created_at,
             "updated_at": updated_at,
         }
+
+    @staticmethod
+    def _validate_int_pair(value: object, *, field_name: str) -> tuple[int, int]:
+        if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)) or len(value) != 2:
+            raise ValueError(f"{field_name} must be a pair of integers")
+
+        first, second = value
+        if (
+            not isinstance(first, int)
+            or isinstance(first, bool)
+            or not isinstance(second, int)
+            or isinstance(second, bool)
+        ):
+            raise ValueError(f"{field_name} must be a pair of integers")
+        return (first, second)
 
     @staticmethod
     def _write_manifest(manifest_path: Path, manifest: dict[str, object]) -> None:
