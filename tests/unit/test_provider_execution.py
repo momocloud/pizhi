@@ -10,6 +10,7 @@ from pizhi.core.config import load_config
 from pizhi.core.config import save_config
 from pizhi.services.brainstorm_service import BrainstormService
 from pizhi.services.provider_execution import execute_prompt_request
+from pizhi.services.run_store import RunStore
 
 
 @dataclass
@@ -67,8 +68,11 @@ def test_execute_prompt_request_persists_failed_provider_run(initialized_project
     )
 
     result = execute_prompt_request(initialized_project, request, target="ch001")
+    loaded = RunStore(initialized_project / ".pizhi" / "cache" / "runs").load(result.run_id)
 
     assert result.status == "provider_failed"
+    assert result.record.status == "provider_failed"
+    assert loaded.status == "provider_failed"
     assert result.run_dir.joinpath("error.txt").exists()
 
 

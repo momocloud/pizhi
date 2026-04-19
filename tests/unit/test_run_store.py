@@ -63,6 +63,23 @@ def test_run_store_persists_provider_failure_without_raw_or_normalized(tmp_path)
     assert not (record.run_dir / "normalized.md").exists()
 
 
+def test_run_store_persists_explicit_failure_status(tmp_path):
+    store = RunStore(tmp_path / ".pizhi" / "cache" / "runs")
+    record = store.write_failure(
+        command="write",
+        target="ch001",
+        prompt_text="# Prompt",
+        error_text="provider failed",
+        status="provider_failed",
+        metadata={"provider": "openai_compatible"},
+    )
+
+    loaded = store.load(record.run_id)
+
+    assert record.status == "provider_failed"
+    assert loaded.status == "provider_failed"
+
+
 def test_run_store_persists_normalize_failure_with_raw_payload(tmp_path):
     store = RunStore(tmp_path / ".pizhi" / "cache" / "runs")
     record = store.write_failure(

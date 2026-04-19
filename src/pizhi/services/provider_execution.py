@@ -65,6 +65,7 @@ def execute_prompt_request(project_root: Path, request: PromptRequest, target: s
             target=target,
             prompt_text=request.prompt_text,
             error_text=str(exc),
+            status="provider_failed",
             metadata=metadata,
             referenced_files=request.referenced_files,
         )
