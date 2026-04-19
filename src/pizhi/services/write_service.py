@@ -33,34 +33,48 @@ class WriteService:
     def __init__(self, project_root: Path) -> None:
         self.project_root = project_root
         self.adapter = PromptOnlyAdapter(project_root)
+        self._last_maintenance_result: MaintenanceResult | None = None
 
-    def write(self, chapter_number: int, response_file: Path | None = None) -> WriteResult:
+    def build_prompt_request(self, chapter_number: int) -> PromptRequest:
         context = build_chapter_context(self.project_root, chapter_number)
         synopsis_coverage = _load_synopsis_coverage_prompt_context(self.project_root)
-        artifact = self.adapter.prepare(
-            PromptRequest(
-                command_name="write",
-                prompt_text=_build_prompt(context, synopsis_coverage),
-                metadata={"chapter": chapter_number},
-                referenced_files=[
-                    ".pizhi/global/synopsis.md",
-                    ".pizhi/global/worldview.md",
-                    ".pizhi/global/rules.md",
-                    ".pizhi/global/foreshadowing.md",
-                    f".pizhi/chapters/ch{chapter_number:03d}/outline.md",
-                ],
-            )
+        return PromptRequest(
+            command_name="write",
+            prompt_text=_build_prompt(context, synopsis_coverage),
+            metadata={"chapter": chapter_number},
+            referenced_files=[
+                ".pizhi/global/synopsis.md",
+                ".pizhi/global/worldview.md",
+                ".pizhi/global/rules.md",
+                ".pizhi/global/foreshadowing.md",
+                f".pizhi/chapters/ch{chapter_number:03d}/outline.md",
+            ],
         )
+
+    def prepare_prompt(self, request: PromptRequest) -> PromptArtifact:
+        return self.adapter.prepare(request)
+
+    def apply_response(self, chapter_number: int, raw_response: str) -> ChapterWriteResult:
+        chapter_result = apply_chapter_response(
+            self.project_root,
+            chapter_number=chapter_number,
+            raw_response=raw_response,
+        )
+        self._last_maintenance_result = run_after_write(self.project_root)
+        return chapter_result
+
+    def write(self, chapter_number: int, response_file: Path | None = None) -> WriteResult:
+        artifact = self.prepare_prompt(self.build_prompt_request(chapter_number))
 
         chapter_result = None
         maintenance_result = None
         if response_file is not None:
-            chapter_result = apply_chapter_response(
-                self.project_root,
+            self._last_maintenance_result = None
+            chapter_result = self.apply_response(
                 chapter_number=chapter_number,
                 raw_response=response_file.read_text(encoding="utf-8"),
             )
-            maintenance_result = run_after_write(self.project_root)
+            maintenance_result = self._last_maintenance_result
 
         return WriteResult(
             prompt_artifact=artifact,

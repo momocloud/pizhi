@@ -47,24 +47,11 @@ class OutlineService:
         direction: str = "",
     ) -> OutlineResult:
         start, end = chapter_range
-        artifact = self.adapter.prepare(
-            PromptRequest(
-                command_name="outline-expand",
-                prompt_text=self._build_prompt(start, end, direction),
-                metadata={"chapters": [start, end], "direction": direction},
-                referenced_files=[
-                    ".pizhi/global/synopsis.md",
-                    ".pizhi/global/outline_global.md",
-                    ".pizhi/global/worldview.md",
-                    ".pizhi/global/rules.md",
-                ],
-            )
-        )
+        artifact = self.prepare_prompt(self.build_prompt_request(chapter_range, direction=direction))
 
         blocks: list[OutlineBlock] = []
         if response_file is not None:
-            blocks = parse_outline_response(response_file.read_text(encoding="utf-8"))
-            self.apply_blocks(blocks)
+            blocks = self.apply_response(response_file.read_text(encoding="utf-8"))
             self.paths.last_session_file.write_text(
                 f"# Last Session\n\n- Command: outline expand\n- Chapters: ch{start:03d}-ch{end:03d}\n- Status: applied\n",
                 encoding="utf-8",
@@ -78,6 +65,28 @@ class OutlineService:
             )
 
         return OutlineResult(prompt_artifact=artifact, blocks=blocks)
+
+    def build_prompt_request(self, chapter_range: tuple[int, int], direction: str = "") -> PromptRequest:
+        start, end = chapter_range
+        return PromptRequest(
+            command_name="outline-expand",
+            prompt_text=self._build_prompt(start, end, direction),
+            metadata={"chapters": [start, end], "direction": direction},
+            referenced_files=[
+                ".pizhi/global/synopsis.md",
+                ".pizhi/global/outline_global.md",
+                ".pizhi/global/worldview.md",
+                ".pizhi/global/rules.md",
+            ],
+        )
+
+    def prepare_prompt(self, request: PromptRequest) -> PromptArtifact:
+        return self.adapter.prepare(request)
+
+    def apply_response(self, raw_response: str) -> list[OutlineBlock]:
+        blocks = parse_outline_response(raw_response)
+        self.apply_blocks(blocks)
+        return blocks
 
     def apply_blocks(self, blocks: list[OutlineBlock]) -> None:
         for block in blocks:

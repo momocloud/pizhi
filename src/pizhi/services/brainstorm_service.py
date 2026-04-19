@@ -27,23 +27,27 @@ class BrainstormService:
         self.paths = project_paths(project_root)
         self.adapter = PromptOnlyAdapter(project_root)
 
-    def run(self, response_file: Path | None = None) -> BrainstormResult:
-        artifact = self.adapter.prepare(
-            PromptRequest(
-                command_name="brainstorm",
-                prompt_text=self._build_prompt(),
-                metadata={"command": "brainstorm"},
-                referenced_files=[
-                    ".pizhi/global/synopsis.md",
-                    ".pizhi/global/worldview.md",
-                    ".pizhi/global/rules.md",
-                    ".pizhi/global/outline_global.md",
-                    ".pizhi/global/foreshadowing.md",
-                    ".pizhi/chapters/ch000/characters.md",
-                    ".pizhi/chapters/ch000/relationships.md",
-                ],
-            )
+    def build_prompt_request(self) -> PromptRequest:
+        return PromptRequest(
+            command_name="brainstorm",
+            prompt_text=self._build_prompt(),
+            metadata={"command": "brainstorm"},
+            referenced_files=[
+                ".pizhi/global/synopsis.md",
+                ".pizhi/global/worldview.md",
+                ".pizhi/global/rules.md",
+                ".pizhi/global/outline_global.md",
+                ".pizhi/global/foreshadowing.md",
+                ".pizhi/chapters/ch000/characters.md",
+                ".pizhi/chapters/ch000/relationships.md",
+            ],
         )
+
+    def prepare_prompt(self, request: PromptRequest) -> PromptArtifact:
+        return self.adapter.prepare(request)
+
+    def run(self, response_file: Path | None = None) -> BrainstormResult:
+        artifact = self.prepare_prompt(self.build_prompt_request())
 
         if response_file is not None:
             self.apply_response(response_file.read_text(encoding="utf-8"))
