@@ -25,6 +25,10 @@ def run_write(args: argparse.Namespace) -> int:
             return 1
         print(f"Prepared prompt packet: {prompt_artifact.prompt_path.name}")
         print(f"Run ID: {execution.run_id}")
+        if execution.status == "provider_failed":
+            error_text = execution.record.error_path.read_text(encoding="utf-8").strip()
+            print(f"error: {error_text}", file=sys.stderr)
+            return 1
         return 0
 
     result = service.write(chapter_number=args.chapter, response_file=response_file)
