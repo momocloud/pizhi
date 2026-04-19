@@ -17,6 +17,7 @@ BLOCK_PATTERN = re.compile(
     r"^## ch(?P<number>\d{3}) \| (?P<title>.+?)\s*$\n(?P<body>.*?)(?=^## ch\d{3} \| |\Z)",
     re.MULTILINE | re.DOTALL,
 )
+NON_CHAPTER_HEADING_PATTERN = re.compile(r"^## (?!ch\d{3} \| ).+$", re.MULTILINE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,12 +111,12 @@ class OutlineService:
 
         outline_path = self.paths.global_dir.joinpath("outline_global.md")
         existing_text = outline_path.read_text(encoding="utf-8") if outline_path.exists() else ""
-        outline_prefix, existing_blocks = _split_global_outline(existing_text)
+        outline_prefix, outline_suffix, existing_blocks = _split_global_outline(existing_text)
         merged_blocks_by_number = {block.chapter_number: block for block in existing_blocks}
         for block in blocks:
             merged_blocks_by_number[block.chapter_number] = block
         merged_blocks = [merged_blocks_by_number[number] for number in sorted(merged_blocks_by_number)]
-        merged_text = _render_global_outline(outline_prefix, merged_blocks)
+        merged_text = _render_global_outline(outline_prefix, merged_blocks, outline_suffix)
         outline_path.write_text(
             merged_text,
             encoding="utf-8",
@@ -149,6 +150,45 @@ def parse_outline_response(raw: str) -> list[OutlineBlock]:
     return blocks
 
 
+def _split_global_outline(raw: str) -> tuple[str, str, list[OutlineBlock]]:
+    if not raw:
+        return ("# Global Outline\n\n", "", [])
+
+    first_block = BLOCK_PATTERN.search(raw)
+    if first_block is None:
+        return (raw.rstrip() + "\n", "", [])
+
+    suffix_start = _find_suffix_start(raw, first_block.start())
+    chapter_text = raw[first_block.start() : suffix_start]
+    existing_blocks = _parse_global_outline_blocks(chapter_text)
+
+    prefix = raw[: first_block.start()].rstrip()
+    suffix = raw[suffix_start:].strip()
+    prefix_text = prefix + "\n\n" if prefix else ""
+    suffix_text = "\n\n" + suffix + "\n" if suffix else ""
+    return (prefix_text, suffix_text, existing_blocks)
+
+
+def _render_global_outline(
+    prefix: str,
+    blocks: list[OutlineBlock],
+    suffix: str,
+) -> str:
+    lines = [prefix.rstrip("\n")] if prefix else ["# Global Outline", ""]
+    for block in blocks:
+        lines.append(_render_block(block).rstrip("\n"))
+    if suffix:
+        lines.append(suffix.strip("\n"))
+    return "\n".join(part for part in lines if part).rstrip() + "\n"
+
+
+def _render_block(block: OutlineBlock) -> str:
+    return (
+        f"## ch{block.chapter_number:03d} | {block.title}\n"
+        f"{block.body.strip()}\n"
+    )
+
+
 def _parse_global_outline_blocks(raw: str) -> list[OutlineBlock]:
     blocks: list[OutlineBlock] = []
     for match in BLOCK_PATTERN.finditer(raw):
@@ -162,26 +202,10 @@ def _parse_global_outline_blocks(raw: str) -> list[OutlineBlock]:
     return blocks
 
 
-def _split_global_outline(raw: str) -> tuple[str, list[OutlineBlock]]:
-    if not raw:
-        return ("# Global Outline\n\n", [])
-
-    first_block = BLOCK_PATTERN.search(raw)
-    if first_block is None:
-        return (raw.rstrip() + "\n", [])
-
-    prefix = raw[: first_block.start()].rstrip()
-    if prefix:
-        prefix_text = prefix + "\n\n"
-    else:
-        prefix_text = ""
-    return (prefix_text, _parse_global_outline_blocks(raw[first_block.start() :]))
-
-
-def _render_global_outline(prefix: str, blocks: list[OutlineBlock]) -> str:
-    lines = [prefix.rstrip("\n")] if prefix else ["# Global Outline", ""]
-    for block in blocks:
-        lines.append(f"## ch{block.chapter_number:03d} | {block.title}")
-        lines.append(block.body.strip())
-        lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+def _find_suffix_start(raw: str, search_start: int) -> int:
+    suffix_match = None
+    for match in NON_CHAPTER_HEADING_PATTERN.finditer(raw, search_start):
+        suffix_match = match
+    if suffix_match is None:
+        return len(raw)
+    return suffix_match.start()
