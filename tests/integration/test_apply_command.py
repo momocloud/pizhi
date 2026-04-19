@@ -66,3 +66,29 @@ def test_apply_command_rejects_structurally_bad_manifest_without_traceback(initi
         assert result.returncode != 0
         assert "Traceback" not in result.stderr
         assert "invalid manifest" in result.stderr
+
+
+def test_apply_command_rejects_directory_normalized_md_without_traceback(initialized_project):
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+    run_dir = runs_dir / "run-dir-normalized"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "manifest.json").write_text(
+        (
+            '{"run_id": "run-dir-normalized", "command": "write", "target": "ch001", '
+            '"status": "succeeded", "created_at": "2026-04-19T00:00:00Z", '
+            '"metadata": {"chapter": 1}, "referenced_files": []}'
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "normalized.md").mkdir()
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "apply", "--run-id", "run-dir-normalized"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "Traceback" not in result.stderr
+    assert "normalized.md" in result.stderr

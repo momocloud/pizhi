@@ -35,7 +35,11 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
     if not record.normalized_path.exists():
         raise ValueError(f"run {run_id} is missing normalized.md")
 
-    normalized_text = record.normalized_path.read_text(encoding="utf-8")
+    try:
+        normalized_text = record.normalized_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f"run {run_id} has unreadable normalized.md: {exc}") from None
+
     if record.command == "brainstorm":
         BrainstormService(project_root).apply_response(normalized_text)
     elif record.command == "outline-expand":
