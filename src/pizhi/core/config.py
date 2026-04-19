@@ -119,8 +119,11 @@ def default_config(
 
 def save_config(path: Path, config: ProjectConfig) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    payload = asdict(config)
+    if config.provider is None:
+        payload.pop("provider", None)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
-        yaml.safe_dump(asdict(config), handle, allow_unicode=True, sort_keys=False)
+        yaml.safe_dump(payload, handle, allow_unicode=True, sort_keys=False)
 
 
 def load_config(path: Path) -> ProjectConfig:

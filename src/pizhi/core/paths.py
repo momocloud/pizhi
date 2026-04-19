@@ -54,7 +54,7 @@ class ProjectPaths:
 
     @property
     def runs_dir(self) -> Path:
-        return self.workspace_dir / "runs"
+        return self.cache_dir / "runs"
 
     @property
     def synopsis_file(self) -> Path:

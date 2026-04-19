@@ -1,6 +1,8 @@
 from subprocess import run
 import sys
 
+from pizhi.core.config import load_config
+
 
 def test_provider_configure_command_writes_provider_block(initialized_project):
     result = run(
@@ -25,4 +27,9 @@ def test_provider_configure_command_writes_provider_block(initialized_project):
     )
 
     assert result.returncode == 0
-    assert "provider:" in (initialized_project / ".pizhi" / "config.yaml").read_text(encoding="utf-8")
+    loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.provider is not None
+    assert loaded.provider.provider == "openai_compatible"
+    assert loaded.provider.model == "gpt-5.4"
+    assert loaded.provider.base_url == "https://api.openai.com/v1"
+    assert loaded.provider.api_key_env == "OPENAI_API_KEY"
