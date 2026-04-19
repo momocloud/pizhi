@@ -164,7 +164,7 @@ class RunStore:
 
         records = [
             self.load(run_dir.name)
-            for run_dir in sorted(self.runs_dir.iterdir())
+            for run_dir in sorted(self.runs_dir.iterdir(), reverse=True)
             if run_dir.is_dir() and (run_dir / "manifest.json").exists()
         ]
         return records
