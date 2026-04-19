@@ -109,12 +109,13 @@ class OutlineService:
             )
 
         outline_path = self.paths.global_dir.joinpath("outline_global.md")
-        existing_blocks = _parse_global_outline_blocks(outline_path.read_text(encoding="utf-8")) if outline_path.exists() else []
+        existing_text = outline_path.read_text(encoding="utf-8") if outline_path.exists() else ""
+        outline_prefix, existing_blocks = _split_global_outline(existing_text)
         merged_blocks_by_number = {block.chapter_number: block for block in existing_blocks}
         for block in blocks:
             merged_blocks_by_number[block.chapter_number] = block
         merged_blocks = [merged_blocks_by_number[number] for number in sorted(merged_blocks_by_number)]
-        merged_text = _render_global_outline(merged_blocks)
+        merged_text = _render_global_outline(outline_prefix, merged_blocks)
         outline_path.write_text(
             merged_text,
             encoding="utf-8",
@@ -161,8 +162,24 @@ def _parse_global_outline_blocks(raw: str) -> list[OutlineBlock]:
     return blocks
 
 
-def _render_global_outline(blocks: list[OutlineBlock]) -> str:
-    lines = ["# Global Outline", ""]
+def _split_global_outline(raw: str) -> tuple[str, list[OutlineBlock]]:
+    if not raw:
+        return ("# Global Outline\n\n", [])
+
+    first_block = BLOCK_PATTERN.search(raw)
+    if first_block is None:
+        return (raw.rstrip() + "\n", [])
+
+    prefix = raw[: first_block.start()].rstrip()
+    if prefix:
+        prefix_text = prefix + "\n\n"
+    else:
+        prefix_text = ""
+    return (prefix_text, _parse_global_outline_blocks(raw[first_block.start() :]))
+
+
+def _render_global_outline(prefix: str, blocks: list[OutlineBlock]) -> str:
+    lines = [prefix.rstrip("\n")] if prefix else ["# Global Outline", ""]
     for block in blocks:
         lines.append(f"## ch{block.chapter_number:03d} | {block.title}")
         lines.append(block.body.strip())

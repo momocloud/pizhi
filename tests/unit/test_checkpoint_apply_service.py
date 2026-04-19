@@ -295,6 +295,40 @@ def test_apply_checkpoint_replaces_duplicate_outline_blocks_in_global_outline(in
     assert "旧标题" not in outline_text
 
 
+def test_apply_checkpoint_preserves_existing_non_chapter_outline_prefix(initialized_project):
+    outline_path = initialized_project / ".pizhi" / "global" / "outline_global.md"
+    outline_path.write_text(
+        "# Global Outline\n\n"
+        "## 第一卷\n"
+        "- 前言\n"
+        "- 旧的大纲前言\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    run_1 = _seed_successful_run(
+        initialized_project,
+        command="outline-expand",
+        target="ch001",
+        normalized_text=(
+            "## ch001 | 雨夜访客\n"
+            "- 雨夜里，沈轩目击第一起命案。\n"
+        ),
+    )
+    _, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="outline",
+        run_ids=[run_1],
+    )
+
+    apply_checkpoint(initialized_project, checkpoint_id)
+
+    outline_text = outline_path.read_text(encoding="utf-8")
+    assert "## 第一卷" in outline_text
+    assert "- 旧的大纲前言" in outline_text
+    assert "## ch001 | 雨夜访客" in outline_text
+
+
 def test_apply_checkpoint_rejects_non_generated_checkpoint(initialized_project):
     session_store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
     session = session_store.create(
