@@ -106,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     review_parser = subparsers.add_parser("review", help="run structural consistency review")
     review_parser.add_argument("--chapter", type=int, help="review a single chapter number")
     review_parser.add_argument("--full", action="store_true", help="review all known chapters")
+    review_parser.add_argument("--execute", action="store_true", help="call the configured provider")
     review_parser.set_defaults(handler=run_review)
 
     status_parser = subparsers.add_parser("status", help="show project status")
