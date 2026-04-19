@@ -43,6 +43,29 @@ def test_structural_review_migrates_freeform_notes_without_heading(initialized_p
     assert raw_notes.count("## ") == 3
 
 
+def test_structural_review_preserves_prefix_before_supported_heading(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    notes_path = project_paths(initialized_project).chapter_dir(1) / "notes.md"
+    notes_path.write_text(
+        "顶部自由文本。\n\n## 作者备注\n\n手工备注。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=1)
+    raw_notes = notes_path.read_text(encoding="utf-8")
+
+    assert report.chapter_issues[1] == []
+    assert "顶部自由文本。" in raw_notes
+    assert "手工备注。" in raw_notes
+    assert "## 作者备注" in raw_notes
+    assert "## A 类结构检查" in raw_notes
+    assert "## B 类 AI 审查" in raw_notes
+    assert raw_notes.count("## 作者备注") == 1
+    assert raw_notes.count("## A 类结构检查") == 1
+    assert raw_notes.count("## B 类 AI 审查") == 1
+
+
 def test_structural_review_migrates_freeform_notes_with_unknown_heading(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     notes_path = project_paths(initialized_project).chapter_dir(1) / "notes.md"

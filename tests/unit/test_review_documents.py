@@ -29,14 +29,28 @@ def test_load_chapter_review_notes_treats_unknown_heading_as_freeform_notes(tmp_
 def test_load_chapter_review_notes_accepts_legacy_consistency_section(tmp_path):
     notes_path = tmp_path / "notes.md"
     notes_path.write_text(
-        "## 一致性检查结果\n\n旧 deterministic 内容。\n",
+        "顶部自由文本。\n\n## 一致性检查结果\n\n旧 deterministic 内容。\n",
         encoding="utf-8",
         newline="\n",
     )
 
     loaded = load_chapter_review_notes(notes_path)
 
-    assert loaded.author_notes == "\n旧 deterministic 内容。\n"
+    assert loaded.author_notes == "顶部自由文本。\n\n\n旧 deterministic 内容。\n"
+    assert loaded.ai_review_markdown == ""
+
+
+def test_load_chapter_review_notes_preserves_prefix_before_supported_heading(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    notes_path.write_text(
+        "顶部自由文本。\n\n## 作者备注\n\n手工备注。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+
+    assert loaded.author_notes == "顶部自由文本。\n\n\n手工备注。\n"
     assert loaded.ai_review_markdown == ""
 
 

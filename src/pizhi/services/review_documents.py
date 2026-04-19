@@ -32,9 +32,12 @@ def load_chapter_review_notes(path: Path) -> ChapterReviewNotes:
     if sections is None:
         return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
 
+    first_heading = SECTION_HEADING_RE.search(raw)
+    prefix = raw[: first_heading.start()] if first_heading is not None else ""
     author_notes = sections.get("作者备注", "")
     if not author_notes:
         author_notes = sections.get("一致性检查结果", "")
+    author_notes = prefix + author_notes
 
     return ChapterReviewNotes(author_notes=author_notes, ai_review_markdown=sections.get("B 类 AI 审查", ""))
 
