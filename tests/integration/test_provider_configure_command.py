@@ -1,7 +1,9 @@
 from subprocess import run
 import sys
 
+from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
+from pizhi.core.config import save_config
 
 
 def test_provider_configure_command_supports_interactive_mode(initialized_project):
@@ -133,3 +135,47 @@ def test_provider_configure_command_writes_review_override_fields(initialized_pr
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
     assert loaded.provider is not None
     assert loaded.provider.review_model == "gpt-5.4-mini"
+
+
+def test_provider_configure_command_parameter_mode_preserves_existing_review_override(initialized_project):
+    config_path = initialized_project / ".pizhi" / "config.yaml"
+    config = load_config(config_path)
+    config.provider = ProviderSection(
+        provider="openai_compatible",
+        model="old-model",
+        base_url="https://old.example/v1",
+        api_key_env="OLD_API_KEY",
+        review_model="gpt-5.4-mini",
+        review_base_url="https://api.openai.com/v1/review",
+        review_api_key_env="OPENAI_REVIEW_API_KEY",
+    )
+    save_config(config_path, config)
+
+    result = run(
+        [
+            sys.executable,
+            "-m",
+            "pizhi",
+            "provider",
+            "configure",
+            "--provider",
+            "openai_compatible",
+            "--model",
+            "gpt-5.4",
+            "--base-url",
+            "https://api.openai.com/v1",
+            "--api-key-env",
+            "OPENAI_API_KEY",
+        ],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "Review model" not in result.stdout
+    loaded = load_config(config_path)
+    assert loaded.provider is not None
+    assert loaded.provider.review_model == "gpt-5.4-mini"
+    assert loaded.provider.review_base_url == "https://api.openai.com/v1/review"
+    assert loaded.provider.review_api_key_env == "OPENAI_REVIEW_API_KEY"

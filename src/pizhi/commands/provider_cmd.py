@@ -40,10 +40,18 @@ def _prompt_for_optional_value(label: str, current_value: str | None = None) -> 
         return current_value
 
 
+def _is_parameter_mode(args: argparse.Namespace) -> bool:
+    return all(
+        getattr(args, field) is not None
+        for field in ("provider", "model", "base_url", "api_key_env")
+    )
+
+
 def run_provider_configure(args: argparse.Namespace) -> int:
     paths = project_paths(Path.cwd())
     config = load_config(paths.config_file)
     existing = config.provider
+    interactive_review = not _is_parameter_mode(args)
     provider_section = ProviderSection(
         provider=args.provider
         or _prompt_for_value("Provider", existing.provider if existing else None),
@@ -55,17 +63,29 @@ def run_provider_configure(args: argparse.Namespace) -> int:
         review_model=(
             args.review_model
             if args.review_model is not None
-            else _prompt_for_optional_value("Review model", existing.review_model if existing else None)
+            else (
+                _prompt_for_optional_value("Review model", existing.review_model if existing else None)
+                if interactive_review
+                else (existing.review_model if existing else None)
+            )
         ),
         review_base_url=(
             args.review_base_url
             if args.review_base_url is not None
-            else _prompt_for_optional_value("Review base URL", existing.review_base_url if existing else None)
+            else (
+                _prompt_for_optional_value("Review base URL", existing.review_base_url if existing else None)
+                if interactive_review
+                else (existing.review_base_url if existing else None)
+            )
         ),
         review_api_key_env=(
             args.review_api_key_env
             if args.review_api_key_env is not None
-            else _prompt_for_optional_value("Review API key env", existing.review_api_key_env if existing else None)
+            else (
+                _prompt_for_optional_value("Review API key env", existing.review_api_key_env if existing else None)
+                if interactive_review
+                else (existing.review_api_key_env if existing else None)
+            )
         ),
     )
     config.provider = provider_section

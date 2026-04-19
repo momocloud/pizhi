@@ -67,6 +67,52 @@ def test_execute_prompt_request_requires_provider_api_key_env(initialized_projec
     assert not runs_dir.exists()
 
 
+def test_execute_prompt_request_uses_explicit_provider_config(initialized_project, monkeypatch):
+    request = BrainstormService(initialized_project).build_prompt_request()
+    config = load_config(initialized_project / ".pizhi" / "config.yaml")
+    config.provider = ProviderSection(
+        provider="openai_compatible",
+        model="project-model",
+        base_url="https://project.example/v1",
+        api_key_env="PROJECT_API_KEY",
+    )
+    save_config(initialized_project / ".pizhi" / "config.yaml", config)
+    explicit_provider_config = ProviderSection(
+        provider="openai_compatible",
+        model="override-model",
+        base_url="https://override.example/v1",
+        api_key_env="OVERRIDE_API_KEY",
+    )
+    captured: dict[str, object] = {}
+
+    class RecordingAdapter:
+        def execute(self, provider_request):
+            captured["provider_request"] = provider_request
+            return ProviderResponse(
+                raw_payload={"id": "resp_test"},
+                content_text="## synopsis\n...",
+            )
+
+    monkeypatch.setenv("OVERRIDE_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RecordingAdapter(),
+    )
+
+    result = execute_prompt_request(
+        initialized_project,
+        request,
+        target="project",
+        provider_config=explicit_provider_config,
+    )
+
+    provider_request = captured["provider_request"]
+    assert result.status == "succeeded"
+    assert provider_request.model == "override-model"
+    assert provider_request.base_url == "https://override.example/v1"
+    assert provider_request.api_key == "secret"
+
+
 def test_execute_prompt_request_persists_failed_provider_run(initialized_project, monkeypatch):
     request = BrainstormService(initialized_project).build_prompt_request()
     _configure_provider(initialized_project)
