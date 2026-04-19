@@ -561,7 +561,7 @@ git commit -m "feat: add run listing and explicit apply command"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md`
 
-- [ ] **Step 1: Run command smoke tests**
+- [x] **Step 1: Run command smoke tests**
 
 Run:
 - `python -m pizhi provider configure --help`
@@ -573,18 +573,34 @@ Run:
 
 Expected: all commands exit `0`
 
-- [ ] **Step 2: Run the full test suite**
+- [x] **Step 2: Run the full test suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
 Expected: all tests `PASSED` and count increases beyond the 88-test baseline
 
-- [ ] **Step 3: Mark verification steps complete in this plan**
+- [x] **Step 3: Mark verification steps complete in this plan**
 
 Update this file so the executed verification boxes are checked and add the final observed command/test results near Task 6.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
+
+Observed results on `2026-04-19`:
+- Smoke tests passed:
+  - `python -m pizhi provider configure --help`
+  - `python -m pizhi runs --help`
+  - `python -m pizhi apply --help`
+  - `python -m pizhi brainstorm --help`
+  - `python -m pizhi outline expand --help`
+  - `python -m pizhi write --help`
+- Full suite passed:
+  - `python -m pytest tests/unit tests/integration -v`
+  - Observed result: `135 passed`
+  - Baseline before milestone 6 implementation: `88 passed`
+- Task 5 follow-up regression after unreadable `normalized.md` fix also passed:
+  - `python -m pytest tests/unit/test_apply_service.py tests/integration/test_apply_command.py tests/integration/test_runs_command.py tests/integration/test_provider_execution_commands.py -v`
+  - Observed result: `30 passed`
 
 ```bash
 git add docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md
