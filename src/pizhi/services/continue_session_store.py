@@ -26,6 +26,23 @@ class ContinueSessionRecord:
 
 
 class ContinueSessionStore:
+    _MANIFEST_FIELDS = frozenset(
+        {
+            "session_id",
+            "count",
+            "direction",
+            "start_chapter",
+            "target_end_chapter",
+            "current_stage",
+            "current_range",
+            "last_checkpoint_id",
+            "status",
+            "created_at",
+            "updated_at",
+        }
+    )
+    _UPDATE_FIELDS = frozenset({"current_stage", "current_range", "last_checkpoint_id", "status"})
+
     def __init__(self, continue_sessions_dir: Path) -> None:
         self.continue_sessions_dir = continue_sessions_dir
 
@@ -41,7 +58,6 @@ class ContinueSessionStore:
         last_checkpoint_id: str | None = None,
         status: str,
     ) -> ContinueSessionRecord:
-        normalized_current_range = self._validate_int_pair(current_range, field_name="current_range")
         session_id = self._new_session_id()
         session_dir = self.continue_sessions_dir / session_id
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -54,7 +70,7 @@ class ContinueSessionStore:
             start_chapter=start_chapter,
             target_end_chapter=target_end_chapter,
             current_stage=current_stage,
-            current_range=normalized_current_range,
+            current_range=current_range,
             last_checkpoint_id=last_checkpoint_id,
             status=status,
             created_at=created_at,
@@ -73,15 +89,11 @@ class ContinueSessionStore:
     def update(self, session_id: str, **changes: object) -> ContinueSessionRecord:
         record = self.load(session_id)
         manifest = self._manifest_from_record(record)
-        if "current_range" in changes:
-            changes = {
-                **changes,
-                "current_range": list(self._validate_int_pair(changes["current_range"], field_name="current_range")),
-            }
-        manifest.update(changes)
+        manifest.update(self._normalize_update_changes(changes))
         manifest["updated_at"] = self._next_updated_at(record.updated_at)
-        self._write_manifest(record.manifest_path, manifest)
-        return self._record_from_manifest(session_dir=record.session_dir, manifest=manifest)
+        normalized_manifest = self._normalize_manifest(manifest)
+        self._write_manifest(record.manifest_path, normalized_manifest)
+        return self._record_from_manifest(session_dir=record.session_dir, manifest=normalized_manifest)
 
     def _record_from_manifest(
         self,
@@ -89,21 +101,21 @@ class ContinueSessionStore:
         session_dir: Path,
         manifest: dict[str, object],
     ) -> ContinueSessionRecord:
-        current_range = self._validate_int_pair(manifest.get("current_range"), field_name="current_range")
+        normalized_manifest = self._normalize_manifest(manifest)
         return ContinueSessionRecord(
-            session_id=str(manifest["session_id"]),
+            session_id=normalized_manifest["session_id"],
             session_dir=session_dir,
             manifest_path=session_dir / "manifest.json",
-            count=int(manifest["count"]),
-            direction=str(manifest["direction"]),
-            start_chapter=int(manifest["start_chapter"]),
-            target_end_chapter=int(manifest["target_end_chapter"]),
-            current_stage=str(manifest["current_stage"]),
-            current_range=current_range,
-            last_checkpoint_id=manifest.get("last_checkpoint_id") or None,
-            status=str(manifest["status"]),
-            created_at=str(manifest["created_at"]),
-            updated_at=str(manifest["updated_at"]),
+            count=normalized_manifest["count"],
+            direction=normalized_manifest["direction"],
+            start_chapter=normalized_manifest["start_chapter"],
+            target_end_chapter=normalized_manifest["target_end_chapter"],
+            current_stage=normalized_manifest["current_stage"],
+            current_range=tuple(normalized_manifest["current_range"]),
+            last_checkpoint_id=normalized_manifest["last_checkpoint_id"],
+            status=normalized_manifest["status"],
+            created_at=normalized_manifest["created_at"],
+            updated_at=normalized_manifest["updated_at"],
         )
 
     def _manifest_from_record(self, record: ContinueSessionRecord) -> dict[str, object]:
@@ -136,20 +148,88 @@ class ContinueSessionStore:
         created_at: str,
         updated_at: str,
     ) -> dict[str, object]:
-        normalized_current_range = self._validate_int_pair(current_range, field_name="current_range")
-        return {
+        return self._normalize_manifest(
+            {
             "session_id": session_id,
             "count": count,
             "direction": direction,
             "start_chapter": start_chapter,
             "target_end_chapter": target_end_chapter,
             "current_stage": current_stage,
-            "current_range": list(normalized_current_range),
+            "current_range": current_range,
             "last_checkpoint_id": last_checkpoint_id,
             "status": status,
             "created_at": created_at,
             "updated_at": updated_at,
         }
+        )
+
+    def _normalize_update_changes(self, changes: dict[str, object]) -> dict[str, object]:
+        unknown_fields = sorted(set(changes) - self._UPDATE_FIELDS)
+        if unknown_fields:
+            raise ValueError(f"Unknown update fields: {', '.join(unknown_fields)}")
+
+        normalized_changes: dict[str, object] = {}
+        for field_name, value in changes.items():
+            if field_name == "current_stage":
+                normalized_changes[field_name] = self._validate_str(value, field_name=field_name)
+            elif field_name == "current_range":
+                normalized_changes[field_name] = list(self._validate_int_pair(value, field_name=field_name))
+            elif field_name == "last_checkpoint_id":
+                normalized_changes[field_name] = self._validate_optional_str(value, field_name=field_name)
+            elif field_name == "status":
+                normalized_changes[field_name] = self._validate_str(value, field_name=field_name)
+        return normalized_changes
+
+    def _normalize_manifest(self, manifest: dict[str, object]) -> dict[str, object]:
+        self._validate_manifest_keys(manifest)
+        current_range = self._validate_int_pair(manifest["current_range"], field_name="current_range")
+        return {
+            "session_id": self._validate_str(manifest["session_id"], field_name="session_id"),
+            "count": self._validate_int(manifest["count"], field_name="count"),
+            "direction": self._validate_str(manifest["direction"], field_name="direction"),
+            "start_chapter": self._validate_int(manifest["start_chapter"], field_name="start_chapter"),
+            "target_end_chapter": self._validate_int(
+                manifest["target_end_chapter"], field_name="target_end_chapter"
+            ),
+            "current_stage": self._validate_str(manifest["current_stage"], field_name="current_stage"),
+            "current_range": list(current_range),
+            "last_checkpoint_id": self._validate_optional_str(
+                manifest["last_checkpoint_id"], field_name="last_checkpoint_id"
+            ),
+            "status": self._validate_str(manifest["status"], field_name="status"),
+            "created_at": self._validate_str(manifest["created_at"], field_name="created_at"),
+            "updated_at": self._validate_str(manifest["updated_at"], field_name="updated_at"),
+        }
+
+    def _validate_manifest_keys(self, manifest: dict[str, object]) -> None:
+        unknown_fields = sorted(set(manifest) - self._MANIFEST_FIELDS)
+        if unknown_fields:
+            raise ValueError(f"Unknown continue session manifest fields: {', '.join(unknown_fields)}")
+
+        missing_fields = sorted(self._MANIFEST_FIELDS - set(manifest))
+        if missing_fields:
+            raise ValueError(f"Missing continue session manifest fields: {', '.join(missing_fields)}")
+
+    @staticmethod
+    def _validate_int(value: object, *, field_name: str) -> int:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"{field_name} must be an integer")
+        return value
+
+    @staticmethod
+    def _validate_str(value: object, *, field_name: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+        return value
+
+    @staticmethod
+    def _validate_optional_str(value: object, *, field_name: str) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string or null")
+        return value
 
     @staticmethod
     def _validate_int_pair(value: object, *, field_name: str) -> tuple[int, int]:

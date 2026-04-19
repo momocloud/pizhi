@@ -23,6 +23,20 @@ class CheckpointRecord:
 
 
 class CheckpointStore:
+    _MANIFEST_FIELDS = frozenset(
+        {
+            "checkpoint_id",
+            "session_id",
+            "stage",
+            "chapter_range",
+            "run_ids",
+            "status",
+            "created_at",
+            "applied_at",
+        }
+    )
+    _UPDATE_FIELDS = frozenset({"status", "applied_at"})
+
     def __init__(self, checkpoints_dir: Path) -> None:
         self.checkpoints_dir = checkpoints_dir
 
@@ -36,8 +50,6 @@ class CheckpointStore:
         status: str,
         applied_at: str | None = None,
     ) -> CheckpointRecord:
-        normalized_chapter_range = self._validate_int_pair(chapter_range, field_name="chapter_range")
-        normalized_run_ids = self._validate_run_ids(run_ids)
         checkpoint_id = self._new_checkpoint_id()
         checkpoint_dir = self.checkpoints_dir / checkpoint_id
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -47,8 +59,8 @@ class CheckpointStore:
             checkpoint_id=checkpoint_id,
             session_id=session_id,
             stage=stage,
-            chapter_range=normalized_chapter_range,
-            run_ids=normalized_run_ids,
+            chapter_range=chapter_range,
+            run_ids=run_ids,
             status=status,
             created_at=created_at,
             applied_at=applied_at,
@@ -66,21 +78,10 @@ class CheckpointStore:
     def update(self, checkpoint_id: str, **changes: object) -> CheckpointRecord:
         record = self.load(checkpoint_id)
         manifest = self._manifest_from_record(record)
-        if "chapter_range" in changes:
-            changes = {
-                **changes,
-                "chapter_range": list(
-                    self._validate_int_pair(changes["chapter_range"], field_name="chapter_range")
-                ),
-            }
-        if "run_ids" in changes:
-            changes = {
-                **changes,
-                "run_ids": list(self._validate_run_ids(changes["run_ids"])),
-            }
-        manifest.update(changes)
-        self._write_manifest(record.manifest_path, manifest)
-        return self._record_from_manifest(checkpoint_dir=record.checkpoint_dir, manifest=manifest)
+        manifest.update(self._normalize_update_changes(changes))
+        normalized_manifest = self._normalize_manifest(manifest)
+        self._write_manifest(record.manifest_path, normalized_manifest)
+        return self._record_from_manifest(checkpoint_dir=record.checkpoint_dir, manifest=normalized_manifest)
 
     def _record_from_manifest(
         self,
@@ -88,19 +89,18 @@ class CheckpointStore:
         checkpoint_dir: Path,
         manifest: dict[str, object],
     ) -> CheckpointRecord:
-        chapter_range = self._validate_int_pair(manifest.get("chapter_range"), field_name="chapter_range")
-        run_ids = self._validate_run_ids(manifest.get("run_ids"))
+        normalized_manifest = self._normalize_manifest(manifest)
         return CheckpointRecord(
-            checkpoint_id=str(manifest["checkpoint_id"]),
+            checkpoint_id=normalized_manifest["checkpoint_id"],
             checkpoint_dir=checkpoint_dir,
             manifest_path=checkpoint_dir / "manifest.json",
-            session_id=str(manifest["session_id"]),
-            stage=str(manifest["stage"]),
-            chapter_range=chapter_range,
-            run_ids=run_ids,
-            status=str(manifest["status"]),
-            created_at=str(manifest["created_at"]),
-            applied_at=manifest.get("applied_at") or None,
+            session_id=normalized_manifest["session_id"],
+            stage=normalized_manifest["stage"],
+            chapter_range=tuple(normalized_manifest["chapter_range"]),
+            run_ids=tuple(normalized_manifest["run_ids"]),
+            status=normalized_manifest["status"],
+            created_at=normalized_manifest["created_at"],
+            applied_at=normalized_manifest["applied_at"],
         )
 
     def _manifest_from_record(self, record: CheckpointRecord) -> dict[str, object]:
@@ -127,18 +127,75 @@ class CheckpointStore:
         created_at: str,
         applied_at: str | None,
     ) -> dict[str, object]:
-        normalized_chapter_range = self._validate_int_pair(chapter_range, field_name="chapter_range")
-        normalized_run_ids = self._validate_run_ids(run_ids)
-        return {
+        return self._normalize_manifest(
+            {
             "checkpoint_id": checkpoint_id,
             "session_id": session_id,
             "stage": stage,
-            "chapter_range": list(normalized_chapter_range),
-            "run_ids": list(normalized_run_ids),
+            "chapter_range": chapter_range,
+            "run_ids": run_ids,
             "status": status,
             "created_at": created_at,
             "applied_at": applied_at,
         }
+        )
+
+    def _normalize_update_changes(self, changes: dict[str, object]) -> dict[str, object]:
+        unknown_fields = sorted(set(changes) - self._UPDATE_FIELDS)
+        if unknown_fields:
+            raise ValueError(f"Unknown update fields: {', '.join(unknown_fields)}")
+
+        normalized_changes: dict[str, object] = {}
+        for field_name, value in changes.items():
+            if field_name == "status":
+                normalized_changes[field_name] = self._validate_str(value, field_name=field_name)
+            elif field_name == "applied_at":
+                normalized_changes[field_name] = self._validate_optional_str(value, field_name=field_name)
+        return normalized_changes
+
+    def _normalize_manifest(self, manifest: dict[str, object]) -> dict[str, object]:
+        self._validate_manifest_keys(manifest)
+        chapter_range = self._validate_int_pair(manifest["chapter_range"], field_name="chapter_range")
+        run_ids = self._validate_run_ids(manifest["run_ids"])
+        return {
+            "checkpoint_id": self._validate_str(manifest["checkpoint_id"], field_name="checkpoint_id"),
+            "session_id": self._validate_str(manifest["session_id"], field_name="session_id"),
+            "stage": self._validate_str(manifest["stage"], field_name="stage"),
+            "chapter_range": list(chapter_range),
+            "run_ids": list(run_ids),
+            "status": self._validate_str(manifest["status"], field_name="status"),
+            "created_at": self._validate_str(manifest["created_at"], field_name="created_at"),
+            "applied_at": self._validate_optional_str(manifest["applied_at"], field_name="applied_at"),
+        }
+
+    def _validate_manifest_keys(self, manifest: dict[str, object]) -> None:
+        unknown_fields = sorted(set(manifest) - self._MANIFEST_FIELDS)
+        if unknown_fields:
+            raise ValueError(f"Unknown checkpoint manifest fields: {', '.join(unknown_fields)}")
+
+        missing_fields = sorted(self._MANIFEST_FIELDS - set(manifest))
+        if missing_fields:
+            raise ValueError(f"Missing checkpoint manifest fields: {', '.join(missing_fields)}")
+
+    @staticmethod
+    def _validate_int(value: object, *, field_name: str) -> int:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"{field_name} must be an integer")
+        return value
+
+    @staticmethod
+    def _validate_str(value: object, *, field_name: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+        return value
+
+    @staticmethod
+    def _validate_optional_str(value: object, *, field_name: str) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string or null")
+        return value
 
     @staticmethod
     def _validate_int_pair(value: object, *, field_name: str) -> tuple[int, int]:

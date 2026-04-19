@@ -70,9 +70,11 @@ def test_continue_session_store_rejects_invalid_current_range_update(tmp_path):
         last_checkpoint_id=None,
         status="active",
     )
+    original_manifest = record.manifest_path.read_text(encoding="utf-8")
 
     with pytest.raises(ValueError, match="current_range must be a pair of integers"):
         store.update(record.session_id, current_range=(1,))
+    assert record.manifest_path.read_text(encoding="utf-8") == original_manifest
 
 
 def test_continue_session_store_rejects_invalid_current_range_in_manifest(tmp_path):
@@ -109,3 +111,43 @@ def test_continue_session_store_rejects_invalid_current_range_in_manifest(tmp_pa
 
     with pytest.raises(ValueError, match="current_range must be a pair of integers"):
         store.load(record.session_id)
+
+
+def test_continue_session_store_rejects_unknown_update_field_and_preserves_manifest(tmp_path):
+    store = ContinueSessionStore(tmp_path / ".pizhi" / "cache" / "continue_sessions")
+    record = store.create(
+        count=1,
+        direction="forward",
+        start_chapter=1,
+        target_end_chapter=1,
+        current_stage="outline",
+        current_range=(1, 1),
+        last_checkpoint_id=None,
+        status="active",
+    )
+    original_manifest = record.manifest_path.read_text(encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Unknown update fields: count"):
+        store.update(record.session_id, count="oops")
+
+    assert record.manifest_path.read_text(encoding="utf-8") == original_manifest
+
+
+def test_continue_session_store_rejects_invalid_scalar_update_and_preserves_manifest(tmp_path):
+    store = ContinueSessionStore(tmp_path / ".pizhi" / "cache" / "continue_sessions")
+    record = store.create(
+        count=1,
+        direction="forward",
+        start_chapter=1,
+        target_end_chapter=1,
+        current_stage="outline",
+        current_range=(1, 1),
+        last_checkpoint_id=None,
+        status="active",
+    )
+    original_manifest = record.manifest_path.read_text(encoding="utf-8")
+
+    with pytest.raises(ValueError, match="status must be a string"):
+        store.update(record.session_id, status={"bad": "type"})
+
+    assert record.manifest_path.read_text(encoding="utf-8") == original_manifest
