@@ -56,12 +56,21 @@ class ForeshadowingSection:
 
 
 @dataclass(slots=True)
+class ProviderSection:
+    provider: str
+    model: str
+    base_url: str
+    api_key_env: str
+
+
+@dataclass(slots=True)
 class ProjectConfig:
     project: ProjectSection
     chapters: ChaptersSection
     generation: GenerationSection
     consistency: ConsistencySection
     foreshadowing: ForeshadowingSection
+    provider: ProviderSection | None = None
 
 
 def default_config(
@@ -128,6 +137,7 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
     style = generation["style"]
     consistency = data["consistency"]
     foreshadowing = data["foreshadowing"]
+    provider = data.get("provider")
 
     return ProjectConfig(
         project=ProjectSection(**project),
@@ -138,4 +148,5 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
         ),
         consistency=ConsistencySection(**consistency),
         foreshadowing=ForeshadowingSection(**foreshadowing),
+        provider=ProviderSection(**provider) if provider else None,
     )

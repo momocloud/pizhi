@@ -53,6 +53,10 @@ class ProjectPaths:
         return self.chapters_dir / "ch000"
 
     @property
+    def runs_dir(self) -> Path:
+        return self.workspace_dir / "runs"
+
+    @property
     def synopsis_file(self) -> Path:
         return self.global_dir / "synopsis.md"
 
