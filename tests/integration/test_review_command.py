@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 from subprocess import run
 import sys
 
@@ -184,6 +185,39 @@ def test_review_command_execute_failure_keeps_a_class_output(
     assert "AI 审查执行失败" in notes_text
 
 
+def test_review_command_execute_without_scope_returns_readable_error_and_does_not_mutate_notes(
+    initialized_project, fixture_text
+):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
+
+    first_review = run(
+        [sys.executable, "-m", "pizhi", "review", "--chapter", "2"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+    assert first_review.returncode == 0
+
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch002" / "notes.md"
+    notes_before = notes_path.read_text(encoding="utf-8")
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "review", "--execute"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    notes_after = notes_path.read_text(encoding="utf-8")
+
+    assert result.returncode != 0
+    assert "Traceback" not in result.stderr
+    assert "error:" in result.stderr.lower()
+    assert "chapter" in result.stderr.lower() or "full" in result.stderr.lower()
+    assert notes_after == notes_before
+
+
 def test_review_command_full_execute_failure_keeps_summary_and_maintenance(
     initialized_project, monkeypatch, capsys, fixture_text
 ):
@@ -211,6 +245,8 @@ def test_review_command_full_execute_failure_keeps_summary_and_maintenance(
     assert "## A 类结构检查" in report_text
     assert "## Maintenance" in report_text
     assert "## B 类 AI 审查" in report_text
+    assert re.search(r"^## Global issues:$", report_text, re.MULTILINE) is None
+    assert re.search(r"^## ch\d{3}$", report_text, re.MULTILINE) is None
     assert "AI 审查执行失败" in report_text
 
 
@@ -235,6 +271,8 @@ def test_review_command_full_writes_cache_report(initialized_project, fixture_te
     assert "## A 类结构检查" in report_text
     assert "## Maintenance" in report_text
     assert "## B 类 AI 审查" in report_text
+    assert re.search(r"^## Global issues:$", report_text, re.MULTILINE) is None
+    assert re.search(r"^## ch\d{3}$", report_text, re.MULTILINE) is None
     assert "Global issues:" in result.stdout
 
 

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 from pizhi.core.paths import project_paths
-from pizhi.services.consistency.structural import format_structural_report
 from pizhi.services.consistency.structural import run_structural_review
 from pizhi.services.ai_review_context import build_chapter_ai_review_context
 from pizhi.services.ai_review_context import build_full_ai_review_context
@@ -17,6 +17,11 @@ from pizhi.services.review_documents import write_chapter_review_notes
 
 
 def run_review(args: argparse.Namespace) -> int:
+    execute = getattr(args, "execute", False)
+    if execute and not _review_execute_scope_is_valid(args):
+        print("error: review --execute requires --chapter N or --full", file=sys.stderr)
+        return 2
+
     project_root = Path.cwd()
     report = run_structural_review(project_root, chapter_number=args.chapter, full=args.full)
     maintenance_result = run_full_maintenance(project_root) if args.full else None
@@ -80,6 +85,10 @@ def _render_full_review_summary(report, maintenance_result) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _review_execute_scope_is_valid(args: argparse.Namespace) -> bool:
+    return bool(args.full or args.chapter is not None)
+
+
 def _render_structural_body(issues) -> str:
     if not issues:
         return "- 未发现结构化问题。\n"
@@ -130,7 +139,7 @@ def _write_full_review_document(report_path: Path, report, maintenance_result, a
     write_full_review_document(
         report_path,
         summary_markdown=_render_full_review_summary(report, maintenance_result),
-        structural_markdown=format_structural_report(report),
+        structural_markdown=_render_full_structural_body(report),
         maintenance_markdown=_render_maintenance_body(maintenance_result),
         ai_review_markdown=ai_review_markdown,
     )
@@ -138,6 +147,39 @@ def _write_full_review_document(report_path: Path, report, maintenance_result, a
 
 def _render_pending_ai_review_markdown() -> str:
     return "- 未执行 AI 审查。\n"
+
+
+def _render_full_structural_body(report) -> str:
+    lines: list[str] = []
+    lines.extend(_render_full_structural_group("Global issues", report.global_issues))
+
+    for chapter_number in sorted(report.chapter_issues):
+        issues = report.chapter_issues[chapter_number]
+        lines.append("")
+        lines.extend(_render_full_structural_group(f"ch{chapter_number:03d}", issues))
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_full_structural_group(name: str, issues) -> list[str]:
+    lines = [f"### {name}", ""]
+    if not issues:
+        lines.append("- None.")
+        return lines
+
+    for index, issue in enumerate(issues, start=1):
+        lines.extend(
+            [
+                f"#### Issue {index}",
+                f"- Category: {issue.category}",
+                f"- Severity: {issue.severity}",
+                f"- Description: {issue.description}",
+                f"- Evidence: {issue.evidence}",
+                f"- Suggestion: {issue.suggestion}",
+                "",
+            ]
+        )
+    return lines
 
 
     
