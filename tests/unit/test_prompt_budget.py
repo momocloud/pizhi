@@ -25,6 +25,18 @@ def test_outline_budget_splits_three_chapter_request_into_two_plus_one():
     assert batches == [(11, 12), (13, 13)]
 
 
+def test_outline_budget_rejects_single_chapter_batch_that_still_exceeds_limit():
+    planner = OutlineBatchPlanner(max_prompt_chars=100)
+    prompts = {
+        11: "x" * 40,
+        12: "x" * 40,
+        13: "x" * 101,
+    }
+
+    with pytest.raises(PromptBudgetError, match=r"outline prompt exceeds budget.*ch013"):
+        planner.plan([11, 12, 13], lambda n: prompts[n])
+
+
 def test_outline_budget_keeps_three_chapter_batch_when_it_fits():
     planner = OutlineBatchPlanner(max_prompt_chars=200)
     prompts = {
