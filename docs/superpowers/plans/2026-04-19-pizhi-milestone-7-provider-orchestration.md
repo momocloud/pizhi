@@ -50,7 +50,7 @@
 - Test: `tests/unit/test_continue_session_store.py`
 - Test: `tests/unit/test_checkpoint_store.py`
 
-- [ ] **Step 1: Write the failing store tests**
+- [x] **Step 1: Write the failing store tests**
 
 ```python
 def test_continue_session_store_round_trips_manifest(tmp_path):
@@ -86,7 +86,7 @@ def test_checkpoint_store_persists_run_ids_and_status(tmp_path):
     assert loaded.status == "generated"
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_continue_session_store.py tests/unit/test_checkpoint_store.py -v`
@@ -94,7 +94,7 @@ Run:
 Expected:
 - import errors because the stores do not exist yet
 
-- [ ] **Step 3: Implement path helpers and manifest stores**
+- [x] **Step 3: Implement path helpers and manifest stores**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -141,14 +141,14 @@ class ProjectPaths:
         return self.cache_dir / "checkpoints"
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_continue_session_store.py tests/unit/test_checkpoint_store.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/core/paths.py src/pizhi/services/continue_session_store.py src/pizhi/services/checkpoint_store.py tests/unit/test_continue_session_store.py tests/unit/test_checkpoint_store.py
@@ -161,7 +161,7 @@ git commit -m "feat: add continue session and checkpoint stores"
 - Create: `src/pizhi/services/prompt_budget.py`
 - Test: `tests/unit/test_prompt_budget.py`
 
-- [ ] **Step 1: Write the failing budget tests**
+- [x] **Step 1: Write the failing budget tests**
 
 ```python
 def test_outline_budget_splits_three_chapter_request_into_two_plus_one():
@@ -181,7 +181,7 @@ def test_write_budget_rejects_single_chapter_prompt_that_exceeds_limit():
         ensure_write_prompt_within_budget(chapter_number=11, prompt_text="x" * 1001, max_prompt_chars=1000)
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_prompt_budget.py -v`
@@ -189,7 +189,7 @@ Run:
 Expected:
 - import errors because the budget module does not exist yet
 
-- [ ] **Step 3: Implement budget estimation and outline splitting**
+- [x] **Step 3: Implement budget estimation and outline splitting**
 
 ```python
 class PromptBudgetError(ValueError):
@@ -215,14 +215,14 @@ class OutlineBatchPlanner:
         return [(chapter, chapter) for chapter in chapter_numbers]
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_prompt_budget.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/prompt_budget.py tests/unit/test_prompt_budget.py
@@ -236,7 +236,7 @@ git commit -m "feat: add prompt budget guards for continue orchestration"
 - Modify: `src/pizhi/services/continue_service.py`
 - Test: `tests/unit/test_continue_execution.py`
 
-- [ ] **Step 1: Write the failing orchestration tests**
+- [x] **Step 1: Write the failing orchestration tests**
 
 ```python
 def test_start_continue_execution_creates_outline_checkpoint(initialized_project, monkeypatch):
@@ -259,7 +259,7 @@ def test_resume_continue_execution_requires_ready_to_resume(initialized_project)
         resume_continue_execution(initialized_project, session.session_id)
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_continue_execution.py -v`
@@ -267,7 +267,7 @@ Run:
 Expected:
 - import errors because the orchestration service does not exist yet
 
-- [ ] **Step 3: Implement session start and resume orchestration**
+- [x] **Step 3: Implement session start and resume orchestration**
 
 ```python
 def start_continue_execution(project_root: Path, *, count: int, direction: str) -> ContinueExecutionResult:
@@ -302,14 +302,14 @@ def resume_continue_execution(project_root: Path, session_id: str) -> ContinueEx
     ...
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_continue_execution.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/continue_execution.py src/pizhi/services/continue_service.py tests/unit/test_continue_execution.py
@@ -323,7 +323,7 @@ git commit -m "feat: add checkpointed continue execution"
 - Modify: `src/pizhi/services/outline_service.py`
 - Test: `tests/unit/test_checkpoint_apply_service.py`
 
-- [ ] **Step 1: Write the failing batch-apply tests**
+- [x] **Step 1: Write the failing batch-apply tests**
 
 ```python
 def test_apply_checkpoint_applies_runs_in_chapter_order(initialized_project, monkeypatch):
@@ -372,7 +372,7 @@ def test_apply_checkpoint_rejects_non_generated_checkpoint(initialized_project):
         apply_checkpoint(initialized_project, checkpoint.checkpoint_id)
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_checkpoint_apply_service.py -v`
@@ -380,7 +380,7 @@ Run:
 Expected:
 - import errors because the apply service does not exist yet
 
-- [ ] **Step 3: Implement checkpoint batch apply**
+- [x] **Step 3: Implement checkpoint batch apply**
 
 ```python
 def apply_checkpoint(project_root: Path, checkpoint_id: str) -> CheckpointApplyResult:
@@ -413,14 +413,14 @@ class OutlineService:
             self.write_global_outline(merged_blocks)
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_checkpoint_apply_service.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/services/checkpoint_apply_service.py src/pizhi/services/outline_service.py tests/unit/test_checkpoint_apply_service.py
@@ -436,7 +436,7 @@ git commit -m "feat: add checkpoint batch apply service"
 - Test: `tests/integration/test_continue_execute_command.py`
 - Test: `tests/integration/test_checkpoint_commands.py`
 
-- [ ] **Step 1: Write the failing integration tests for command flows**
+- [x] **Step 1: Write the failing integration tests for command flows**
 
 ```python
 def test_continue_execute_creates_session_and_outline_checkpoint(initialized_project, monkeypatch):
@@ -471,7 +471,7 @@ def test_continue_sessions_and_checkpoints_list_expected_fields(initialized_proj
     assert "outline" in checkpoints_output
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/integration/test_continue_execute_command.py tests/integration/test_checkpoint_commands.py -v`
@@ -479,7 +479,7 @@ Run:
 Expected:
 - CLI parsing failures because the new continue and checkpoint command forms do not exist yet
 
-- [ ] **Step 3: Implement CLI dispatch and command handlers**
+- [x] **Step 3: Implement CLI dispatch and command handlers**
 
 ```python
 continue_parser = subparsers.add_parser("continue", help="continue outlining and writing chapters")
@@ -526,14 +526,14 @@ checkpoints_parser = subparsers.add_parser("checkpoints", help="list checkpoints
 checkpoints_parser.add_argument("--session-id", required=True)
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/integration/test_continue_execute_command.py tests/integration/test_checkpoint_commands.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pizhi/cli.py src/pizhi/commands/continue_cmd.py src/pizhi/commands/checkpoint_cmd.py tests/integration/test_continue_execute_command.py tests/integration/test_checkpoint_commands.py
@@ -546,7 +546,7 @@ git commit -m "feat: add provider-backed continue orchestration commands"
 - Modify: `tests/unit/test_continue_execution.py`
 - Modify: `tests/integration/test_continue_execute_command.py`
 
-- [ ] **Step 1: Add regression tests for outline splitting, write blocking, and prompt-only continue**
+- [x] **Step 1: Add regression tests for outline splitting, write blocking, and prompt-only continue**
 
 ```python
 def test_continue_execution_splits_outline_checkpoint_when_three_chapter_prompt_exceeds_budget(...):
@@ -578,7 +578,7 @@ def test_continue_prompt_only_flow_is_unchanged_without_execute(initialized_proj
     assert "Continued chapters" in result.stdout
 ```
 
-- [ ] **Step 2: Run the targeted regression tests to verify they fail**
+- [x] **Step 2: Run the targeted regression tests to verify they fail**
 
 Run:
 `python -m pytest tests/unit/test_continue_execution.py tests/integration/test_continue_execute_command.py -v`
@@ -586,7 +586,7 @@ Run:
 Expected:
 - new tests fail because splitting/blocking or prompt-only compatibility is incomplete
 
-- [ ] **Step 3: Implement the missing regression behavior**
+- [x] **Step 3: Implement the missing regression behavior**
 
 ```python
 outline_batches = planner.plan(chapter_numbers, prompt_for_outline_batch)
@@ -605,14 +605,14 @@ if not args.execute and args.continue_command in (None, "run"):
     return 0
 ```
 
-- [ ] **Step 4: Run the targeted regression tests again**
+- [x] **Step 4: Run the targeted regression tests again**
 
 Run:
 `python -m pytest tests/unit/test_continue_execution.py tests/integration/test_continue_execute_command.py -v`
 
 Expected: all selected tests `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/unit/test_continue_execution.py tests/integration/test_continue_execute_command.py src/pizhi/services/continue_execution.py src/pizhi/commands/continue_cmd.py
@@ -624,7 +624,7 @@ git commit -m "fix: harden continue orchestration budget handling"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`
 
-- [ ] **Step 1: Run command smoke tests**
+- [x] **Step 1: Run command smoke tests**
 
 Run:
 - `python -m pizhi continue --help`
@@ -633,18 +633,26 @@ Run:
 
 Expected: all commands exit `0`
 
-- [ ] **Step 2: Run the full test suite**
+Observed:
+- `python -m pizhi continue --help` -> exit `0`
+- `python -m pizhi checkpoints --help` -> exit `0`
+- `python -m pizhi checkpoint apply --help` -> exit `0`
+
+- [x] **Step 2: Run the full test suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
 Expected: all tests `PASSED` and count increases beyond the 141-test baseline
 
-- [ ] **Step 3: Mark verification steps complete in this plan**
+Observed:
+- `python -m pytest tests/unit tests/integration -v` -> `188 passed`
+
+- [x] **Step 3: Mark verification steps complete in this plan**
 
 Update this file so the executed verification boxes are checked and add final observed command/test results near Task 7.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md
