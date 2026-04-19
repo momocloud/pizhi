@@ -23,6 +23,12 @@ class WriteResult:
 
 
 @dataclass(frozen=True, slots=True)
+class WriteApplyResult:
+    chapter_result: ChapterWriteResult
+    maintenance_result: MaintenanceResult
+
+
+@dataclass(frozen=True, slots=True)
 class SynopsisCoveragePromptContext:
     foreshadowing_ids: tuple[str, ...]
     major_turning_points: tuple[str, ...]
@@ -33,7 +39,6 @@ class WriteService:
     def __init__(self, project_root: Path) -> None:
         self.project_root = project_root
         self.adapter = PromptOnlyAdapter(project_root)
-        self._last_maintenance_result: MaintenanceResult | None = None
 
     def build_prompt_request(self, chapter_number: int) -> PromptRequest:
         context = build_chapter_context(self.project_root, chapter_number)
@@ -54,14 +59,17 @@ class WriteService:
     def prepare_prompt(self, request: PromptRequest) -> PromptArtifact:
         return self.adapter.prepare(request)
 
-    def apply_response(self, chapter_number: int, raw_response: str) -> ChapterWriteResult:
+    def apply_response(self, chapter_number: int, raw_response: str) -> WriteApplyResult:
         chapter_result = apply_chapter_response(
             self.project_root,
             chapter_number=chapter_number,
             raw_response=raw_response,
         )
-        self._last_maintenance_result = run_after_write(self.project_root)
-        return chapter_result
+        maintenance_result = run_after_write(self.project_root)
+        return WriteApplyResult(
+            chapter_result=chapter_result,
+            maintenance_result=maintenance_result,
+        )
 
     def write(self, chapter_number: int, response_file: Path | None = None) -> WriteResult:
         artifact = self.prepare_prompt(self.build_prompt_request(chapter_number))
@@ -69,12 +77,12 @@ class WriteService:
         chapter_result = None
         maintenance_result = None
         if response_file is not None:
-            self._last_maintenance_result = None
-            chapter_result = self.apply_response(
+            apply_result = self.apply_response(
                 chapter_number=chapter_number,
                 raw_response=response_file.read_text(encoding="utf-8"),
             )
-            maintenance_result = self._last_maintenance_result
+            chapter_result = apply_result.chapter_result
+            maintenance_result = apply_result.maintenance_result
 
         return WriteResult(
             prompt_artifact=artifact,

@@ -10,7 +10,10 @@ from pizhi.core.config import load_config
 from pizhi.core.config import save_config
 from pizhi.services.brainstorm_service import BrainstormService
 from pizhi.services.provider_execution import execute_prompt_request
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.run_store import RunStore
+from pizhi.services.write_service import WriteService
 
 
 @dataclass
@@ -45,17 +48,23 @@ def _configure_provider(project_root) -> None:
 
 def test_execute_prompt_request_requires_provider_config(initialized_project):
     request = BrainstormService(initialized_project).build_prompt_request()
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
 
     with pytest.raises(ValueError, match="provider is not configured"):
         execute_prompt_request(initialized_project, request, target="project")
+
+    assert not runs_dir.exists()
 
 
 def test_execute_prompt_request_requires_provider_api_key_env(initialized_project):
     request = BrainstormService(initialized_project).build_prompt_request()
     _configure_provider(initialized_project)
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
 
     with pytest.raises(ValueError, match="OPENAI_API_KEY"):
         execute_prompt_request(initialized_project, request, target="project")
+
+    assert not runs_dir.exists()
 
 
 def test_execute_prompt_request_persists_failed_provider_run(initialized_project, monkeypatch):
@@ -89,3 +98,34 @@ def test_execute_prompt_request_persists_normalized_success(initialized_project,
 
     assert result.status == "succeeded"
     assert result.run_dir.joinpath("normalized.md").read_text(encoding="utf-8").startswith("##")
+
+
+def test_write_service_apply_response_returns_maintenance_result(initialized_project, monkeypatch):
+    service = WriteService(initialized_project)
+    chapter_result = object()
+    maintenance_result = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Archive", detail="rotated")],
+    )
+    calls: list[tuple[str, object]] = []
+
+    def _apply(project_root, *, chapter_number, raw_response):
+        calls.append(("apply", project_root, chapter_number, raw_response))
+        return chapter_result
+
+    def _maintain(project_root):
+        calls.append(("maintain", project_root))
+        return maintenance_result
+
+    monkeypatch.setattr("pizhi.services.write_service.apply_chapter_response", _apply)
+    monkeypatch.setattr("pizhi.services.write_service.run_after_write", _maintain)
+
+    result = service.apply_response(7, "raw response")
+
+    assert result.chapter_result is chapter_result
+    assert result.maintenance_result is maintenance_result
+    assert calls == [
+        ("apply", initialized_project, 7, "raw response"),
+        ("maintain", initialized_project),
+    ]
