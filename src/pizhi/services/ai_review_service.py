@@ -14,6 +14,9 @@ from pizhi.services.provider_execution import execute_prompt_request
 from pizhi.services.run_store import RunRecord
 
 
+NO_AI_REVIEW_ISSUES_MESSAGE = "- 未发现 B 类 AI 语义问题。\n"
+
+
 @dataclass(frozen=True, slots=True)
 class AIReviewResult:
     status: str
@@ -43,7 +46,9 @@ def build_ai_review_prompt(context: AIReviewContext) -> str:
         "",
         *(_render_metadata(context.metadata)),
         "",
-        "Return only Markdown issue blocks in this format:",
+        "Return either the exact no-issues message or Markdown issue blocks in this format:",
+        NO_AI_REVIEW_ISSUES_MESSAGE.strip(),
+        "",
         "### 问题 1",
         "- **类别**：人物一致性",
         "- **严重度**：高",
@@ -91,6 +96,16 @@ def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResul
             record=execution.record,
         )
 
+    if rendered_markdown.strip() == NO_AI_REVIEW_ISSUES_MESSAGE.strip():
+        return AIReviewResult(
+            status="succeeded",
+            run_id=execution.run_id,
+            issues=[],
+            rendered_markdown=NO_AI_REVIEW_ISSUES_MESSAGE,
+            error_message=None,
+            record=execution.record,
+        )
+
     try:
         issues = parse_ai_review_issues(rendered_markdown)
     except ValueError as exc:
@@ -107,10 +122,18 @@ def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResul
         status="succeeded",
         run_id=execution.run_id,
         issues=issues,
-        rendered_markdown=rendered_markdown,
+        rendered_markdown=format_ai_review_issues(issues),
         error_message=None,
         record=execution.record,
     )
+
+
+def format_ai_review_issues(issues: list[AIReviewIssue]) -> str:
+    if not issues:
+        return NO_AI_REVIEW_ISSUES_MESSAGE
+
+    blocks = [_format_ai_review_issue(issue, index=index) for index, issue in enumerate(issues, start=1)]
+    return "\n\n".join(blocks).rstrip() + "\n"
 
 
 def _load_review_provider_config(project_root: Path) -> ProviderSection:
@@ -130,6 +153,19 @@ def _render_metadata(metadata: dict[str, object]) -> list[str]:
     if not metadata:
         return ["- (none)"]
     return [f"- {key}: {value}" for key, value in metadata.items()]
+
+
+def _format_ai_review_issue(issue: AIReviewIssue, *, index: int) -> str:
+    return "\n".join(
+        [
+            f"### 问题 {index}",
+            f"- **类别**：{issue.category}",
+            f"- **严重度**：{issue.severity}",
+            f"- **描述**：{issue.description}",
+            f"- **证据**：{issue.evidence}",
+            f"- **建议修法**：{issue.suggestion}",
+        ]
+    )
 
 
 def _read_text(path: Path) -> str:
