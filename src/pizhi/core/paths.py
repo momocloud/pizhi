@@ -57,6 +57,14 @@ class ProjectPaths:
         return self.cache_dir / "runs"
 
     @property
+    def continue_sessions_dir(self) -> Path:
+        return self.cache_dir / "continue_sessions"
+
+    @property
+    def checkpoints_dir(self) -> Path:
+        return self.cache_dir / "checkpoints"
+
+    @property
     def synopsis_file(self) -> Path:
         return self.global_dir / "synopsis.md"
 
