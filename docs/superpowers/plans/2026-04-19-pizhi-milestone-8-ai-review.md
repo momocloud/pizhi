@@ -549,7 +549,7 @@ Observed: all three commands exited `0`. `review --help` and `review --chapter 1
 Run:
 `python -m pytest tests/unit tests/integration -v`
 
-Observed: `228 passed in 68.91s`, which is above the 191-test baseline.
+Observed: `228 passed in 76.10s`, which is above the 191-test baseline.
 
 - [x] **Step 3: Mark verification steps complete in this plan**
 
