@@ -95,6 +95,8 @@ class RunStore:
         command: str,
         target: str,
         prompt_text: str,
+        raw_payload: dict[str, Any] | None = None,
+        normalized_text: str | None = None,
         error_text: str,
         metadata: dict[str, Any],
         referenced_files: list[str] | None = None,
@@ -111,6 +113,14 @@ class RunStore:
         error_path = run_dir / "error.txt"
 
         prompt_path.write_text(prompt_text, encoding="utf-8", newline="\n")
+        if raw_payload is not None:
+            raw_path.write_text(
+                json.dumps(raw_payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+        if normalized_text is not None:
+            normalized_path.write_text(normalized_text, encoding="utf-8", newline="\n")
         error_path.write_text(error_text, encoding="utf-8", newline="\n")
         manifest_path.write_text(
             json.dumps(
