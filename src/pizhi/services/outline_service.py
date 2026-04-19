@@ -108,13 +108,24 @@ class OutlineService:
                 }
             )
 
-        outline_lines = ["# Global Outline", ""]
+        outline_path = self.paths.global_dir.joinpath("outline_global.md")
+        existing_text = ""
+        if outline_path.exists():
+            existing_text = outline_path.read_text(encoding="utf-8").rstrip()
+
+        outline_lines: list[str] = []
         for block in blocks:
             outline_lines.append(f"## ch{block.chapter_number:03d} | {block.title}")
             outline_lines.append(block.body.strip())
             outline_lines.append("")
-        self.paths.global_dir.joinpath("outline_global.md").write_text(
-            "\n".join(outline_lines).rstrip() + "\n",
+
+        new_text = "\n".join(outline_lines).rstrip()
+        if existing_text:
+            merged_text = f"{existing_text}\n\n{new_text}\n"
+        else:
+            merged_text = f"# Global Outline\n\n{new_text}\n"
+        outline_path.write_text(
+            merged_text,
             encoding="utf-8",
             newline="\n",
         )
