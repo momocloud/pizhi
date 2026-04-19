@@ -22,6 +22,7 @@ CHARACTER_INDEX_SEPARATOR_RE = re.compile(r"[，,、/|]")
 
 CHAPTER_TEXT_CHAR_LIMIT = 4000
 CHAPTER_SUPPORTING_TEXT_CHAR_LIMIT = 1800
+CHAPTER_META_TITLE_CHAR_LIMIT = 240
 WORLDVIEW_CHAR_LIMIT = 2500
 CHARACTER_INDEX_ENTRY_CHAR_LIMIT = 1200
 CHARACTER_INDEX_ENTRY_LIMIT = 6
@@ -155,7 +156,7 @@ def build_chapter_ai_review_context(
         "relevant_foreshadowing_count": len(relevant_foreshadowing),
     }
     if current_meta:
-        metadata["chapter_title"] = current_meta.get("chapter_title")
+        metadata["chapter_title"] = _truncate_text(str(current_meta.get("chapter_title", "")), CHAPTER_META_TITLE_CHAR_LIMIT)
         metadata["word_count_estimated"] = current_meta.get("word_count_estimated")
         metadata["worldview_changed"] = current_meta.get("worldview_changed")
         metadata["synopsis_changed"] = current_meta.get("synopsis_changed")
@@ -271,9 +272,15 @@ def _render_meta_summary(meta: dict[str, object]) -> str:
     if not meta:
         return "- 无。"
 
-    lines = ["- chapter_title: " + str(meta.get("chapter_title", ""))]
+    chapter_title = _truncate_text(str(meta.get("chapter_title", "")), CHAPTER_META_TITLE_CHAR_LIMIT)
+    characters_involved = _limit_values(
+        [str(name) for name in meta.get("characters_involved", [])],
+        METADATA_NAME_LIMIT,
+    )
+
+    lines = ["- chapter_title: " + chapter_title]
     lines.append("- word_count_estimated: " + str(meta.get("word_count_estimated", "")))
-    lines.append("- characters_involved: " + ", ".join(str(name) for name in meta.get("characters_involved", [])))
+    lines.append("- characters_involved: " + ", ".join(characters_involved))
     lines.append("- worldview_changed: " + str(meta.get("worldview_changed", "")))
     lines.append("- synopsis_changed: " + str(meta.get("synopsis_changed", "")))
     lines.append("- timeline_events: " + str(len(meta.get("timeline_events", []))))

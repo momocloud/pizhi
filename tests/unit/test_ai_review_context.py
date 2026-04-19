@@ -319,6 +319,29 @@ ALPHA-TAIL-SHOULD-NOT-APPEAR
     assert context.metadata["relevant_character_names"] == ["Alpha", "Beta", "Zeta"]
 
 
+def test_build_chapter_ai_review_context_bounds_large_meta_summary(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
+
+    paths = project_paths(initialized_project)
+    meta_path = paths.chapter_dir(2) / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["chapter_title"] = "META-TITLE-HEAD " + ("title detail " * 500) + " META-TITLE-TAIL-SHOULD-NOT-APPEAR"
+    meta["characters_involved"] = [f"MetaChar{index:03d}" for index in range(1, 31)]
+    meta["characters_involved"].append("META-CHAR-TAIL-SHOULD-NOT-APPEAR")
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    context = build_chapter_ai_review_context(initialized_project, 2, [])
+
+    assert "META-TITLE-HEAD" in context.prompt_context
+    assert "META-TITLE-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "MetaChar001" in context.prompt_context
+    assert "META-CHAR-TAIL-SHOULD-NOT-APPEAR" not in context.prompt_context
+    assert "... [truncated" in context.prompt_context
+    assert "characters_involved_count" in context.metadata
+    assert context.metadata["characters_involved_count"] == 31
+    assert context.metadata["characters_involved"][-1] == "... [23 more]"
+
+
 def test_build_full_ai_review_context_bounds_large_project_context_and_metadata(initialized_project):
     paths = project_paths(initialized_project)
     store = ChapterIndexStore(paths.chapter_index_file)
