@@ -596,11 +596,12 @@ Observed results on `2026-04-19` after the final blocker fixes:
   - `python -m pizhi write --help`
 - Full suite passed:
   - `python -m pytest tests/unit tests/integration -v`
-  - Observed result: `138 passed`
+  - Observed result: `141 passed`
   - Baseline before milestone 6 implementation: `88 passed`
 - Provider/apply follow-up regression also passed:
   - `python -m pytest tests/unit/test_openai_compatible.py tests/unit/test_provider_execution.py tests/unit/test_apply_service.py tests/integration/test_provider_configure_command.py tests/integration/test_provider_execution_commands.py tests/integration/test_runs_command.py tests/integration/test_apply_command.py -v`
-  - Observed result: `41 passed`
+  - Observed result: `44 passed`
+  - Includes command-level `normalize_failed` coverage for `brainstorm`, `outline expand`, and `write`
 
 ```bash
 git add docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md
