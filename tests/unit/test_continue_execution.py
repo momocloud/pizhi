@@ -111,6 +111,19 @@ def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized
     assert len(result.checkpoint.run_ids) == 1
 
 
+def test_start_continue_execution_blocks_session_on_outline_preflight_failure(initialized_project):
+    with pytest.raises(ValueError, match="provider is not configured"):
+        start_continue_execution(initialized_project, count=3, direction="push the dock war")
+
+    session = _only_session(initialized_project)
+    checkpoint = _only_checkpoint(initialized_project)
+    assert session.status == "blocked"
+    assert session.last_checkpoint_id == checkpoint.checkpoint_id
+    assert checkpoint.stage == "outline"
+    assert checkpoint.status == "failed"
+    assert checkpoint.run_ids == ()
+
+
 def test_resume_continue_execution_rejects_session_that_is_not_ready(initialized_project):
     store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
     session = store.create(
@@ -158,6 +171,33 @@ def test_resume_continue_execution_moves_applied_outline_to_write_checkpoint(ini
     assert result.checkpoint.chapter_range == (1, 3)
     assert result.checkpoint.status == "generated"
     assert len(result.checkpoint.run_ids) == 3
+
+
+def test_resume_continue_execution_blocks_session_on_write_preflight_failure(initialized_project):
+    _configure_provider(initialized_project)
+    OutlineService(initialized_project).apply_response(_outline_response(1, 3))
+    store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
+    session = store.create(
+        count=3,
+        direction="hold position",
+        start_chapter=1,
+        target_end_chapter=3,
+        current_stage="outline",
+        current_range=(1, 3),
+        last_checkpoint_id="checkpoint-outline",
+        status="ready_to_resume",
+    )
+
+    with pytest.raises(ValueError, match="OPENAI_API_KEY is not set"):
+        resume_continue_execution(initialized_project, session.session_id)
+
+    checkpoint = _only_checkpoint(initialized_project)
+    blocked = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir).load(session.session_id)
+    assert blocked.status == "blocked"
+    assert blocked.last_checkpoint_id == checkpoint.checkpoint_id
+    assert checkpoint.stage == "write"
+    assert checkpoint.status == "failed"
+    assert checkpoint.run_ids == ()
 
 
 def test_resume_continue_execution_marks_session_completed_after_last_write(initialized_project):

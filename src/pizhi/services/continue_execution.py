@@ -84,15 +84,25 @@ def _generate_outline_result(project_root: Path, session: ContinueSessionRecord)
     run_ids: list[str] = []
     for batch_range in batch_ranges:
         request = outline_service.build_prompt_request(batch_range, direction=session.direction)
-        execution = execute_prompt_request(
-            project_root,
-            request,
-            target=_format_range_target(batch_range),
-        )
+        target = _format_range_target(batch_range)
+        try:
+            execution = execute_prompt_request(
+                project_root,
+                request,
+                target=target,
+            )
+        except ValueError as exc:
+            return _raise_failed_checkpoint(
+                project_root,
+                session,
+                stage="outline",
+                run_ids=run_ids,
+                error_message=str(exc),
+            )
         run_ids.append(execution.run_id)
         if execution.status != "succeeded":
             message = (
-                f"outline checkpoint generation failed for {_format_range_target(batch_range)}: {execution.status}"
+                f"outline checkpoint generation failed for {target}: {execution.status}"
             )
             return _raise_failed_checkpoint(
                 project_root,
@@ -138,14 +148,24 @@ def _generate_write_result(project_root: Path, session: ContinueSessionRecord) -
                 error_message=str(exc),
             )
 
-        execution = execute_prompt_request(
-            project_root,
-            request,
-            target=f"ch{chapter_number:03d}",
-        )
+        target = f"ch{chapter_number:03d}"
+        try:
+            execution = execute_prompt_request(
+                project_root,
+                request,
+                target=target,
+            )
+        except ValueError as exc:
+            return _raise_failed_checkpoint(
+                project_root,
+                session,
+                stage="write",
+                run_ids=run_ids,
+                error_message=str(exc),
+            )
         run_ids.append(execution.run_id)
         if execution.status != "succeeded":
-            message = f"write checkpoint generation failed for ch{chapter_number:03d}: {execution.status}"
+            message = f"write checkpoint generation failed for {target}: {execution.status}"
             return _raise_failed_checkpoint(
                 project_root,
                 session,
