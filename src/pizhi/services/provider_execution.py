@@ -39,8 +39,13 @@ def build_provider_adapter(provider_name: str):
     raise ValueError(f"unsupported provider: {provider_name}")
 
 
-def execute_prompt_request(project_root: Path, request: PromptRequest, target: str) -> ExecutionResult:
-    provider_config = _load_provider_config(project_root)
+def execute_prompt_request(
+    project_root: Path,
+    request: PromptRequest,
+    target: str,
+    provider_config: ProviderSection | None = None,
+) -> ExecutionResult:
+    provider_config = provider_config or _load_provider_config(project_root)
     api_key = _load_api_key(provider_config.api_key_env)
     adapter = build_provider_adapter(provider_config.provider)
     provider_request = ProviderRequest(

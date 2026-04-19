@@ -36,6 +36,15 @@ def run_provider_configure(args: argparse.Namespace) -> int:
         or _prompt_for_value("Base URL", existing.base_url if existing else None),
         api_key_env=args.api_key_env
         or _prompt_for_value("API key env", existing.api_key_env if existing else None),
+        review_model=args.review_model if args.review_model is not None else (existing.review_model if existing else None),
+        review_base_url=(
+            args.review_base_url if args.review_base_url is not None else (existing.review_base_url if existing else None)
+        ),
+        review_api_key_env=(
+            args.review_api_key_env
+            if args.review_api_key_env is not None
+            else (existing.review_api_key_env if existing else None)
+        ),
     )
     config.provider = provider_section
     save_config(paths.config_file, config)

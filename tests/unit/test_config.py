@@ -32,6 +32,47 @@ def test_config_round_trip(tmp_path):
     assert loaded.provider.api_key_env == "OPENAI_API_KEY"
 
 
+def test_config_round_trip_includes_review_provider_override(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+
+    config = default_config(name="Test Novel")
+    config.provider = ProviderSection(
+        provider="openai_compatible",
+        model="gpt-5.4",
+        base_url="https://api.openai.com/v1",
+        api_key_env="OPENAI_API_KEY",
+        review_model="gpt-5.4-mini",
+        review_base_url="https://api.openai.com/v1",
+        review_api_key_env="OPENAI_REVIEW_API_KEY",
+    )
+    save_config(path, config)
+
+    loaded = load_config(path)
+    assert loaded.provider is not None
+    assert loaded.provider.review_model == "gpt-5.4-mini"
+    assert loaded.provider.review_api_key_env == "OPENAI_REVIEW_API_KEY"
+
+
+def test_provider_section_resolve_review_config_uses_override_values():
+    provider = ProviderSection(
+        provider="openai_compatible",
+        model="gpt-5.4",
+        base_url="https://api.openai.com/v1",
+        api_key_env="OPENAI_API_KEY",
+        review_model="gpt-5.4-mini",
+        review_base_url="https://api.openai.com/v1/review",
+        review_api_key_env="OPENAI_REVIEW_API_KEY",
+    )
+
+    review_config = provider.resolve_review_config()
+
+    assert review_config.provider == "openai_compatible"
+    assert review_config.model == "gpt-5.4-mini"
+    assert review_config.base_url == "https://api.openai.com/v1/review"
+    assert review_config.api_key_env == "OPENAI_REVIEW_API_KEY"
+
+
 def test_config_loads_legacy_config_without_provider_block(tmp_path):
     path = tmp_path / ".pizhi" / "config.yaml"
     path.parent.mkdir(parents=True)

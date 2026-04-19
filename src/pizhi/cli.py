@@ -56,6 +56,12 @@ def build_parser() -> argparse.ArgumentParser:
     provider_configure_parser.add_argument("--model", help="provider model name")
     provider_configure_parser.add_argument("--base-url", help="provider base URL")
     provider_configure_parser.add_argument("--api-key-env", help="environment variable name for the API key")
+    provider_configure_parser.add_argument("--review-model", help="review model name")
+    provider_configure_parser.add_argument("--review-base-url", help="review base URL")
+    provider_configure_parser.add_argument(
+        "--review-api-key-env",
+        help="environment variable name for the review API key",
+    )
     provider_configure_parser.set_defaults(handler=run_provider_configure)
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")

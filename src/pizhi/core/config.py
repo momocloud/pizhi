@@ -61,6 +61,17 @@ class ProviderSection:
     model: str
     base_url: str
     api_key_env: str
+    review_model: str | None = None
+    review_base_url: str | None = None
+    review_api_key_env: str | None = None
+
+    def resolve_review_config(self) -> ProviderSection:
+        return ProviderSection(
+            provider=self.provider,
+            model=self.review_model or self.model,
+            base_url=self.review_base_url or self.base_url,
+            api_key_env=self.review_api_key_env or self.api_key_env,
+        )
 
 
 @dataclass(slots=True)
