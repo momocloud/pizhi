@@ -329,56 +329,6 @@ def test_apply_checkpoint_preserves_existing_non_chapter_outline_prefix(initiali
     assert "## ch001 | 雨夜访客" in outline_text
 
 
-def test_apply_checkpoint_preserves_existing_non_chapter_outline_suffix(initialized_project):
-    outline_path = initialized_project / ".pizhi" / "global" / "outline_global.md"
-    outline_path.write_text(
-        "# Global Outline\n\n"
-        "## 第一卷\n"
-        "- 前言\n"
-        "\n"
-        "## ch001 | 雨夜访客\n"
-        "- 雨夜里，沈轩目击第一起命案。\n"
-        "\n"
-        "## 卷后说明\n"
-        "- 尾注保留\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-
-    run_1 = _seed_successful_run(
-        initialized_project,
-        command="outline-expand",
-        target="ch001",
-        normalized_text=(
-            "## ch001 | 雨夜访客\n"
-            "- 雨夜里，沈轩目击第一起命案。\n"
-        ),
-    )
-    run_2 = _seed_successful_run(
-        initialized_project,
-        command="outline-expand",
-        target="ch002",
-        normalized_text=(
-            "## ch002 | 码头血衣\n"
-            "- 沈轩追查到旧港仓库。\n"
-        ),
-    )
-    _, checkpoint_id = _create_generated_checkpoint(
-        initialized_project,
-        stage="outline",
-        run_ids=[run_1, run_2],
-    )
-
-    apply_checkpoint(initialized_project, checkpoint_id)
-
-    outline_text = outline_path.read_text(encoding="utf-8")
-    assert "## 第一卷" in outline_text
-    assert "## 卷后说明" in outline_text
-    assert "- 尾注保留" in outline_text
-    assert "## ch001 | 雨夜访客" in outline_text
-    assert "## ch002 | 码头血衣" in outline_text
-
-
 def test_apply_checkpoint_keeps_chapter_body_headings_out_of_suffix_detection(initialized_project):
     outline_path = initialized_project / ".pizhi" / "global" / "outline_global.md"
     outline_path.write_text(

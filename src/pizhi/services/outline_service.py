@@ -14,7 +14,7 @@ from pizhi.core.paths import project_paths
 
 
 BLOCK_PATTERN = re.compile(
-    r"^## ch(?P<number>\d{3}) \| (?P<title>.+?)\s*$\n(?P<body>.*?)(?=^## ch\d{3} \| |\n\n## |\Z)",
+    r"^## ch(?P<number>\d{3}) \| (?P<title>.+?)\s*$\n(?P<body>.*?)(?=^## ch\d{3} \| |\Z)",
     re.MULTILINE | re.DOTALL,
 )
 
@@ -110,12 +110,12 @@ class OutlineService:
 
         outline_path = self.paths.global_dir.joinpath("outline_global.md")
         existing_text = outline_path.read_text(encoding="utf-8") if outline_path.exists() else ""
-        outline_prefix, outline_suffix, existing_blocks = _split_global_outline(existing_text)
+        outline_prefix, existing_blocks = _split_global_outline(existing_text)
         merged_blocks_by_number = {block.chapter_number: block for block in existing_blocks}
         for block in blocks:
             merged_blocks_by_number[block.chapter_number] = block
         merged_blocks = [merged_blocks_by_number[number] for number in sorted(merged_blocks_by_number)]
-        merged_text = _render_global_outline(outline_prefix, merged_blocks, outline_suffix)
+        merged_text = _render_global_outline(outline_prefix, merged_blocks)
         outline_path.write_text(
             merged_text,
             encoding="utf-8",
@@ -149,36 +149,27 @@ def parse_outline_response(raw: str) -> list[OutlineBlock]:
     return blocks
 
 
-def _split_global_outline(raw: str) -> tuple[str, str, list[OutlineBlock]]:
+def _split_global_outline(raw: str) -> tuple[str, list[OutlineBlock]]:
     if not raw:
-        return ("# Global Outline\n\n", "", [])
+        return ("# Global Outline\n\n", [])
 
     block_matches = list(BLOCK_PATTERN.finditer(raw))
     if not block_matches:
-        return (raw.rstrip() + "\n", "", [])
+        return (raw.rstrip() + "\n", [])
 
     first_block = block_matches[0]
-    last_block = block_matches[-1]
-    chapter_text = raw[first_block.start() : last_block.end()]
+    chapter_text = raw[first_block.start() :]
     existing_blocks = _parse_global_outline_blocks(chapter_text)
 
     prefix = raw[: first_block.start()].rstrip()
-    suffix = raw[last_block.end() :].strip()
     prefix_text = prefix + "\n\n" if prefix else ""
-    suffix_text = "\n\n" + suffix + "\n" if suffix else ""
-    return (prefix_text, suffix_text, existing_blocks)
+    return (prefix_text, existing_blocks)
 
 
-def _render_global_outline(
-    prefix: str,
-    blocks: list[OutlineBlock],
-    suffix: str,
-) -> str:
+def _render_global_outline(prefix: str, blocks: list[OutlineBlock]) -> str:
     lines = [prefix.rstrip("\n")] if prefix else ["# Global Outline", ""]
     for block in blocks:
         lines.append(_render_block(block).rstrip("\n"))
-    if suffix:
-        lines.append(suffix.strip("\n"))
     return "\n".join(part for part in lines if part).rstrip() + "\n"
 
 
