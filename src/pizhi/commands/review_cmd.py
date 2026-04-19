@@ -24,7 +24,7 @@ def run_review(args: argparse.Namespace) -> int:
         return 2
 
     project_root = Path.cwd()
-    if execute and args.chapter is not None:
+    if execute and not args.full and args.chapter is not None:
         snapshot = load_project_snapshot(project_root)
         if args.chapter not in snapshot.chapters:
             print(f"error: chapter {args.chapter} does not exist in the chapter index", file=sys.stderr)
