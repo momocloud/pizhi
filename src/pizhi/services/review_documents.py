@@ -12,6 +12,7 @@ SUPPORTED_CHAPTER_REVIEW_HEADINGS = {
     "B 类 AI 审查",
     "一致性检查结果",
 }
+FULL_REVIEW_TITLE = "# Review Full"
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +72,32 @@ def write_chapter_review_notes(
         "B 类 AI 审查": ai_review_markdown,
     }
     write_sectioned_markdown(path, sections, section_order=["作者备注", "A 类结构检查", "B 类 AI 审查"])
+
+
+def write_full_review_document(
+    path: Path,
+    *,
+    summary_markdown: str,
+    structural_markdown: str,
+    maintenance_markdown: str,
+    ai_review_markdown: str,
+) -> None:
+    chunks = [
+        f"{FULL_REVIEW_TITLE}\n\n",
+        "## Summary\n\n",
+        _normalize_section_body(summary_markdown),
+        "\n## A 类结构检查\n\n",
+        _normalize_section_body(structural_markdown),
+        "\n## Maintenance\n\n",
+        _normalize_section_body(maintenance_markdown),
+        "\n## B 类 AI 审查\n\n",
+        _normalize_section_body(ai_review_markdown),
+    ]
+    content = "".join(chunks)
+    if not content.endswith("\n"):
+        content += "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
 def _parse_sectioned_markdown(raw: str) -> dict[str, str]:
@@ -135,3 +162,10 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
         # Unknown headings have already been appended verbatim above.
 
     return ChapterReviewNotes(author_notes=author_notes, ai_review_markdown=ai_review_markdown)
+
+
+def _normalize_section_body(text: str) -> str:
+    stripped = text.rstrip()
+    if not stripped:
+        return "\n"
+    return stripped + "\n"

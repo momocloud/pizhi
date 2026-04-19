@@ -12,8 +12,8 @@ from pizhi.services.ai_review_service import run_ai_review
 from pizhi.services.maintenance import format_maintenance_summary
 from pizhi.services.maintenance import run_full_maintenance
 from pizhi.services.review_documents import load_chapter_review_notes
+from pizhi.services.review_documents import write_full_review_document
 from pizhi.services.review_documents import write_chapter_review_notes
-from pizhi.services.review_documents import write_sectioned_markdown
 
 
 def run_review(args: argparse.Namespace) -> int:
@@ -29,10 +29,7 @@ def run_review(args: argparse.Namespace) -> int:
 
     if not getattr(args, "execute", False):
         if args.full:
-            report_path = project_paths(project_root).cache_dir / "review_full.md"
-            report_path.parent.mkdir(parents=True, exist_ok=True)
-            report_text = format_structural_report(report).rstrip() + "\n\n" + format_maintenance_summary(maintenance_result)
-            report_path.write_text(report_text, encoding="utf-8", newline="\n")
+            report_path = _write_full_review_base_document(project_root, report, maintenance_result)
             print(f"Full report: {report_path}")
         return 0
 
@@ -61,23 +58,12 @@ def _run_chapter_execute_review(project_root: Path, chapter_number: int, report)
 
 
 def _run_full_execute_review(project_root: Path, report, maintenance_result) -> int:
+    report_path = _write_full_review_base_document(project_root, report, maintenance_result)
     context = build_full_ai_review_context(project_root, report, maintenance_result)
     result = run_ai_review(project_root, context)
     print(f"Run ID: {result.run_id or 'n/a'}")
 
-    report_path = project_paths(project_root).cache_dir / "review_full.md"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    sections = {
-        "Summary": _render_full_review_summary(report, maintenance_result),
-        "A 类结构检查": format_structural_report(report),
-        "Maintenance": _render_maintenance_body(maintenance_result),
-        "B 类 AI 审查": _render_ai_review_markdown(result),
-    }
-    write_sectioned_markdown(
-        report_path,
-        sections,
-        section_order=["Summary", "A 类结构检查", "Maintenance", "B 类 AI 审查"],
-    )
+    _write_full_review_document(report_path, report, maintenance_result, _render_ai_review_markdown(result))
     print(f"Full report: {report_path}")
     return 0 if result.status == "succeeded" else 1
 
@@ -132,6 +118,26 @@ def _render_maintenance_body(maintenance_result) -> str:
     if summary.startswith(prefix):
         return summary.removeprefix(prefix)
     return summary
+
+
+def _write_full_review_base_document(project_root: Path, report, maintenance_result) -> Path:
+    report_path = project_paths(project_root).cache_dir / "review_full.md"
+    _write_full_review_document(report_path, report, maintenance_result, _render_pending_ai_review_markdown())
+    return report_path
+
+
+def _write_full_review_document(report_path: Path, report, maintenance_result, ai_review_markdown: str) -> None:
+    write_full_review_document(
+        report_path,
+        summary_markdown=_render_full_review_summary(report, maintenance_result),
+        structural_markdown=format_structural_report(report),
+        maintenance_markdown=_render_maintenance_body(maintenance_result),
+        ai_review_markdown=ai_review_markdown,
+    )
+
+
+def _render_pending_ai_review_markdown() -> str:
+    return "- 未执行 AI 审查。\n"
 
 
     

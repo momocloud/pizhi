@@ -146,6 +146,9 @@ def test_review_command_full_execute_writes_ai_review_and_cache_report(
     assert "Run ID:" in output
     assert report_path.exists()
     report_text = report_path.read_text(encoding="utf-8")
+    assert "# Review Full" in report_text
+    assert "## Summary" in report_text
+    assert "## A 类结构检查" in report_text
     assert "## Maintenance" in report_text
     assert "## B 类 AI 审查" in report_text
 
@@ -177,6 +180,36 @@ def test_review_command_execute_failure_keeps_a_class_output(
     assert "AI 审查执行失败" in notes_text
 
 
+def test_review_command_full_execute_failure_keeps_summary_and_maintenance(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: FailingReviewAdapter("provider request failed"),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+
+    exit_code = main(["review", "--full", "--execute"])
+    output = capsys.readouterr().out
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+
+    assert exit_code != 0
+    assert "Run ID:" in output
+    assert report_path.exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "# Review Full" in report_text
+    assert "## Summary" in report_text
+    assert "## A 类结构检查" in report_text
+    assert "## Maintenance" in report_text
+    assert "## B 类 AI 审查" in report_text
+    assert "AI 审查执行失败" in report_text
+
+
 def test_review_command_full_writes_cache_report(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
@@ -192,6 +225,12 @@ def test_review_command_full_writes_cache_report(initialized_project, fixture_te
 
     assert result.returncode == 0
     assert report_path.exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "# Review Full" in report_text
+    assert "## Summary" in report_text
+    assert "## A 类结构检查" in report_text
+    assert "## Maintenance" in report_text
+    assert "## B 类 AI 审查" in report_text
     assert "Global issues:" in result.stdout
 
 
