@@ -38,3 +38,28 @@ def test_parse_ai_review_markdown_rejects_unknown_category():
     with pytest.raises(ValueError, match="unknown review category"):
         parse_ai_review_issues(raw)
 
+
+def test_parse_ai_review_markdown_rejects_unknown_severity():
+    raw = """
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：极高
+- **描述**：严重度不在白名单内。
+- **证据**：示例。
+- **建议修法**：示例。
+"""
+
+    with pytest.raises(ValueError, match="unknown review severity"):
+        parse_ai_review_issues(raw)
+
+
+def test_parse_ai_review_markdown_rejects_partial_issue_block():
+    raw = """
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：高
+- **描述**：缺少证据和建议修法。
+"""
+
+    with pytest.raises(ValueError, match="malformed ai review issue block"):
+        parse_ai_review_issues(raw)
