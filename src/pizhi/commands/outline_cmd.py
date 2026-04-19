@@ -27,7 +27,7 @@ def run_outline_expand(args: argparse.Namespace) -> int:
             return 1
         print(f"Prepared prompt packet: {prompt_artifact.prompt_path.name}")
         print(f"Run ID: {execution.run_id}")
-        if execution.status == "provider_failed":
+        if execution.status != "succeeded":
             error_text = execution.record.error_path.read_text(encoding="utf-8").strip()
             print(f"error: {error_text}", file=sys.stderr)
             return 1

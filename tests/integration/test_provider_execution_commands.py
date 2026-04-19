@@ -132,6 +132,46 @@ def test_execute_reports_provider_failure_without_traceback(
     assert "Run ID:" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "setup"),
+    [
+        (["brainstorm", "--execute"], "brainstorm"),
+        (["outline", "expand", "--chapters", "1-2", "--execute"], "outline"),
+        (["write", "--chapter", "1", "--execute"], "write"),
+    ],
+)
+def test_execute_reports_normalize_failure_without_traceback(
+    initialized_project,
+    monkeypatch,
+    capsys,
+    argv,
+    setup,
+):
+    monkeypatch.chdir(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    _configure_provider(initialized_project)
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StubAdapter(""),
+    )
+
+    if setup == "write":
+        chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+        chapter_dir.mkdir(parents=True, exist_ok=True)
+        (chapter_dir / "outline.md").write_text(
+            "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
+            encoding="utf-8",
+        )
+
+    exit_code = main(argv)
+    captured = capsys.readouterr()
+
+    assert exit_code != 0
+    assert "provider response did not contain text content" in captured.err
+    assert "Traceback" not in captured.err
+    assert "Run ID:" in captured.out
+
+
 def test_brainstorm_execute_writes_run_id_and_run_artifacts(initialized_project, monkeypatch, capsys):
     monkeypatch.chdir(initialized_project)
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
