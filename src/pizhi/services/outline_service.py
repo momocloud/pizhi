@@ -14,10 +14,9 @@ from pizhi.core.paths import project_paths
 
 
 BLOCK_PATTERN = re.compile(
-    r"^## ch(?P<number>\d{3}) \| (?P<title>.+?)\s*$\n(?P<body>.*?)(?=^## ch\d{3} \| |\Z)",
+    r"^## ch(?P<number>\d{3}) \| (?P<title>.+?)\s*$\n(?P<body>.*?)(?=^## ch\d{3} \| |\n\n## |\Z)",
     re.MULTILINE | re.DOTALL,
 )
-NON_CHAPTER_HEADING_PATTERN = re.compile(r"^## (?!ch\d{3} \| ).+$", re.MULTILINE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,16 +159,11 @@ def _split_global_outline(raw: str) -> tuple[str, str, list[OutlineBlock]]:
 
     first_block = block_matches[0]
     last_block = block_matches[-1]
-    suffix_start = len(raw)
-    for heading_match in NON_CHAPTER_HEADING_PATTERN.finditer(raw, last_block.start()):
-        suffix_start = heading_match.start()
-        break
-
-    chapter_text = raw[first_block.start() : suffix_start]
+    chapter_text = raw[first_block.start() : last_block.end()]
     existing_blocks = _parse_global_outline_blocks(chapter_text)
 
     prefix = raw[: first_block.start()].rstrip()
-    suffix = raw[suffix_start:].strip()
+    suffix = raw[last_block.end() :].strip()
     prefix_text = prefix + "\n\n" if prefix else ""
     suffix_text = "\n\n" + suffix + "\n" if suffix else ""
     return (prefix_text, suffix_text, existing_blocks)
