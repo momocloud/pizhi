@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
 
 from pizhi import __version__
 from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
 from pizhi.commands.apply_cmd import run_apply
+from pizhi.commands.checkpoint_cmd import run_checkpoint_apply
+from pizhi.commands.checkpoint_cmd import run_checkpoints
 from pizhi.commands.continue_cmd import run_continue
 from pizhi.commands.init_cmd import run_init
 from pizhi.commands.outline_cmd import run_outline_expand
@@ -66,11 +69,33 @@ def build_parser() -> argparse.ArgumentParser:
     apply_parser.set_defaults(handler=run_apply)
 
     continue_parser = subparsers.add_parser("continue", help="continue outlining and writing chapters")
-    continue_parser.add_argument("--count", required=True, type=int, help="number of chapters to continue")
-    continue_parser.add_argument("--direction", help="extra steering note")
-    continue_parser.add_argument("--outline-response-file", help="outline response file")
-    continue_parser.add_argument("--chapter-responses-dir", help="directory containing chapter response files")
-    continue_parser.set_defaults(handler=run_continue)
+    continue_subparsers = continue_parser.add_subparsers(dest="continue_command")
+
+    continue_run_parser = continue_subparsers.add_parser("run", help="prepare or execute a continue session")
+    continue_run_parser.add_argument("--count", required=True, type=int, help="number of chapters to continue")
+    continue_run_parser.add_argument("--direction", help="extra steering note")
+    continue_run_parser.add_argument("--outline-response-file", help="outline response file")
+    continue_run_parser.add_argument("--chapter-responses-dir", help="directory containing chapter response files")
+    continue_run_parser.add_argument("--execute", action="store_true", help="call the configured provider")
+    continue_run_parser.set_defaults(handler=run_continue)
+
+    continue_sessions_parser = continue_subparsers.add_parser("sessions", help="list continue sessions")
+    continue_sessions_parser.set_defaults(handler=run_continue)
+
+    continue_resume_parser = continue_subparsers.add_parser("resume", help="resume a continue session")
+    continue_resume_parser.add_argument("--session-id", required=True, help="continue session identifier")
+    continue_resume_parser.set_defaults(handler=run_continue)
+
+    checkpoint_parser = subparsers.add_parser("checkpoint", help="inspect or apply continue checkpoints")
+    checkpoint_subparsers = checkpoint_parser.add_subparsers(dest="checkpoint_command")
+
+    checkpoint_apply_parser = checkpoint_subparsers.add_parser("apply", help="apply a checkpoint")
+    checkpoint_apply_parser.add_argument("--id", required=True, help="checkpoint identifier")
+    checkpoint_apply_parser.set_defaults(handler=run_checkpoint_apply)
+
+    checkpoints_parser = subparsers.add_parser("checkpoints", help="list continue checkpoints")
+    checkpoints_parser.add_argument("--session-id", required=True, help="continue session identifier")
+    checkpoints_parser.set_defaults(handler=run_checkpoints)
 
     review_parser = subparsers.add_parser("review", help="run structural consistency review")
     review_parser.add_argument("--chapter", type=int, help="review a single chapter number")
@@ -91,7 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    normalized_argv = normalize_legacy_continue_argv(argv if argv is not None else sys.argv[1:])
+    try:
+        args = parser.parse_args(normalized_argv)
+    except SystemExit as exc:
+        return int(exc.code) if isinstance(exc.code, int) else 1
 
     if args.version:
         print(__version__)
@@ -102,3 +131,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
     return int(handler(args))
+
+
+def normalize_legacy_continue_argv(argv: Sequence[str]) -> list[str]:
+    items = list(argv)
+    if len(items) < 2:
+        return items
+    if items[0] != "continue":
+        return items
+    if items[1] in {"run", "sessions", "resume", "-h", "--help"}:
+        return items
+    return [items[0], "run", *items[1:]]
