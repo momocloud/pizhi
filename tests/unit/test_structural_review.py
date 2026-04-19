@@ -66,6 +66,27 @@ def test_structural_review_preserves_prefix_before_supported_heading(initialized
     assert raw_notes.count("## B 类 AI 审查") == 1
 
 
+def test_structural_review_preserves_existing_b_section_when_unknown_heading_is_added(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    notes_path = project_paths(initialized_project).chapter_dir(1) / "notes.md"
+    notes_path.write_text(
+        "## 作者备注\n\n手工备注。\n\n## A 类结构检查\n\n旧 A 内容。\n\n## B 类 AI 审查\n\n旧 B 内容。\n\n## 临时标题\n\n手工补充。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=1)
+    raw_notes = notes_path.read_text(encoding="utf-8")
+
+    assert report.chapter_issues[1] == []
+    assert "手工备注。" in raw_notes
+    assert "旧 B 内容。" in raw_notes
+    assert "## 临时标题" in raw_notes
+    assert raw_notes.count("## 作者备注") == 1
+    assert raw_notes.count("## A 类结构检查") == 1
+    assert raw_notes.count("## B 类 AI 审查") == 1
+
+
 def test_structural_review_migrates_freeform_notes_with_unknown_heading(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     notes_path = project_paths(initialized_project).chapter_dir(1) / "notes.md"

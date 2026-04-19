@@ -28,18 +28,7 @@ def load_chapter_review_notes(path: Path) -> ChapterReviewNotes:
     if not raw.strip():
         return ChapterReviewNotes(author_notes="", ai_review_markdown="")
 
-    sections = _parse_supported_chapter_review_sections(raw)
-    if sections is None:
-        return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
-
-    first_heading = SECTION_HEADING_RE.search(raw)
-    prefix = raw[: first_heading.start()] if first_heading is not None else ""
-    author_notes = sections.get("作者备注", "")
-    if not author_notes:
-        author_notes = sections.get("一致性检查结果", "")
-    author_notes = prefix + author_notes
-
-    return ChapterReviewNotes(author_notes=author_notes, ai_review_markdown=sections.get("B 类 AI 审查", ""))
+    return _parse_chapter_review_notes(raw)
 
 
 def write_sectioned_markdown(path: Path, sections: dict[str, str], *, section_order: list[str]) -> None:
@@ -104,16 +93,23 @@ def _parse_sectioned_markdown(raw: str) -> dict[str, str]:
     return sections
 
 
-def _parse_supported_chapter_review_sections(raw: str) -> dict[str, str] | None:
+def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
     matches = list(SECTION_HEADING_RE.finditer(raw))
     if not matches:
-        return None if raw.strip() else {}
+        return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
 
+    headings = [match.group("name").strip() for match in matches]
+    supported_headings = [name for name in headings if name in SUPPORTED_CHAPTER_REVIEW_HEADINGS]
+    if not supported_headings:
+        return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
+
+    prefix = raw[: matches[0].start()]
     sections: dict[str, str] = {}
+    author_parts: list[str] = [prefix]
+    ai_review_markdown = ""
+
     for index, match in enumerate(matches):
         name = match.group("name").strip()
-        if name not in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
-            return None
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
         content = raw[start:end]
@@ -121,4 +117,21 @@ def _parse_supported_chapter_review_sections(raw: str) -> dict[str, str] | None:
             raise ValueError(f"duplicate section: {name}")
         sections[name] = content
 
-    return sections
+        if name == "作者备注":
+            author_parts.append(content)
+        elif name == "B 类 AI 审查":
+            ai_review_markdown = content
+        elif name == "一致性检查结果":
+            continue
+        elif name in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+            continue
+        else:
+            author_parts.append(raw[match.start():end])
+
+    if len(supported_headings) == len(headings):
+        author_notes = "".join(author_parts)
+    else:
+        author_notes = "".join(author_parts)
+        # Unknown headings have already been appended verbatim above.
+
+    return ChapterReviewNotes(author_notes=author_notes, ai_review_markdown=ai_review_markdown)

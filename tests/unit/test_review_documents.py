@@ -29,15 +29,31 @@ def test_load_chapter_review_notes_treats_unknown_heading_as_freeform_notes(tmp_
 def test_load_chapter_review_notes_accepts_legacy_consistency_section(tmp_path):
     notes_path = tmp_path / "notes.md"
     notes_path.write_text(
-        "顶部自由文本。\n\n## 一致性检查结果\n\n旧 deterministic 内容。\n",
+        "## 一致性检查结果\n\n旧 deterministic 内容。\n",
         encoding="utf-8",
         newline="\n",
     )
 
     loaded = load_chapter_review_notes(notes_path)
 
-    assert loaded.author_notes == "顶部自由文本。\n\n\n旧 deterministic 内容。\n"
+    assert loaded.author_notes == ""
     assert loaded.ai_review_markdown == ""
+
+
+def test_load_chapter_review_notes_preserves_existing_machine_sections_with_unknown_heading(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    notes_path.write_text(
+        "## 作者备注\n\n手工备注。\n\n## A 类结构检查\n\n旧 A 内容。\n\n## B 类 AI 审查\n\n旧 B 内容。\n\n## 临时标题\n\n手工补充。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+
+    assert "手工备注。" in loaded.author_notes
+    assert "## 临时标题" in loaded.author_notes
+    assert "手工补充。" in loaded.author_notes
+    assert loaded.ai_review_markdown == "\n旧 B 内容。\n\n"
 
 
 def test_load_chapter_review_notes_preserves_prefix_before_supported_heading(tmp_path):
