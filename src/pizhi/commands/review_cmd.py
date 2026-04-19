@@ -6,6 +6,7 @@ import sys
 
 from pizhi.core.paths import project_paths
 from pizhi.services.consistency.structural import run_structural_review
+from pizhi.services.consistency.structural import REQUIRED_ARTIFACT_NAMES
 from pizhi.services.ai_review_context import build_chapter_ai_review_context
 from pizhi.services.ai_review_context import build_full_ai_review_context
 from pizhi.services.ai_review_service import run_ai_review
@@ -26,8 +27,9 @@ def run_review(args: argparse.Namespace) -> int:
     project_root = Path.cwd()
     if execute and not args.full and args.chapter is not None:
         snapshot = load_project_snapshot(project_root)
-        if args.chapter not in snapshot.chapters:
-            print(f"error: chapter {args.chapter} does not exist in the chapter index", file=sys.stderr)
+        target_error = _review_chapter_execute_target_error(project_root, snapshot, args.chapter)
+        if target_error is not None:
+            print(f"error: {target_error}", file=sys.stderr)
             return 2
 
     report = run_structural_review(project_root, chapter_number=args.chapter, full=args.full)
@@ -96,6 +98,22 @@ def _review_execute_scope_is_valid(args: argparse.Namespace) -> bool:
     return bool(args.full or args.chapter is not None)
 
 
+def _review_chapter_execute_target_error(project_root: Path, snapshot, chapter_number: int) -> str | None:
+    if chapter_number not in snapshot.chapters:
+        return f"chapter {chapter_number} does not exist in the chapter index"
+
+    chapter_dir = project_paths(project_root).chapter_dir(chapter_number)
+    if not chapter_dir.exists():
+        return f"chapter {chapter_number} is missing its chapter directory"
+
+    missing_artifacts = [name for name in REQUIRED_ARTIFACT_NAMES if not _path_has_content(chapter_dir / name)]
+    if missing_artifacts:
+        missing_list = ", ".join(missing_artifacts)
+        return f"chapter {chapter_number} is missing required files: {missing_list}"
+
+    return None
+
+
 def _render_structural_body(issues) -> str:
     if not issues:
         return "- 未发现结构化问题。\n"
@@ -114,6 +132,10 @@ def _render_structural_body(issues) -> str:
             ]
         )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _path_has_content(path: Path) -> bool:
+    return path.exists() and bool(path.read_text(encoding="utf-8").strip())
 
 
 def _render_ai_review_markdown(result) -> str:
