@@ -113,6 +113,8 @@ def test_review_command_chapter_execute_writes_ai_review_and_run_id(
     notes_text = notes_path.read_text(encoding="utf-8")
     assert "## A 类结构检查" in notes_text
     assert "## B 类 AI 审查" in notes_text
+    assert "人物一致性" in notes_text
+    assert "补充动机铺垫" in notes_text
 
 
 def test_review_command_full_execute_writes_ai_review_and_cache_report(
@@ -151,6 +153,8 @@ def test_review_command_full_execute_writes_ai_review_and_cache_report(
     assert "## A 类结构检查" in report_text
     assert "## Maintenance" in report_text
     assert "## B 类 AI 审查" in report_text
+    assert "时间线合理性" in report_text
+    assert "补充过渡段落" in report_text
 
 
 def test_review_command_execute_failure_keeps_a_class_output(

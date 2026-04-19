@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pizhi.services.review_documents import load_chapter_review_notes
+from pizhi.services.review_documents import write_full_review_document
 from pizhi.services.review_documents import write_chapter_review_notes
 
 
@@ -99,3 +100,26 @@ def test_write_chapter_review_notes_preserves_author_notes_and_drops_legacy_sect
     assert "A" in raw
     assert "B" in raw
     assert raw.index("手工备注。") < raw.index("第二段。")
+
+
+def test_write_full_review_document_writes_fixed_sections_in_order(tmp_path):
+    report_path = tmp_path / "review_full.md"
+
+    write_full_review_document(
+        report_path,
+        summary_markdown="- Summary line.\n",
+        structural_markdown="- Structural line.\n",
+        maintenance_markdown="- Maintenance line.\n",
+        ai_review_markdown="### 问题 1\n- **类别**：人物一致性\n- **严重度**：高\n- **描述**：补充动机铺垫。\n- **证据**：示例证据。\n- **建议修法**：补写心理铺垫。\n",
+    )
+
+    raw = report_path.read_text(encoding="utf-8")
+
+    assert raw.startswith("# Review Full\n\n## Summary\n\n")
+    assert raw.index("## Summary") < raw.index("## A 类结构检查") < raw.index("## Maintenance") < raw.index("## B 类 AI 审查")
+    assert "- Summary line." in raw
+    assert "- Structural line." in raw
+    assert "- Maintenance line." in raw
+    assert "人物一致性" in raw
+    assert "补充动机铺垫" in raw
+    assert "补写心理铺垫。" in raw
