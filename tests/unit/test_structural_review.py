@@ -21,6 +21,28 @@ def test_structural_review_flags_non_monotonic_timeline(initialized_project, fix
     assert "- **建议修法**：" in raw_notes
 
 
+def test_structural_review_migrates_freeform_notes_without_heading(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    notes_path = project_paths(initialized_project).chapter_dir(1) / "notes.md"
+    notes_path.write_text(
+        "自由文本开头。\n\n第二段保留。\n\n末尾空行前一段。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=1)
+    raw_notes = notes_path.read_text(encoding="utf-8")
+
+    assert report.chapter_issues[1] == []
+    assert "自由文本开头。" in raw_notes
+    assert "第二段保留。" in raw_notes
+    assert "末尾空行前一段。" in raw_notes
+    assert "## 作者备注" in raw_notes
+    assert "## A 类结构检查" in raw_notes
+    assert "## B 类 AI 审查" in raw_notes
+    assert raw_notes.count("## ") == 3
+
+
 def test_structural_review_tolerates_malformed_meta_json(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     paths = project_paths(initialized_project)

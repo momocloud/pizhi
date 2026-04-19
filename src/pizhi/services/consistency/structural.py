@@ -8,6 +8,7 @@ import re
 from pizhi.core.paths import project_paths
 from pizhi.domain.foreshadowing import ForeshadowingEntry
 from pizhi.domain.timeline import time_sort_key
+from pizhi.services.review_documents import load_chapter_review_notes
 from pizhi.services.review_documents import write_chapter_review_notes
 from pizhi.services.project_snapshot import load_project_snapshot
 
@@ -66,10 +67,12 @@ def run_structural_review(project_root: Path, chapter_number: int | None = None,
         issues = _review_chapter(snapshot, paths, target)
         chapter_issues[target] = issues
         notes_path = paths.chapter_dir(target) / "notes.md"
+        notes = load_chapter_review_notes(notes_path)
         write_chapter_review_notes(
             notes_path,
+            author_notes=notes.author_notes,
             structural_markdown=_render_structural_markdown(issues),
-            ai_review_markdown=_load_ai_review_markdown(notes_path),
+            ai_review_markdown=notes.ai_review_markdown,
         )
 
     global_issues = _review_project(snapshot, paths) if full else []
@@ -413,18 +416,3 @@ def _load_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
-
-
-def _load_ai_review_markdown(path: Path) -> str:
-    if not path.exists():
-        return ""
-
-    raw = path.read_text(encoding="utf-8")
-    match = re.search(r"^## B 类 AI 审查\s*$", raw, re.MULTILINE)
-    if match is None:
-        return ""
-
-    next_section = re.search(r"^## \S", raw[match.end() :], re.MULTILINE)
-    if next_section is None:
-        return raw[match.end() :].strip()
-    return raw[match.end() : match.end() + next_section.start()].strip()

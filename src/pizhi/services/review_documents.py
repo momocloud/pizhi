@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 import re
 
@@ -7,11 +8,29 @@ import re
 SECTION_HEADING_RE = re.compile(r"^## (?P<name>.+?)\s*$", re.MULTILINE)
 
 
-def load_sectioned_markdown(path: Path, required: list[str] | tuple[str, ...]) -> dict[str, str]:
-    sections = _parse_sectioned_markdown(path.read_text(encoding="utf-8")) if path.exists() else {}
-    for name in required:
-        sections.setdefault(name, "")
-    return sections
+@dataclass(frozen=True, slots=True)
+class ChapterReviewNotes:
+    author_notes: str
+    ai_review_markdown: str
+
+
+def load_chapter_review_notes(path: Path) -> ChapterReviewNotes:
+    if not path.exists():
+        return ChapterReviewNotes(author_notes="", ai_review_markdown="")
+
+    raw = path.read_text(encoding="utf-8")
+    if not raw.strip():
+        return ChapterReviewNotes(author_notes="", ai_review_markdown="")
+
+    try:
+        sections = _parse_sectioned_markdown(raw)
+    except ValueError:
+        return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
+
+    return ChapterReviewNotes(
+        author_notes=sections.get("作者备注", ""),
+        ai_review_markdown=sections.get("B 类 AI 审查", ""),
+    )
 
 
 def write_sectioned_markdown(path: Path, sections: dict[str, str], *, section_order: list[str]) -> None:
@@ -28,23 +47,26 @@ def write_sectioned_markdown(path: Path, sections: dict[str, str], *, section_or
             ordered_names.append(name)
             seen.add(name)
 
-    lines: list[str] = []
-    for name in ordered_names:
-        content = sections.get(name, "").strip()
-        lines.append(f"## {name}")
-        lines.append("")
-        if content:
-            lines.append(content)
-            lines.append("")
-        else:
-            lines.append("")
-
+    chunks: list[str] = []
+    for index, name in enumerate(ordered_names):
+        if index > 0:
+            chunks.append("\n")
+        chunks.append(f"## {name}\n\n")
+        chunks.append(sections.get(name, ""))
+    content = "".join(chunks)
+    if not content.endswith("\n"):
+        content += "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8", newline="\n")
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
-def write_chapter_review_notes(path: Path, *, structural_markdown: str, ai_review_markdown: str) -> None:
-    author_notes = _load_author_notes(path)
+def write_chapter_review_notes(
+    path: Path,
+    *,
+    author_notes: str,
+    structural_markdown: str,
+    ai_review_markdown: str,
+) -> None:
     sections = {
         "作者备注": author_notes,
         "A 类结构检查": structural_markdown,
@@ -65,17 +87,9 @@ def _parse_sectioned_markdown(raw: str) -> dict[str, str]:
         name = match.group("name").strip()
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
-        content = raw[start:end].strip()
+        content = raw[start:end]
         if name in sections:
             raise ValueError(f"duplicate section: {name}")
         sections[name] = content
 
     return sections
-
-
-def _load_author_notes(path: Path) -> str:
-    if not path.exists():
-        return ""
-
-    sections = _parse_sectioned_markdown(path.read_text(encoding="utf-8"))
-    return sections.get("作者备注", "")
