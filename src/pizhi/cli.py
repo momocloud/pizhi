@@ -30,6 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     brainstorm_parser = subparsers.add_parser("brainstorm", help="prepare or apply brainstorm packets")
     brainstorm_parser.add_argument("--response-file", help="structured brainstorm response file")
+    brainstorm_parser.add_argument("--execute", action="store_true", help="call the configured provider")
     brainstorm_parser.set_defaults(handler=run_brainstorm)
 
     outline_parser = subparsers.add_parser("outline", help="prepare or apply outline expansion packets")
@@ -39,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     outline_expand_parser.add_argument("--chapters", required=True, help="chapter range such as 1-3")
     outline_expand_parser.add_argument("--direction", help="extra steering note")
     outline_expand_parser.add_argument("--response-file", help="structured outline response file")
+    outline_expand_parser.add_argument("--execute", action="store_true", help="call the configured provider")
     outline_expand_parser.set_defaults(handler=run_outline_expand)
 
     provider_parser = subparsers.add_parser("provider", help="configure provider settings")
@@ -72,6 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     write_parser = subparsers.add_parser("write", help="prepare or apply chapter writing packets")
     write_parser.add_argument("--chapter", required=True, type=int, help="chapter number")
     write_parser.add_argument("--response-file", help="chapter response file")
+    write_parser.add_argument("--execute", action="store_true", help="call the configured provider")
     write_parser.set_defaults(handler=run_write)
 
     return parser

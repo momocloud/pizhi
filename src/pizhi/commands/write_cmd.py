@@ -4,11 +4,20 @@ import argparse
 from pathlib import Path
 
 from pizhi.services.write_service import WriteService
+from pizhi.services.provider_execution import execute_prompt_request
 
 
 def run_write(args: argparse.Namespace) -> int:
     service = WriteService(Path.cwd())
     response_file = Path(args.response_file) if args.response_file else None
+    if args.execute:
+        request = service.build_prompt_request(args.chapter)
+        prompt_artifact = service.prepare_prompt(request)
+        execution = execute_prompt_request(service.project_root, request, target=f"ch{args.chapter:03d}")
+        print(f"Prepared prompt packet: {prompt_artifact.prompt_path.name}")
+        print(f"Run ID: {execution.run_id}")
+        return 0
+
     result = service.write(chapter_number=args.chapter, response_file=response_file)
     print(f"Prepared prompt packet: {result.prompt_artifact.prompt_path.name}")
     return 0
