@@ -1,52 +1,89 @@
 from __future__ import annotations
 
+import pytest
+
 from pizhi.cli import main
 
 from tests.unit.test_provider_execution import StubAdapter
 from tests.unit.test_provider_execution import _configure_provider
 
 
-def test_write_execute_rejects_response_file_conflict(initialized_project, monkeypatch, capsys):
+@pytest.mark.parametrize(
+    ("argv", "response_file_name"),
+    [
+        (["brainstorm", "--execute"], "brainstorm_response.md"),
+        (["outline", "expand", "--chapters", "1-2", "--execute"], "outline_response.md"),
+        (["write", "--chapter", "1", "--execute"], "write_response.md"),
+    ],
+)
+def test_execute_rejects_response_file_conflict(initialized_project, monkeypatch, capsys, argv, response_file_name):
     monkeypatch.chdir(initialized_project)
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
     _configure_provider(initialized_project)
-    monkeypatch.setattr(
-        "pizhi.services.provider_execution.build_provider_adapter",
-        lambda *_: StubAdapter("## chapter\n..."),
-    )
-    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
-    chapter_dir.mkdir(parents=True, exist_ok=True)
-    (chapter_dir / "outline.md").write_text(
-        "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
-        encoding="utf-8",
-    )
-    response_file = initialized_project / "write_response.md"
+    response_file = initialized_project / response_file_name
     response_file.write_text("raw response", encoding="utf-8")
 
-    exit_code = main(["write", "--chapter", "1", "--execute", "--response-file", str(response_file)])
+    exit_code = main([*argv, "--response-file", str(response_file)])
     captured = capsys.readouterr()
 
     assert exit_code != 0
     assert "--execute cannot be used with --response-file" in captured.err
 
 
-def test_brainstorm_execute_reports_missing_provider_config_without_traceback(initialized_project, monkeypatch, capsys):
+@pytest.mark.parametrize(
+    ("argv", "expected_error"),
+    [
+        (["brainstorm", "--execute"], "provider is not configured"),
+        (["outline", "expand", "--chapters", "1-2", "--execute"], "provider is not configured"),
+        (["write", "--chapter", "1", "--execute"], "provider is not configured"),
+    ],
+)
+def test_execute_reports_missing_provider_config_without_traceback(
+    initialized_project,
+    monkeypatch,
+    capsys,
+    argv,
+    expected_error,
+):
     monkeypatch.chdir(initialized_project)
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
 
-    exit_code = main(["brainstorm", "--execute"])
+    exit_code = main(argv)
     captured = capsys.readouterr()
 
     assert exit_code != 0
-    assert "provider is not configured" in captured.err
+    assert expected_error in captured.err
     assert "Traceback" not in captured.err
 
 
-def test_outline_execute_reports_missing_api_key_without_traceback(initialized_project, monkeypatch, capsys):
+@pytest.mark.parametrize(
+    ("argv", "setup"),
+    [
+        (["brainstorm", "--execute"], "brainstorm"),
+        (["outline", "expand", "--chapters", "1-2", "--execute"], "outline"),
+        (["write", "--chapter", "1", "--execute"], "write"),
+    ],
+)
+def test_execute_reports_missing_api_key_without_traceback(
+    initialized_project,
+    monkeypatch,
+    capsys,
+    argv,
+    setup,
+):
     monkeypatch.chdir(initialized_project)
     _configure_provider(initialized_project)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    exit_code = main(["outline", "expand", "--chapters", "1-2", "--execute"])
+    if setup == "write":
+        chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+        chapter_dir.mkdir(parents=True, exist_ok=True)
+        (chapter_dir / "outline.md").write_text(
+            "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
+            encoding="utf-8",
+        )
+
+    exit_code = main(argv)
     captured = capsys.readouterr()
 
     assert exit_code != 0
