@@ -53,7 +53,13 @@ def build_chapter_ai_review_context(
 
     involved_names = _collect_relevant_character_names(current_meta, previous_meta)
     canonical_names = _canonicalize_character_names(involved_names, character_alias_map)
-    relevant_foreshadowing = _select_relevant_foreshadowing(snapshot, current_meta, previous_meta, canonical_names)
+    relevant_foreshadowing = _select_relevant_foreshadowing(
+        snapshot,
+        current_meta,
+        previous_meta,
+        canonical_names,
+        character_alias_map,
+    )
     character_index_text = _render_character_index(character_index_raw, canonical_names, character_alias_map)
 
     prompt_context = "\n".join(
@@ -322,6 +328,7 @@ def _select_relevant_foreshadowing(
     current_meta: dict[str, object],
     previous_meta: dict[str, object],
     canonical_names: set[str],
+    alias_map: dict[str, str],
 ) -> list[ForeshadowingEntry]:
     relevant_ids = _foreshadowing_ids_from_meta(current_meta) | _foreshadowing_ids_from_meta(previous_meta)
     relevant: list[ForeshadowingEntry] = []
@@ -331,7 +338,7 @@ def _select_relevant_foreshadowing(
         if entry.entry_id in relevant_ids:
             relevant.append(entry)
             continue
-        if canonical_names.intersection(_canonicalize_character_names(entry.related_characters, {})):
+        if canonical_names.intersection(_canonicalize_character_names(entry.related_characters, alias_map)):
             relevant.append(entry)
     return relevant
 

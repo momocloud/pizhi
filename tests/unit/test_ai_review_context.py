@@ -68,6 +68,15 @@ def _write_alias_character_meta(initialized_project) -> None:
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_canonical_character_meta(initialized_project) -> None:
+    paths = project_paths(initialized_project)
+    meta_path = paths.chapter_dir(2) / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["characters_involved"] = ["沈轩"]
+    meta["foreshadowing"] = {"introduced": [], "referenced": [], "resolved": []}
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def _write_alias_character_index(initialized_project) -> None:
     paths = project_paths(initialized_project)
     paths.global_dir.joinpath("characters_index.md").write_text(
@@ -165,6 +174,45 @@ def test_build_chapter_ai_review_context_resolves_character_aliases(initialized_
     assert "## 沈轩" in context.prompt_context
     assert "别名" in context.prompt_context
     assert "轩哥" in context.prompt_context
+    assert "F001" in context.prompt_context
+    assert "码头血衣的来源" in context.prompt_context
+
+
+def test_build_chapter_ai_review_context_resolves_tracker_aliases(initialized_project, fixture_text):
+    apply_chapter_response(initialized_project, 2, fixture_text("ch002_response.md"))
+    _write_canonical_character_meta(initialized_project)
+    paths = project_paths(initialized_project)
+    paths.global_dir.joinpath("characters_index.md").write_text(
+        """# Characters Index
+
+## 沈轩
+- **别名**：轩哥
+- **定位**：主角
+- **状态**：调查码头血衣
+""",
+        encoding="utf-8",
+    )
+    paths.foreshadowing_file.write_text(
+        """# Foreshadowing Tracker
+
+## Active
+### F001 | Priority: high
+- **Description**: 码头血衣的来源
+- **Planned Payoff**: ch005
+- **Related Characters**: 轩哥
+
+## Referenced
+
+## Resolved
+
+## Abandoned
+""",
+        encoding="utf-8",
+    )
+
+    report = run_structural_review(initialized_project, chapter_number=2)
+    context = build_chapter_ai_review_context(initialized_project, 2, report.chapter_issues[2])
+
     assert "F001" in context.prompt_context
     assert "码头血衣的来源" in context.prompt_context
 
