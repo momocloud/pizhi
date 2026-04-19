@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from pizhi.adapters.base import PromptRequest
+from pizhi.core.config import ProviderSection
+from pizhi.core.config import load_config
+from pizhi.core.paths import project_paths
+from pizhi.domain.ai_review import AIReviewIssue
+from pizhi.domain.ai_review import parse_ai_review_issues
+from pizhi.services.ai_review_context import AIReviewContext
+from pizhi.services.provider_execution import execute_prompt_request
+from pizhi.services.run_store import RunRecord
+
+
+@dataclass(frozen=True, slots=True)
+class AIReviewResult:
+    status: str
+    run_id: str | None
+    issues: list[AIReviewIssue]
+    rendered_markdown: str
+    error_message: str | None
+    record: RunRecord | None
+
+
+def build_ai_review_prompt(context: AIReviewContext) -> str:
+    lines = [
+        "# AI Review Request",
+        "",
+        f"Scope: {context.scope}",
+        f"Target: {context.target}",
+        "",
+        "## Prompt Context",
+        "",
+        context.prompt_context.strip(),
+        "",
+        "## Referenced Files",
+        "",
+        *(_render_referenced_files(context.referenced_files)),
+        "",
+        "## Metadata",
+        "",
+        *(_render_metadata(context.metadata)),
+        "",
+        "Return only Markdown issue blocks in this format:",
+        "### 问题 1",
+        "- **类别**：人物一致性",
+        "- **严重度**：高",
+        "- **描述**：...",
+        "- **证据**：...",
+        "- **建议修法**：...",
+    ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResult:
+    prompt_request = PromptRequest(
+        command_name="review",
+        prompt_text=build_ai_review_prompt(context),
+        metadata=context.metadata,
+        referenced_files=context.referenced_files,
+    )
+
+    try:
+        review_config = _load_review_provider_config(project_root)
+        execution = execute_prompt_request(
+            project_root,
+            prompt_request,
+            target=context.target,
+            provider_config=review_config,
+        )
+    except Exception as exc:
+        return AIReviewResult(
+            status="failed",
+            run_id=None,
+            issues=[],
+            rendered_markdown="",
+            error_message=str(exc),
+            record=None,
+        )
+
+    rendered_markdown = _read_text(execution.record.normalized_path)
+    if execution.status != "succeeded":
+        return AIReviewResult(
+            status="failed",
+            run_id=execution.run_id,
+            issues=[],
+            rendered_markdown=rendered_markdown,
+            error_message=_read_error_text(execution.record) or execution.status,
+            record=execution.record,
+        )
+
+    try:
+        issues = parse_ai_review_issues(rendered_markdown)
+    except ValueError as exc:
+        return AIReviewResult(
+            status="failed",
+            run_id=execution.run_id,
+            issues=[],
+            rendered_markdown=rendered_markdown,
+            error_message=str(exc),
+            record=execution.record,
+        )
+
+    return AIReviewResult(
+        status="succeeded",
+        run_id=execution.run_id,
+        issues=issues,
+        rendered_markdown=rendered_markdown,
+        error_message=None,
+        record=execution.record,
+    )
+
+
+def _load_review_provider_config(project_root: Path) -> ProviderSection:
+    config = load_config(project_paths(project_root).config_file)
+    if config.provider is None:
+        raise ValueError("provider is not configured")
+    return config.provider.resolve_review_config()
+
+
+def _render_referenced_files(referenced_files: list[str]) -> list[str]:
+    if not referenced_files:
+        return ["- (none)"]
+    return [f"- {path}" for path in referenced_files]
+
+
+def _render_metadata(metadata: dict[str, object]) -> list[str]:
+    if not metadata:
+        return ["- (none)"]
+    return [f"- {key}: {value}" for key, value in metadata.items()]
+
+
+def _read_text(path: Path) -> str:
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+def _read_error_text(record: RunRecord) -> str:
+    if record.error_path.exists():
+        return record.error_path.read_text(encoding="utf-8").strip()
+    return ""

@@ -89,6 +89,7 @@ def execute_prompt_request(
             target=target,
             prompt_text=request.prompt_text,
             raw_payload=response.raw_payload,
+            normalized_text=response.content_text,
             error_text=str(exc),
             status="normalize_failed",
             metadata=metadata,

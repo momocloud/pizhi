@@ -164,7 +164,8 @@ def test_execute_prompt_request_persists_normalize_failed_when_provider_returns_
     assert result.record.status == "normalize_failed"
     assert loaded.status == "normalize_failed"
     assert loaded.raw_path.exists()
-    assert not loaded.normalized_path.exists()
+    assert loaded.normalized_path.exists()
+    assert loaded.normalized_path.read_text(encoding="utf-8") == ""
     assert loaded.error_path.read_text(encoding="utf-8").strip() == "provider response did not contain text content"
 
 
