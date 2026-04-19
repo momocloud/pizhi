@@ -379,6 +379,48 @@ def test_apply_checkpoint_preserves_existing_non_chapter_outline_suffix(initiali
     assert "## ch002 | 码头血衣" in outline_text
 
 
+def test_apply_checkpoint_keeps_chapter_body_headings_out_of_suffix_detection(initialized_project):
+    outline_path = initialized_project / ".pizhi" / "global" / "outline_global.md"
+    outline_path.write_text(
+        "# Global Outline\n\n"
+        "## 第一卷\n"
+        "- 前言\n"
+        "\n"
+        "## ch001 | 雨夜访客\n"
+        "- 第一段。\n"
+        "## 线索\n"
+        "- 章节正文里的二级标题。\n"
+        "\n"
+        "## ch002 | 码头血衣\n"
+        "- 旧的第二章内容。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    run_2 = _seed_successful_run(
+        initialized_project,
+        command="outline-expand",
+        target="ch002",
+        normalized_text=(
+            "## ch002 | 码头血衣\n"
+            "- 新的第二章内容。\n"
+        ),
+    )
+    _, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="outline",
+        run_ids=[run_2],
+    )
+
+    apply_checkpoint(initialized_project, checkpoint_id)
+
+    outline_text = outline_path.read_text(encoding="utf-8")
+    assert outline_text.count("## ch002 |") == 1
+    assert "## 线索" in outline_text
+    assert "- 章节正文里的二级标题。" in outline_text
+    assert "- 新的第二章内容。" in outline_text
+
+
 def test_apply_checkpoint_rejects_non_generated_checkpoint(initialized_project):
     session_store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
     session = session_store.create(

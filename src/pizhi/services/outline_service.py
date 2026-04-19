@@ -154,11 +154,17 @@ def _split_global_outline(raw: str) -> tuple[str, str, list[OutlineBlock]]:
     if not raw:
         return ("# Global Outline\n\n", "", [])
 
-    first_block = BLOCK_PATTERN.search(raw)
-    if first_block is None:
+    block_matches = list(BLOCK_PATTERN.finditer(raw))
+    if not block_matches:
         return (raw.rstrip() + "\n", "", [])
 
-    suffix_start = _find_suffix_start(raw, first_block.start())
+    first_block = block_matches[0]
+    last_block = block_matches[-1]
+    suffix_start = len(raw)
+    for heading_match in NON_CHAPTER_HEADING_PATTERN.finditer(raw, last_block.start()):
+        suffix_start = heading_match.start()
+        break
+
     chapter_text = raw[first_block.start() : suffix_start]
     existing_blocks = _parse_global_outline_blocks(chapter_text)
 
@@ -200,12 +206,3 @@ def _parse_global_outline_blocks(raw: str) -> list[OutlineBlock]:
             )
         )
     return blocks
-
-
-def _find_suffix_start(raw: str, search_start: int) -> int:
-    suffix_match = None
-    for match in NON_CHAPTER_HEADING_PATTERN.finditer(raw, search_start):
-        suffix_match = match
-    if suffix_match is None:
-        return len(raw)
-    return suffix_match.start()
