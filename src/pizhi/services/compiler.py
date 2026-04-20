@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from pizhi.core.config import load_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 
@@ -43,17 +44,24 @@ class CompileTarget:
 
 def compile_manuscript(project_root: Path, *, target: CompileTarget | None = None) -> list[Path]:
     paths = project_paths(project_root)
+    config = load_config(paths.config_file)
     store = ChapterIndexStore(paths.chapter_index_file)
     records = store.read_all()
+    records_by_number = {int(record["n"]): record for record in records}
 
     if target is None:
         written_files = _compile_by_volume(paths, records)
     elif target.volume is not None:
-        written_files = _compile_targeted_volume(paths, records, target.volume)
+        written_files = _compile_targeted_volume(paths, config, records_by_number, target.volume)
     elif target.chapter is not None:
-        written_files = _compile_targeted_chapter(paths, records, target.chapter)
+        written_files = _compile_targeted_chapter(paths, records_by_number, target.chapter)
     else:
-        written_files = _compile_targeted_range(paths, records, target.chapter_start, target.chapter_end)
+        written_files = _compile_targeted_range(
+            paths,
+            records_by_number,
+            target.chapter_start,
+            target.chapter_end,
+        )
 
     for record in records:
         if record.get("status") == "compiled":
@@ -74,10 +82,10 @@ def _compile_by_volume(paths, records: list[dict]) -> list[Path]:
     return written_files
 
 
-def _compile_targeted_volume(paths, records: list[dict], volume: int) -> list[Path]:
-    selected = [record for record in records if int(record["vol"]) == volume and record.get("status") in COMPILABLE_STATUSES]
-    if not selected:
-        raise ValueError(f"no compilable chapters found for volume {volume:02d}")
+def _compile_targeted_volume(paths, config, records_by_number: dict[int, dict], volume: int) -> list[Path]:
+    start = (volume - 1) * config.chapters.per_volume + 1
+    end = volume * config.chapters.per_volume
+    selected = _validate_target_chapters(paths, records_by_number, start, end)
     return _write_manuscript(
         paths,
         selected,
@@ -86,10 +94,8 @@ def _compile_targeted_volume(paths, records: list[dict], volume: int) -> list[Pa
     )
 
 
-def _compile_targeted_chapter(paths, records: list[dict], chapter: int) -> list[Path]:
-    selected = [record for record in records if int(record["n"]) == chapter and record.get("status") in COMPILABLE_STATUSES]
-    if not selected:
-        raise ValueError(f"no compilable chapter found for chapter {chapter:03d}")
+def _compile_targeted_chapter(paths, records_by_number: dict[int, dict], chapter: int) -> list[Path]:
+    selected = _validate_target_chapters(paths, records_by_number, chapter, chapter)
     return _write_manuscript(
         paths,
         selected,
@@ -98,20 +104,35 @@ def _compile_targeted_chapter(paths, records: list[dict], chapter: int) -> list[
     )
 
 
-def _compile_targeted_range(paths, records: list[dict], start: int, end: int) -> list[Path]:
-    selected = [
-        record
-        for record in records
-        if start <= int(record["n"]) <= end and record.get("status") in COMPILABLE_STATUSES
-    ]
-    if not selected:
-        raise ValueError(f"no compilable chapters found for chapter range {start:03d}-{end:03d}")
+def _compile_targeted_range(paths, records_by_number: dict[int, dict], start: int, end: int) -> list[Path]:
+    selected = _validate_target_chapters(paths, records_by_number, start, end)
     return _write_manuscript(
         paths,
         selected,
         destination=paths.manuscript_dir / f"ch{start:03d}-ch{end:03d}.md",
         title=f"Chapters {start:03d}-{end:03d}",
     )
+
+
+def _validate_target_chapters(
+    paths,
+    records_by_number: dict[int, dict],
+    start: int,
+    end: int,
+) -> list[dict]:
+    selected: list[dict] = []
+    for chapter_number in range(start, end + 1):
+        record = records_by_number.get(chapter_number)
+        if record is None:
+            raise ValueError(f"chapter ch{chapter_number:03d} is missing from index")
+        status = record.get("status")
+        if status not in COMPILABLE_STATUSES:
+            raise ValueError(f"chapter ch{chapter_number:03d} has status {status}, cannot compile")
+        text_path = paths.chapter_dir(chapter_number).joinpath("text.md")
+        if not text_path.exists():
+            raise FileNotFoundError(f"missing text.md for chapter ch{chapter_number:03d}: {text_path}")
+        selected.append(record)
+    return selected
 
 
 def _write_manuscript(paths, records: list[dict], *, destination: Path, title: str) -> list[Path]:
