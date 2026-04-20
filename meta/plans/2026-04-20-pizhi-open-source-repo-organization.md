@@ -227,7 +227,7 @@ Expected: selected tests `PASSED`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add meta/specs meta/plans docs/superpowers tests/integration/test_repository_layout_contract.py
+git add meta/specs meta/plans tests/integration/test_repository_layout_contract.py
 git commit -m "docs: move internal process docs under meta"
 ```
 
