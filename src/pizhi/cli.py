@@ -69,6 +69,10 @@ def build_parser() -> argparse.ArgumentParser:
     provider_configure_parser.set_defaults(handler=run_provider_configure)
 
     compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
+    compile_target_group = compile_parser.add_mutually_exclusive_group(required=True)
+    compile_target_group.add_argument("--volume", type=int, help="compile a single volume")
+    compile_target_group.add_argument("--chapter", type=int, help="compile a single chapter")
+    compile_target_group.add_argument("--chapters", help="compile a chapter range such as 1-3")
     compile_parser.set_defaults(handler=run_compile)
 
     runs_parser = subparsers.add_parser("runs", help="list recent runs")
