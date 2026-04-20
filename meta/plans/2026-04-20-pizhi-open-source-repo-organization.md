@@ -357,6 +357,9 @@ Run:
 Expected:
 - command help prints successfully
 
+Observed:
+- command help printed successfully
+
 - [ ] **Step 2: Run the focused integration contract tests**
 
 Run:
@@ -365,6 +368,9 @@ Run:
 Expected:
 - all selected tests `PASSED`
 
+Observed:
+- `9 passed in 0.18s`
+
 - [ ] **Step 3: Run the full regression suite**
 
 Run:
@@ -372,6 +378,9 @@ Run:
 
 Expected:
 - full suite `PASSED`
+
+Observed:
+- `316 passed in 98.45s`
 
 - [ ] **Step 4: Update the plan with observed verification notes if outputs changed**
 
