@@ -552,7 +552,7 @@ git commit -m "feat: add targeted compile modes"
 - Modify: `docs/architecture/ARCHITECTURE.md`
 - Modify: `docs/superpowers/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`
 
-- [ ] **Step 1: Update the architecture document to close the v1 open question**
+- [x] **Step 1: Update the architecture document to close the v1 open question**
 
 ```markdown
 1. **快照格式**：~~当前定义为 Markdown。是否在某些字段引入 YAML 以提升程序解析稳定性？~~ **已决定**：v1 保持 `Markdown + frontmatter + index.jsonl`，不做快照制式迁移。
