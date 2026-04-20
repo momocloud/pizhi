@@ -8,6 +8,7 @@ from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.config import save_config
 from pizhi.services.ai_review_context import AIReviewContext
+from pizhi.services.ai_review_service import build_ai_review_prompt
 from pizhi.services.ai_review_service import run_ai_review
 
 
@@ -110,6 +111,21 @@ def test_run_ai_review_executes_with_review_provider_override(initialized_projec
     assert provider_request.model == "gpt-5.4-mini"
     assert provider_request.base_url == "https://api.openai.com/v1/review"
     assert provider_request.api_key == "review-secret"
+
+
+def test_build_ai_review_prompt_renders_referenced_files_and_metadata_in_stable_order():
+    context = AIReviewContext(
+        scope="chapter",
+        target="ch002",
+        prompt_context="...",
+        referenced_files=["z.md", "a.md", "m.md"],
+        metadata={"zeta": 3, "alpha": 1, "middle": 2},
+    )
+
+    prompt = build_ai_review_prompt(context)
+
+    assert prompt.index("- a.md") < prompt.index("- m.md") < prompt.index("- z.md")
+    assert prompt.index("- alpha: 1") < prompt.index("- middle: 2") < prompt.index("- zeta: 3")
 
 
 def test_run_ai_review_passes_only_review_route_to_prompt_execution(initialized_project, monkeypatch):

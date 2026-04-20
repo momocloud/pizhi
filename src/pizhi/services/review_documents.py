@@ -141,9 +141,12 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
         content = raw[start:end]
         if name in sections:
-            if name in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+            if name == "作者备注":
                 author_parts.append(content)
-            else:
+                continue
+            if name == "B 类 AI 审查":
+                ai_review_markdown = content
+            elif name not in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
                 author_parts.append(raw[match.start():end])
             continue
         sections[name] = content

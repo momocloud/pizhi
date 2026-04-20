@@ -91,6 +91,7 @@ def _generate_outline_result(project_root: Path, session: ContinueSessionRecord)
                 project_root,
                 request,
                 target=target,
+                route_name="continue",
             )
         except ValueError as exc:
             return _raise_failed_checkpoint(
@@ -155,6 +156,7 @@ def _generate_write_result(project_root: Path, session: ContinueSessionRecord) -
                 project_root,
                 request,
                 target=target,
+                route_name="continue",
             )
         except ValueError as exc:
             return _raise_failed_checkpoint(

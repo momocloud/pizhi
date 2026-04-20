@@ -138,13 +138,13 @@ def format_ai_review_issues(issues: list[AIReviewIssue]) -> str:
 def _render_referenced_files(referenced_files: list[str]) -> list[str]:
     if not referenced_files:
         return ["- (none)"]
-    return [f"- {path}" for path in referenced_files]
+    return [f"- {path}" for path in sorted(referenced_files)]
 
 
 def _render_metadata(metadata: dict[str, object]) -> list[str]:
     if not metadata:
         return ["- (none)"]
-    return [f"- {key}: {value}" for key, value in metadata.items()]
+    return [f"- {key}: {metadata[key]}" for key in sorted(metadata)]
 
 
 def _format_ai_review_issue(issue: AIReviewIssue, *, index: int) -> str:

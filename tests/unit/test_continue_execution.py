@@ -120,6 +120,28 @@ def _checkpoint_ids(project_root) -> list[str]:
     return [entry.name for entry in checkpoints_dir.iterdir() if entry.is_dir()]
 
 
+def _execution_result_stub(run_id: str = "run-test"):
+    return type(
+        "ExecutionResultStub",
+        (),
+        {
+            "run_id": run_id,
+            "status": "succeeded",
+            "record": type(
+                "RunRecordStub",
+                (),
+                {
+                    "run_dir": None,
+                    "normalized_path": None,
+                    "error_path": None,
+                    "status": "succeeded",
+                    "metadata": {},
+                },
+            )(),
+        },
+    )()
+
+
 def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized_project, monkeypatch):
     _configure_provider(initialized_project)
     _seed_drafted_range(initialized_project, 1, 2)
@@ -140,6 +162,26 @@ def test_start_continue_execution_creates_waiting_outline_checkpoint(initialized
     assert result.checkpoint.chapter_range == (3, 5)
     assert result.checkpoint.status == "generated"
     assert len(result.checkpoint.run_ids) == 1
+
+
+def test_start_continue_execution_routes_outline_checkpoints_through_continue(initialized_project, monkeypatch):
+    _configure_provider(initialized_project)
+    _seed_drafted_range(initialized_project, 1, 2)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    captured: dict[str, object] = {}
+
+    def fake_execute_prompt_request(project_root, request, target, route_name=None, provider_config=None):
+        captured["route_name"] = route_name
+        captured["target"] = target
+        return _execution_result_stub()
+
+    monkeypatch.setattr("pizhi.services.continue_execution.execute_prompt_request", fake_execute_prompt_request)
+
+    result = start_continue_execution(initialized_project, count=3, direction="push the dock war")
+
+    assert captured["route_name"] == "continue"
+    assert captured["target"] == "ch003-ch005"
+    assert result.checkpoint is not None
 
 
 def test_start_continue_execution_rejects_non_positive_count_without_persisting(initialized_project):
@@ -255,6 +297,36 @@ def test_resume_continue_execution_moves_applied_outline_to_write_checkpoint(ini
     assert result.checkpoint.chapter_range == (1, 3)
     assert result.checkpoint.status == "generated"
     assert len(result.checkpoint.run_ids) == 3
+
+
+def test_resume_continue_execution_routes_write_checkpoints_through_continue(initialized_project, monkeypatch):
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    OutlineService(initialized_project).apply_response(_outline_response(1, 3))
+    store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
+    session = store.create(
+        count=3,
+        direction="hold position",
+        start_chapter=1,
+        target_end_chapter=3,
+        current_stage="outline",
+        current_range=(1, 3),
+        last_checkpoint_id="checkpoint-outline",
+        status="ready_to_resume",
+    )
+    captured: list[dict[str, object]] = []
+
+    def fake_execute_prompt_request(project_root, request, target, route_name=None, provider_config=None):
+        captured.append({"route_name": route_name, "target": target})
+        return _execution_result_stub(target)
+
+    monkeypatch.setattr("pizhi.services.continue_execution.execute_prompt_request", fake_execute_prompt_request)
+
+    result = resume_continue_execution(initialized_project, session.session_id)
+
+    assert [item["route_name"] for item in captured] == ["continue", "continue", "continue"]
+    assert [item["target"] for item in captured] == ["ch001", "ch002", "ch003"]
+    assert result.checkpoint is not None
 
 
 def test_resume_continue_execution_blocks_session_on_write_preflight_failure(initialized_project):
