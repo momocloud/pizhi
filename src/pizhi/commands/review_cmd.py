@@ -10,6 +10,9 @@ from pizhi.services.consistency.structural import REQUIRED_ARTIFACT_NAMES
 from pizhi.services.ai_review_context import build_chapter_ai_review_context
 from pizhi.services.ai_review_context import build_full_ai_review_context
 from pizhi.services.ai_review_service import run_ai_review
+from pizhi.services.agent_extensions import execute_agent_spec
+from pizhi.services.agent_extensions import render_agent_execution_section
+from pizhi.services.agent_registry import load_agent_registry
 from pizhi.services.maintenance import format_maintenance_summary
 from pizhi.services.maintenance import run_full_maintenance
 from pizhi.services.review_documents import load_chapter_review_notes
@@ -58,6 +61,7 @@ def run_review(args: argparse.Namespace) -> int:
 def _run_chapter_execute_review(project_root: Path, chapter_number: int, report) -> int:
     context = build_chapter_ai_review_context(project_root, chapter_number, report.chapter_issues.get(chapter_number, []))
     result = run_ai_review(project_root, context)
+    extension_sections = _run_review_extension_sections(project_root, target_scope="chapter", target_name=context.target, context_markdown=context.prompt_context)
     print(f"Run ID: {result.run_id or 'n/a'}")
 
     notes_path = project_paths(project_root).chapter_dir(chapter_number) / "notes.md"
@@ -67,6 +71,7 @@ def _run_chapter_execute_review(project_root: Path, chapter_number: int, report)
         author_notes=notes.author_notes,
         structural_markdown=_render_structural_body(report.chapter_issues.get(chapter_number, [])),
         ai_review_markdown=_render_ai_review_markdown(result),
+        extension_sections=extension_sections,
     )
     return 0 if result.status == "succeeded" else 1
 
@@ -75,9 +80,16 @@ def _run_full_execute_review(project_root: Path, report, maintenance_result) -> 
     report_path = _write_full_review_base_document(project_root, report, maintenance_result)
     context = build_full_ai_review_context(project_root, report, maintenance_result)
     result = run_ai_review(project_root, context)
+    extension_sections = _run_review_extension_sections(project_root, target_scope="project", target_name=context.target, context_markdown=context.prompt_context)
     print(f"Run ID: {result.run_id or 'n/a'}")
 
-    _write_full_review_document(report_path, report, maintenance_result, _render_ai_review_markdown(result))
+    _write_full_review_document(
+        report_path,
+        report,
+        maintenance_result,
+        _render_ai_review_markdown(result),
+        extension_sections=extension_sections,
+    )
     print(f"Full report: {report_path}")
     return 0 if result.status == "succeeded" else 1
 
@@ -164,13 +176,21 @@ def _write_full_review_base_document(project_root: Path, report, maintenance_res
     return report_path
 
 
-def _write_full_review_document(report_path: Path, report, maintenance_result, ai_review_markdown: str) -> None:
+def _write_full_review_document(
+    report_path: Path,
+    report,
+    maintenance_result,
+    ai_review_markdown: str,
+    *,
+    extension_sections=None,
+) -> None:
     write_full_review_document(
         report_path,
         summary_markdown=_render_full_review_summary(report, maintenance_result),
         structural_markdown=_render_full_structural_body(report),
         maintenance_markdown=_render_maintenance_body(maintenance_result),
         ai_review_markdown=ai_review_markdown,
+        extension_sections=extension_sections,
     )
 
 
@@ -209,6 +229,28 @@ def _render_full_structural_group(name: str, issues) -> list[str]:
             ]
         )
     return lines
+
+
+def _run_review_extension_sections(
+    project_root: Path,
+    *,
+    target_scope: str,
+    target_name: str,
+    context_markdown: str,
+):
+    registry = load_agent_registry(project_root)
+    review_agents = registry.iter_enabled(kind="review", target_scope=target_scope)
+    return [
+        render_agent_execution_section(
+            execute_agent_spec(
+                project_root,
+                spec,
+                target=target_name,
+                context_markdown=context_markdown,
+            )
+        )
+        for spec in review_agents
+    ]
 
 
     

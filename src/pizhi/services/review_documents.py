@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pizhi.services.agent_extensions import ExtensionReportSection
 
 
 SECTION_HEADING_RE = re.compile(r"^## (?P<name>.+?)\s*$", re.MULTILINE)
@@ -13,6 +17,7 @@ SUPPORTED_CHAPTER_REVIEW_HEADINGS = {
     "一致性检查结果",
 }
 FULL_REVIEW_TITLE = "# Review Full"
+REVIEW_AGENT_SECTION_PREFIX = "Review Agent "
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,13 +70,21 @@ def write_chapter_review_notes(
     author_notes: str,
     structural_markdown: str,
     ai_review_markdown: str,
+    extension_sections: list[ExtensionReportSection] | None = None,
 ) -> None:
     sections = {
         "作者备注": author_notes,
         "A 类结构检查": structural_markdown,
         "B 类 AI 审查": ai_review_markdown,
+        **{section.title: section.body for section in extension_sections or []},
     }
-    write_sectioned_markdown(path, sections, section_order=["作者备注", "A 类结构检查", "B 类 AI 审查"])
+    section_order = [
+        "作者备注",
+        "A 类结构检查",
+        "B 类 AI 审查",
+        *[section.title for section in extension_sections or []],
+    ]
+    write_sectioned_markdown(path, sections, section_order=section_order)
 
 
 def write_full_review_document(
@@ -81,6 +94,7 @@ def write_full_review_document(
     structural_markdown: str,
     maintenance_markdown: str,
     ai_review_markdown: str,
+    extension_sections: list[ExtensionReportSection] | None = None,
 ) -> None:
     chunks = [
         f"{FULL_REVIEW_TITLE}\n\n",
@@ -93,6 +107,13 @@ def write_full_review_document(
         "\n## B 类 AI 审查\n\n",
         _normalize_section_body(ai_review_markdown),
     ]
+    for section in extension_sections or []:
+        chunks.extend(
+            [
+                f"\n## {section.title}\n\n",
+                _normalize_section_body(section.body),
+            ]
+        )
     content = "".join(chunks)
     if not content.endswith("\n"):
         content += "\n"
@@ -126,7 +147,7 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
         return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
 
     headings = [match.group("name").strip() for match in matches]
-    supported_headings = [name for name in headings if name in SUPPORTED_CHAPTER_REVIEW_HEADINGS]
+    supported_headings = [name for name in headings if _is_machine_managed_chapter_heading(name)]
     if not supported_headings:
         return ChapterReviewNotes(author_notes=raw, ai_review_markdown="")
 
@@ -148,7 +169,7 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
                 author_parts.append(raw[match.start():end])
             if name == "B 类 AI 审查":
                 ai_review_markdown = content
-            elif name not in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+            elif not _is_machine_managed_chapter_heading(name):
                 author_parts.append(raw[match.start():end])
             continue
         sections[name] = content
@@ -159,7 +180,7 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
             ai_review_markdown = content
         elif name == "一致性检查结果":
             continue
-        elif name in SUPPORTED_CHAPTER_REVIEW_HEADINGS:
+        elif _is_machine_managed_chapter_heading(name):
             continue
         else:
             author_parts.append(raw[match.start():end])
@@ -178,3 +199,7 @@ def _normalize_section_body(text: str) -> str:
     if not stripped:
         return "\n"
     return stripped + "\n"
+
+
+def _is_machine_managed_chapter_heading(name: str) -> bool:
+    return name in SUPPORTED_CHAPTER_REVIEW_HEADINGS or name.startswith(REVIEW_AGENT_SECTION_PREFIX)

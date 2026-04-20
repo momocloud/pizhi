@@ -13,6 +13,13 @@ from pizhi.services.run_store import RunStore
 
 
 @dataclass(frozen=True, slots=True)
+class ExtensionReportSection:
+    agent_id: str
+    title: str
+    body: str
+
+
+@dataclass(frozen=True, slots=True)
 class AgentExecutionResult:
     agent_id: str
     kind: str
@@ -134,11 +141,54 @@ def render_agent_prompt(spec: AgentSpec, *, target: str, context_markdown: str) 
     ).rstrip() + "\n"
 
 
+def render_agent_execution_section(result: AgentExecutionResult) -> ExtensionReportSection:
+    if result.status == "failed":
+        lines = ["- Status: failed"]
+        if result.run_id:
+            lines.append(f"- Run ID: {result.run_id}")
+        if result.failure_reason:
+            lines.append(f"- Error: {result.failure_reason}")
+        body = "\n".join(lines).rstrip() + "\n"
+        return ExtensionReportSection(
+            agent_id=result.agent_id,
+            title=f"Review Agent {result.agent_id}",
+            body=body,
+        )
+
+    if not result.issues:
+        body = "- No issues found.\n"
+    else:
+        body = _render_issue_markdown(result.issues)
+
+    return ExtensionReportSection(
+        agent_id=result.agent_id,
+        title=f"Review Agent {result.agent_id}",
+        body=body,
+    )
+
+
 def _summarize_issues(issues: list[AIReviewIssue]) -> str:
     if not issues:
         return "No issues found"
     count = len(issues)
     return f"{count} issue(s) found"
+
+
+def _render_issue_markdown(issues: list[AIReviewIssue]) -> str:
+    lines: list[str] = []
+    for index, issue in enumerate(issues, start=1):
+        lines.extend(
+            [
+                f"### 问题 {index}",
+                f"- **类别**：{issue.category}",
+                f"- **严重度**：{issue.severity}",
+                f"- **描述**：{issue.description}",
+                f"- **证据**：{issue.evidence}",
+                f"- **建议修法**：{issue.suggestion}",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def _read_normalized_text(execution) -> str:

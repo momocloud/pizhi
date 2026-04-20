@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pizhi.services.agent_extensions import ExtensionReportSection
 from pizhi.services.review_documents import load_chapter_review_notes
 from pizhi.services.review_documents import write_full_review_document
 from pizhi.services.review_documents import write_chapter_review_notes
@@ -184,6 +185,30 @@ def test_write_chapter_review_notes_preserves_author_notes_and_drops_legacy_sect
     assert "A" in raw
     assert "B" in raw
     assert raw.index("手工备注。") < raw.index("第二段。")
+
+
+def test_write_chapter_review_notes_appends_extension_sections(tmp_path):
+    notes_path = tmp_path / "notes.md"
+
+    write_chapter_review_notes(
+        notes_path,
+        author_notes="author",
+        structural_markdown="- structural\n",
+        ai_review_markdown="- ai\n",
+        extension_sections=[
+            ExtensionReportSection(
+                agent_id="critique.chapter",
+                title="Review Agent critique.chapter",
+                body="- issue\n",
+            ),
+        ],
+    )
+
+    raw = notes_path.read_text(encoding="utf-8")
+
+    assert "## 作者备注" in raw
+    assert "## Review Agent critique.chapter" in raw
+    assert "- issue" in raw
 
 
 def test_write_full_review_document_writes_fixed_sections_in_order(tmp_path):
