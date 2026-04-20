@@ -7,29 +7,43 @@ import pytest
 
 from pizhi.domain.agent_extensions import AgentSpec
 from pizhi.services.agent_registry import AgentRegistry
+from pizhi.services.agent_extensions import NO_AI_REVIEW_ISSUES_MESSAGE
 from pizhi.services.agent_extensions import execute_agent_spec
-
-
-@dataclass
-class FakeRecord:
-    normalized_path: Path
-    error_path: Path
+from pizhi.services.run_store import RunRecord
+from pizhi.services.run_store import RunStore
 
 
 @dataclass
 class FakeExecution:
     status: str = "succeeded"
-    run_id: str = "run-test"
-    record: FakeRecord | None = None
+    run_id: str | None = None
+    record: RunRecord | None = None
 
 
-def _write_record(tmp_path: Path, normalized_text: str, error_text: str = "") -> FakeRecord:
-    normalized_path = tmp_path / "normalized.md"
-    normalized_path.parent.mkdir(parents=True, exist_ok=True)
-    normalized_path.write_text(normalized_text, encoding="utf-8")
-    error_path = tmp_path / "error.txt"
-    error_path.write_text(error_text, encoding="utf-8")
-    return FakeRecord(normalized_path=normalized_path, error_path=error_path)
+def _write_success_record(runs_dir: Path, normalized_text: str) -> RunRecord:
+    store = RunStore(runs_dir)
+    return store.write_success(
+        command="review-agent",
+        target="ch002",
+        prompt_text="prompt",
+        raw_payload={"id": "resp_test"},
+        normalized_text=normalized_text,
+        metadata={},
+        referenced_files=[],
+    )
+
+
+def _write_failure_record(runs_dir: Path, *, status: str, error_text: str) -> RunRecord:
+    store = RunStore(runs_dir)
+    return store.write_failure(
+        command="review-agent",
+        target="ch002",
+        prompt_text="prompt",
+        error_text=error_text,
+        status=status,
+        metadata={},
+        referenced_files=[],
+    )
 
 
 def test_agent_registry_filters_enabled_agents_by_kind_and_scope():
@@ -89,6 +103,38 @@ def test_agent_spec_rejects_invalid_kind_and_target_scope():
         )
 
 
+def test_execute_agent_spec_treats_no_issues_marker_as_success(monkeypatch, initialized_project):
+    spec = AgentSpec(
+        agent_id="critique.chapter",
+        kind="review",
+        description="chapter critique agent",
+        enabled=True,
+        target_scope="chapter",
+        prompt_template="Review this chapter for pacing drift.",
+    )
+    captured: dict[str, str] = {}
+    record = _write_success_record(initialized_project / ".pizhi" / "cache" / "runs", NO_AI_REVIEW_ISSUES_MESSAGE)
+
+    def fake_execute_prompt_request(project_root, request, target, route_name=None, provider_config=None):
+        captured["prompt_text"] = request.prompt_text
+        return FakeExecution(run_id=record.run_id, record=record)
+
+    monkeypatch.setattr("pizhi.services.agent_extensions.execute_prompt_request", fake_execute_prompt_request)
+
+    result = execute_agent_spec(
+        initialized_project,
+        spec,
+        target="ch002",
+        context_markdown="context",
+    )
+
+    assert result.status == "succeeded"
+    assert result.summary == "No issues found"
+    assert result.issues == []
+    assert NO_AI_REVIEW_ISSUES_MESSAGE.strip() in captured["prompt_text"]
+    assert "### 问题 1" in captured["prompt_text"]
+
+
 def test_execute_agent_spec_normalizes_successful_issue_payload(monkeypatch, initialized_project):
     spec = AgentSpec(
         agent_id="critique.chapter",
@@ -98,8 +144,8 @@ def test_execute_agent_spec_normalizes_successful_issue_payload(monkeypatch, ini
         target_scope="chapter",
         prompt_template="Review this chapter for pacing drift.",
     )
-    record = _write_record(
-        initialized_project / ".pizhi" / "cache",
+    record = _write_success_record(
+        initialized_project / ".pizhi" / "cache" / "runs",
         """\
 ### 问题 1
 - **类别**：人物一致性
@@ -112,7 +158,7 @@ def test_execute_agent_spec_normalizes_successful_issue_payload(monkeypatch, ini
 
     monkeypatch.setattr(
         "pizhi.services.agent_extensions.execute_prompt_request",
-        lambda *args, **kwargs: FakeExecution(record=record),
+        lambda *args, **kwargs: FakeExecution(run_id=record.run_id, record=record),
     )
 
     result = execute_agent_spec(
@@ -160,11 +206,15 @@ def test_execute_agent_spec_converts_non_succeeded_execution_into_failed_result(
         target_scope="chapter",
         prompt_template="Review this chapter for pacing drift.",
     )
-    record = _write_record(initialized_project / ".pizhi" / "cache", "")
+    record = _write_failure_record(
+        initialized_project / ".pizhi" / "cache" / "runs",
+        status="provider_failed",
+        error_text="provider down",
+    )
 
     monkeypatch.setattr(
         "pizhi.services.agent_extensions.execute_prompt_request",
-        lambda *args, **kwargs: FakeExecution(status="provider_failed", record=record),
+        lambda *args, **kwargs: FakeExecution(status="provider_failed", run_id=record.run_id, record=record),
     )
 
     result = execute_agent_spec(
@@ -175,7 +225,7 @@ def test_execute_agent_spec_converts_non_succeeded_execution_into_failed_result(
     )
 
     assert result.status == "failed"
-    assert result.failure_reason == "provider_failed"
+    assert result.failure_reason == "provider down"
 
 
 def test_execute_agent_spec_converts_parse_failure_into_failed_result(monkeypatch, initialized_project):
@@ -187,11 +237,11 @@ def test_execute_agent_spec_converts_parse_failure_into_failed_result(monkeypatc
         target_scope="chapter",
         prompt_template="Review this chapter for pacing drift.",
     )
-    record = _write_record(initialized_project / ".pizhi" / "cache", "not review markdown")
+    record = _write_success_record(initialized_project / ".pizhi" / "cache" / "runs", "not review markdown")
 
     monkeypatch.setattr(
         "pizhi.services.agent_extensions.execute_prompt_request",
-        lambda *args, **kwargs: FakeExecution(record=record),
+        lambda *args, **kwargs: FakeExecution(run_id=record.run_id, record=record),
     )
 
     result = execute_agent_spec(
@@ -203,3 +253,7 @@ def test_execute_agent_spec_converts_parse_failure_into_failed_result(monkeypatc
 
     assert result.status == "failed"
     assert result.failure_reason == "ai review markdown must start with an issue block"
+    run_store = RunStore(initialized_project / ".pizhi" / "cache" / "runs")
+    persisted = run_store.load(record.run_id)
+    assert persisted.status == "failed"
+    assert persisted.error_path.read_text(encoding="utf-8").strip() == "ai review markdown must start with an issue block"

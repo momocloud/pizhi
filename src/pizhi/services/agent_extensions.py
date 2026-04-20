@@ -7,7 +7,9 @@ from pizhi.adapters.base import PromptRequest
 from pizhi.domain.agent_extensions import AgentSpec
 from pizhi.domain.ai_review import AIReviewIssue
 from pizhi.domain.ai_review import parse_ai_review_issues
+from pizhi.services.ai_review_service import NO_AI_REVIEW_ISSUES_MESSAGE
 from pizhi.services.provider_execution import execute_prompt_request
+from pizhi.services.run_store import RunStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,9 +70,22 @@ def normalize_agent_execution(spec: AgentSpec, execution) -> AgentExecutionResul
         return AgentExecutionResult.failed(spec, failure_reason, run_id=run_id)
 
     rendered_markdown = _read_normalized_text(execution)
+    if rendered_markdown.strip() == NO_AI_REVIEW_ISSUES_MESSAGE.strip():
+        return AgentExecutionResult(
+            agent_id=spec.agent_id,
+            kind=spec.kind,
+            status="succeeded",
+            summary=_summarize_issues([]),
+            issues=[],
+            suggestions=[],
+            failure_reason=None,
+            run_id=run_id,
+        )
+
     try:
         issues = parse_ai_review_issues(rendered_markdown)
     except ValueError as exc:
+        _mark_failed_run_if_possible(execution, str(exc))
         return AgentExecutionResult.failed(spec, str(exc), run_id=run_id)
 
     return AgentExecutionResult(
@@ -106,7 +121,15 @@ def render_agent_prompt(spec: AgentSpec, *, target: str, context_markdown: str) 
             "",
             context_markdown.strip(),
             "",
-            "Return Markdown issue blocks in the AI review format.",
+            "Return either the exact no-issues message or Markdown issue blocks in this format:",
+            NO_AI_REVIEW_ISSUES_MESSAGE.strip(),
+            "",
+            "### 问题 1",
+            "- **类别**：人物一致性",
+            "- **严重度**：高",
+            "- **描述**：...",
+            "- **证据**：...",
+            "- **建议修法**：...",
         ]
     ).rstrip() + "\n"
 
@@ -138,3 +161,13 @@ def _read_failure_reason(execution) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
     return ""
+
+
+def _mark_failed_run_if_possible(execution, error_text: str) -> None:
+    record = getattr(execution, "record", None)
+    run_id = getattr(execution, "run_id", None)
+    run_dir = getattr(record, "run_dir", None)
+    if run_id is None or run_dir is None:
+        return
+    store = RunStore(Path(run_dir).parent)
+    store.mark_failure(run_id, error_text=error_text)
