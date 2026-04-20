@@ -6,7 +6,7 @@ If you believe you have found a security vulnerability, please report it
 privately through GitHub Security Advisories if this repository has private
 vulnerability reporting enabled.
 
-If that option is unavailable, use the repository owner's GitHub profile contact links, if any are listed, to request a private reporting channel. If that still does not work, open a minimal public issue titled `Security report: request private contact` and include only a short request for private follow-up without vulnerability details.
+If that option is unavailable, use the repository owner's GitHub profile contact links, if any are available, to reach the owner or the maintainers responsible for security handling and request a private reporting channel. If that still does not work, open a minimal public issue titled `Security report: request private contact` and include only a short request for private follow-up without vulnerability details.
 
 Include:
 

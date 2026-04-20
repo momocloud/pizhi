@@ -35,6 +35,7 @@ def test_public_docs_surface_excludes_internal_process_docs(project_root):
 def test_repository_contains_expected_open_source_metadata(project_root):
     expected = [
         "README.md",
+        "README-package.md",
         "ARCHITECTURE.md",
         "LICENSE",
         "CONTRIBUTING.md",
@@ -54,7 +55,8 @@ def test_repository_contains_expected_open_source_metadata(project_root):
 
 def test_pyproject_uses_readme_as_package_readme(project_root):
     pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'readme = "README.md"' in pyproject
+    assert 'readme = "README-package.md"' in pyproject
+    assert (project_root / "README-package.md").read_text(encoding="utf-8").startswith("# Pizhi")
 
 
 def test_contributing_doc_mentions_setup_and_test_command(project_root):
@@ -69,12 +71,30 @@ def test_security_doc_mentions_private_reporting(project_root):
     security = (project_root / "SECURITY.md").read_text(encoding="utf-8")
     assert "Please do not report security issues through public GitHub issues." in security
     assert "GitHub Security Advisories" in security
-    assert "repository owner's GitHub profile" in security
+    assert "repository owner's GitHub profile contact links" in security
+    assert "owner or the maintainers responsible for security handling" in security
     assert "Security report: request private contact" in security
 
 
 def test_code_of_conduct_mentions_private_enforcement_contact(project_root):
     code_of_conduct = (project_root / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
-    assert "reported privately through the same maintainer contact channel documented in SECURITY.md" in code_of_conduct
+    assert "reported privately through the maintainer contact channel documented in SECURITY.md" in code_of_conduct
     assert "minimal public issue fallback described there" in code_of_conduct
-    assert "Community leaders listed there are responsible for enforcement" in code_of_conduct
+    assert "Community leaders are responsible for enforcement" in code_of_conduct
+
+
+def test_visible_oss_artifacts_have_expected_markers(project_root):
+    license_text = (project_root / "LICENSE").read_text(encoding="utf-8")
+    changelog = (project_root / "CHANGELOG.md").read_text(encoding="utf-8")
+    bug_template = (project_root / ".github" / "ISSUE_TEMPLATE" / "bug_report.md").read_text(encoding="utf-8")
+    feature_template = (project_root / ".github" / "ISSUE_TEMPLATE" / "feature_request.md").read_text(encoding="utf-8")
+
+    assert "MIT License" in license_text
+    assert "[Unreleased]" in changelog
+    assert "v0.1.0" in changelog
+    assert "## What happened?" in bug_template
+    assert "## Steps to reproduce" in bug_template
+    assert "security vulnerability" in bug_template
+    assert "## Problem statement" in feature_template
+    assert "## Proposed solution" in feature_template
+    assert "security vulnerability" in feature_template

@@ -45,7 +45,7 @@ is officially representing the project in public spaces.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately through the same maintainer contact channel documented in SECURITY.md. If that channel is unavailable, use the minimal public issue fallback described there and avoid sharing sensitive details. Community leaders listed there are responsible for enforcement.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately through the maintainer contact channel documented in SECURITY.md. If that channel is unavailable, use the minimal public issue fallback described there and avoid sharing sensitive details. Community leaders are responsible for enforcement.
 
 ## Enforcement Guidelines
 

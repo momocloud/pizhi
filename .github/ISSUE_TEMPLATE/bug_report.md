@@ -6,7 +6,7 @@ labels: bug
 ---
 
 If this is a security vulnerability, do not file it here; see `SECURITY.md`
-for private reporting options.
+for the private reporting path and fallback instructions.
 
 ## What happened?
 
