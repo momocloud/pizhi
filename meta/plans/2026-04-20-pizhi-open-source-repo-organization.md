@@ -372,7 +372,7 @@ Expected:
 - all selected tests `PASSED`
 
 Observed:
-- `10 passed in 0.20s`
+- `10 passed`
 
 - [ ] **Step 3: Run the full regression suite**
 
@@ -383,7 +383,7 @@ Expected:
 - full suite `PASSED`
 
 Observed:
-- `317 passed in 104.09s`
+- `317 passed`
 
 - [ ] **Step 4: Update the plan with observed verification notes if outputs changed**
 
