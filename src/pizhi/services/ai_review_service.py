@@ -4,9 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pizhi.adapters.base import PromptRequest
-from pizhi.core.config import ProviderSection
-from pizhi.core.config import load_config
-from pizhi.core.paths import project_paths
 from pizhi.domain.ai_review import AIReviewIssue
 from pizhi.domain.ai_review import parse_ai_review_issues
 from pizhi.services.ai_review_context import AIReviewContext
@@ -69,13 +66,11 @@ def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResul
     )
 
     try:
-        review_config = _load_review_provider_config(project_root)
         execution = execute_prompt_request(
             project_root,
             prompt_request,
             target=context.target,
             route_name="review",
-            provider_config=review_config,
         )
     except Exception as exc:
         return AIReviewResult(
@@ -138,13 +133,6 @@ def format_ai_review_issues(issues: list[AIReviewIssue]) -> str:
 
     blocks = [_format_ai_review_issue(issue, index=index) for index, issue in enumerate(issues, start=1)]
     return "\n\n".join(blocks).rstrip() + "\n"
-
-
-def _load_review_provider_config(project_root: Path) -> ProviderSection:
-    config = load_config(project_paths(project_root).config_file)
-    if config.provider is None:
-        raise ValueError("provider is not configured")
-    return config.provider.resolve_review_config()
 
 
 def _render_referenced_files(referenced_files: list[str]) -> list[str]:

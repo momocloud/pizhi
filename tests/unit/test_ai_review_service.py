@@ -112,7 +112,7 @@ def test_run_ai_review_executes_with_review_provider_override(initialized_projec
     assert provider_request.api_key == "review-secret"
 
 
-def test_run_ai_review_routes_through_review_command_family(initialized_project, monkeypatch):
+def test_run_ai_review_passes_only_review_route_to_prompt_execution(initialized_project, monkeypatch):
     _configure_review_override(initialized_project)
     captured: dict[str, object] = {}
 
@@ -123,6 +123,8 @@ def test_run_ai_review_routes_through_review_command_family(initialized_project,
             captured["target"] = target
             captured["provider_config"] = provider_config
             captured["route_name"] = route_name
+            assert provider_config is None
+            assert route_name == "review"
 
             run_dir = project_root / ".pizhi" / "cache" / "runs" / "run-test"
             run_dir.mkdir(parents=True, exist_ok=True)
@@ -166,6 +168,38 @@ def test_run_ai_review_routes_through_review_command_family(initialized_project,
     assert result.status == "succeeded"
     assert captured["route_name"] == "review"
     assert captured["target"] == "ch002"
+
+
+def test_run_ai_review_uses_shared_review_route_config(
+    initialized_project, monkeypatch
+):
+    _configure_review_override(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RecordingAdapter(VALID_AI_REVIEW_RESPONSE, captured),
+    )
+
+    context = AIReviewContext(
+        scope="chapter",
+        target="ch002",
+        prompt_context="...",
+        referenced_files=[],
+        metadata={},
+    )
+
+    result = run_ai_review(initialized_project, context)
+
+    provider_request = captured["provider_request"]
+    assert result.run_id.startswith("run-")
+    assert result.record is not None
+    assert result.record.metadata["model"] == "gpt-5.4-mini"
+    assert result.issues[0].category == "人物一致性"
+    assert provider_request.model == "gpt-5.4-mini"
+    assert provider_request.base_url == "https://api.openai.com/v1/review"
+    assert provider_request.api_key == "review-secret"
 
 
 def test_run_ai_review_falls_back_to_default_provider_config_when_review_override_missing(
