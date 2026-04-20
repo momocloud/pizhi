@@ -211,6 +211,31 @@ def test_write_chapter_review_notes_appends_extension_sections(tmp_path):
     assert "- issue" in raw
 
 
+def test_load_chapter_review_notes_treats_extension_only_sections_as_machine_managed(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    notes_path.write_text(
+        "## Review Agent critique.chapter\n\n- issue\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+    write_chapter_review_notes(
+        notes_path,
+        author_notes=loaded.author_notes,
+        structural_markdown="A\n",
+        ai_review_markdown="B\n",
+    )
+
+    raw = notes_path.read_text(encoding="utf-8")
+
+    assert loaded.author_notes == ""
+    assert loaded.ai_review_markdown == ""
+    assert "## 作者备注" in raw
+    assert "## Review Agent critique.chapter" not in raw
+    assert raw.count("## ") == 3
+
+
 def test_write_full_review_document_writes_fixed_sections_in_order(tmp_path):
     report_path = tmp_path / "review_full.md"
 
