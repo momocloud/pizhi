@@ -35,6 +35,19 @@ FIELD_RE = {
 
 
 def parse_ai_review_issues(raw: str) -> list[AIReviewIssue]:
+    return parse_structured_issues(
+        raw,
+        allowed_categories=ALLOWED_REVIEW_CATEGORIES,
+        allowed_severities=ALLOWED_REVIEW_SEVERITIES,
+    )
+
+
+def parse_structured_issues(
+    raw: str,
+    *,
+    allowed_categories: set[str] | None = None,
+    allowed_severities: set[str] | None = None,
+) -> list[AIReviewIssue]:
     trimmed = raw.strip()
     if not trimmed:
         raise ValueError("ai review markdown cannot be empty")
@@ -51,12 +64,23 @@ def parse_ai_review_issues(raw: str) -> list[AIReviewIssue]:
         block_start = match.end()
         block_end = matches[index + 1].start() if index + 1 < len(matches) else len(trimmed)
         block = trimmed[block_start:block_end]
-        issues.append(_parse_issue_block(block))
+        issues.append(
+            _parse_issue_block(
+                block,
+                allowed_categories=allowed_categories,
+                allowed_severities=allowed_severities,
+            )
+        )
 
     return issues
 
 
-def _parse_issue_block(raw_block: str) -> AIReviewIssue:
+def _parse_issue_block(
+    raw_block: str,
+    *,
+    allowed_categories: set[str] | None,
+    allowed_severities: set[str] | None,
+) -> AIReviewIssue:
     lines = [line.strip() for line in raw_block.splitlines() if line.strip()]
     if len(lines) != 5:
         raise ValueError("malformed ai review issue block")
@@ -82,11 +106,11 @@ def _parse_issue_block(raw_block: str) -> AIReviewIssue:
         raise ValueError(f"missing ai review fields: {', '.join(missing_fields)}")
 
     category = fields["category"]
-    if category not in ALLOWED_REVIEW_CATEGORIES:
+    if allowed_categories is not None and category not in allowed_categories:
         raise ValueError(f"unknown review category: {category}")
 
     severity = fields["severity"]
-    if severity not in ALLOWED_REVIEW_SEVERITIES:
+    if allowed_severities is not None and severity not in allowed_severities:
         raise ValueError(f"unknown review severity: {severity}")
 
     return AIReviewIssue(

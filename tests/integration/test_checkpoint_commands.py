@@ -9,6 +9,8 @@ from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.config import save_config
 from pizhi.core.paths import project_paths
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionStore
 
@@ -304,6 +306,52 @@ def test_checkpoint_apply_fails_preflight_when_session_manifest_is_missing(
     assert result != 0
     assert "error:" in captured.err
     assert reloaded_checkpoint.status != "applied"
+
+
+def test_checkpoint_apply_prints_each_write_run_maintenance_summary(initialized_project, monkeypatch, capsys):
+    @dataclass(frozen=True, slots=True)
+    class StubCheckpoint:
+        checkpoint_id: str = "checkpoint-123"
+        session_id: str = "session-456"
+        stage: str = "write"
+        status: str = "applied"
+
+    @dataclass(frozen=True, slots=True)
+    class StubSession:
+        session_id: str = "session-456"
+        last_checkpoint_id: str = "checkpoint-123"
+        current_stage: str = "write"
+        status: str = "ready_to_resume"
+
+    @dataclass(frozen=True, slots=True)
+    class StubCheckpointApplyResult:
+        checkpoint: StubCheckpoint
+        session: StubSession
+        maintenance_results: list[tuple[int, MaintenanceResult | None]]
+
+    maintenance_result = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Maintenance agent", detail="archive.audit: failed - boom")],
+    )
+
+    monkeypatch.setattr("pizhi.commands.checkpoint_cmd._preflight_checkpoint_apply", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "pizhi.commands.checkpoint_cmd.apply_checkpoint",
+        lambda *_args, **_kwargs: StubCheckpointApplyResult(
+            checkpoint=StubCheckpoint(),
+            session=StubSession(),
+            maintenance_results=[(1, maintenance_result)],
+        ),
+    )
+
+    result = main(["checkpoint", "apply", "--id", "checkpoint-123"])
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert "checkpoint_id=checkpoint-123" in captured.out
+    assert "session_id=session-456" in captured.out
+    assert "Maintenance agent: archive.audit: failed - boom" in captured.out
 
 
 def test_continue_resume_fails_cleanly_when_session_manifest_is_missing(

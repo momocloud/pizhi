@@ -162,6 +162,7 @@ def default_config(
 
 def save_config(path: Path, config: ProjectConfig) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    _validate_unique_agent_ids(config.agents)
     payload = asdict(config)
     if config.provider is None:
         payload.pop("provider", None)
@@ -209,9 +210,25 @@ def _agent_specs_from_raw(raw_agents: Any) -> list[AgentSpec] | None:
         raise ValueError("agents must be a list")
 
     specs: list[AgentSpec] = []
+    seen_agent_ids: set[str] = set()
     for raw_spec in raw_agents:
         if not isinstance(raw_spec, dict):
             raise ValueError("agents must contain mappings")
-        specs.append(AgentSpec(**raw_spec))
+        spec = AgentSpec(**raw_spec)
+        if spec.agent_id in seen_agent_ids:
+            raise ValueError(f"duplicate agent_id: {spec.agent_id}")
+        seen_agent_ids.add(spec.agent_id)
+        specs.append(spec)
 
     return specs
+
+
+def _validate_unique_agent_ids(specs: list[AgentSpec] | None) -> None:
+    if specs is None:
+        return
+
+    seen_agent_ids: set[str] = set()
+    for spec in specs:
+        if spec.agent_id in seen_agent_ids:
+            raise ValueError(f"duplicate agent_id: {spec.agent_id}")
+        seen_agent_ids.add(spec.agent_id)

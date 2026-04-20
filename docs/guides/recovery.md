@@ -80,14 +80,14 @@ Recovery:
 
 In v1 there is no standalone maintenance command. Maintenance reruns through built-in flows:
 
-- `python -m pizhi review --full`
-- `python -m pizhi review --full --execute`
+- `python -m pizhi review --full` for deterministic built-in maintenance only
+- `python -m pizhi review --full --execute` when you also need AI review and maintenance-extension output refreshed
 - apply-driven closure flows that invoke maintenance after deterministic updates
 
 If an internal extension agent fails, Pizhi records the failure in the report while keeping built-in output intact. Recovery is:
 
 1. Fix the config or provider issue behind the failing extension.
-2. Re-run the owning command, usually `python -m pizhi review --full` or `python -m pizhi review --full --execute`.
+2. Re-run the owning command, usually `python -m pizhi review --full --execute`, `python -m pizhi apply --run-id <run_id>`, or `python -m pizhi checkpoint apply --id <checkpoint_id>`.
 
 Extension agents are additive only. They should never be treated as the source of truth for chapter or global files.
 

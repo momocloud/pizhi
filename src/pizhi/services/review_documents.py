@@ -72,6 +72,7 @@ def write_chapter_review_notes(
     ai_review_markdown: str,
     extension_sections: list[ExtensionReportSection] | None = None,
 ) -> None:
+    _validate_unique_extension_section_titles(extension_sections or [])
     sections = {
         "作者备注": author_notes,
         "A 类结构检查": structural_markdown,
@@ -203,3 +204,11 @@ def _normalize_section_body(text: str) -> str:
 
 def _is_machine_managed_chapter_heading(name: str) -> bool:
     return name in SUPPORTED_CHAPTER_REVIEW_HEADINGS or name.startswith(REVIEW_AGENT_SECTION_PREFIX)
+
+
+def _validate_unique_extension_section_titles(sections: list[ExtensionReportSection]) -> None:
+    seen_titles: set[str] = set()
+    for section in sections:
+        if section.title in seen_titles:
+            raise ValueError(f"duplicate extension section title: {section.title}")
+        seen_titles.add(section.title)

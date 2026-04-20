@@ -7,6 +7,7 @@ from pizhi.core.paths import project_paths
 from pizhi.services.brainstorm_service import BrainstormService
 from pizhi.services.outline_service import OutlineService
 from pizhi.services.run_store import RunStore
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.write_service import WriteService
 
 
@@ -16,6 +17,7 @@ class ApplyResult:
     command: str
     target: str
     status: str
+    maintenance_result: MaintenanceResult | None
 
 
 def apply_run(project_root: Path, run_id: str) -> ApplyResult:
@@ -40,13 +42,15 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
     except (OSError, UnicodeError) as exc:
         raise ValueError(f"run {run_id} has unreadable normalized.md: {exc}") from None
 
+    maintenance_result: MaintenanceResult | None = None
     if record.command == "brainstorm":
         BrainstormService(project_root).apply_response(normalized_text)
     elif record.command == "outline-expand":
         OutlineService(project_root).apply_response(normalized_text)
     elif record.command == "write":
         chapter_number = _load_chapter_number(record.metadata, run_id)
-        WriteService(project_root).apply_response(chapter_number, normalized_text)
+        write_result = WriteService(project_root).apply_response(chapter_number, normalized_text)
+        maintenance_result = write_result.maintenance_result
     else:
         raise ValueError(f"unsupported run command: {record.command}")
 
@@ -55,6 +59,7 @@ def apply_run(project_root: Path, run_id: str) -> ApplyResult:
         command=record.command,
         target=record.target,
         status=record.status,
+        maintenance_result=maintenance_result,
     )
 
 

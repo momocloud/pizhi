@@ -210,6 +210,66 @@ def test_config_round_trip_preserves_agent_specs(tmp_path):
     assert loaded.agents[1].enabled is False
 
 
+def test_load_config_rejects_duplicate_agent_ids(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        """
+project: {name: Test, genre: "", pov: "", created: "2026-04-20", last_updated: "2026-04-20"}
+chapters: {total_planned: 0, per_volume: 20}
+generation:
+  context_window: {prev_chapters: 2, max_outline_words: 500, max_chapter_words: 5000}
+  style: {tone: "", dialogue_ratio: 0.35}
+consistency: {auto_check: true, checkpoint_interval: 3}
+foreshadowing: {auto_archive_resolved: true, reminder_threshold: 5}
+agents:
+  - agent_id: critique.chapter
+    kind: review
+    description: first
+    enabled: true
+    target_scope: chapter
+    prompt_template: first
+  - agent_id: critique.chapter
+    kind: review
+    description: second
+    enabled: true
+    target_scope: chapter
+    prompt_template: second
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate agent_id"):
+        load_config(path)
+
+
+def test_load_config_rejects_non_boolean_agent_enabled(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        """
+project: {name: Test, genre: "", pov: "", created: "2026-04-20", last_updated: "2026-04-20"}
+chapters: {total_planned: 0, per_volume: 20}
+generation:
+  context_window: {prev_chapters: 2, max_outline_words: 500, max_chapter_words: 5000}
+  style: {tone: "", dialogue_ratio: 0.35}
+consistency: {auto_check: true, checkpoint_interval: 3}
+foreshadowing: {auto_archive_resolved: true, reminder_threshold: 5}
+agents:
+  - agent_id: critique.chapter
+    kind: review
+    description: bad enabled type
+    enabled: "false"
+    target_scope: chapter
+    prompt_template: noop
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="enabled must be a boolean"):
+        load_config(path)
+
+
 def test_load_config_rejects_unknown_agent_kind(tmp_path):
     path = tmp_path / ".pizhi" / "config.yaml"
     path.parent.mkdir(parents=True)

@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from pizhi.services.apply_service import apply_run
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.run_store import RunStore
 
 
@@ -70,7 +72,7 @@ def test_apply_run_routes_successful_outline_expand_run(initialized_project, fix
     assert (initialized_project / ".pizhi" / "chapters" / "ch001" / "outline.md").exists()
 
 
-def test_apply_run_routes_successful_write_run(initialized_project, fixture_text):
+def test_apply_run_routes_successful_write_run(initialized_project, fixture_text, monkeypatch):
     run_id = _seed_successful_run(
         initialized_project,
         command="write",
@@ -78,10 +80,18 @@ def test_apply_run_routes_successful_write_run(initialized_project, fixture_text
         normalized_text=fixture_text("ch001_response.md"),
         metadata={"chapter": 1},
     )
+    maintenance_result = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Maintenance agent", detail="archive.audit: failed - boom")],
+    )
+
+    monkeypatch.setattr("pizhi.services.write_service.run_after_write", lambda *_args, **_kwargs: maintenance_result)
 
     result = apply_run(initialized_project, run_id)
 
     assert result.command == "write"
+    assert result.maintenance_result is maintenance_result
     assert (initialized_project / ".pizhi" / "chapters" / "ch001" / "text.md").exists()
 
 

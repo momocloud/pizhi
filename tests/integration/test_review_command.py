@@ -117,27 +117,28 @@ def test_review_command_writes_notes_file(initialized_project, fixture_text):
 
 
 def test_review_command_full_without_execute_does_not_invoke_extension_agents(
-    initialized_project, monkeypatch, fixture_text
+    initialized_project, monkeypatch, capsys, fixture_text
 ):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+    _configure_maintenance_agent(initialized_project)
+    monkeypatch.chdir(initialized_project)
     monkeypatch.setattr(
-        "pizhi.commands.review_cmd.load_agent_registry",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("extensions should not load")),
+        "pizhi.services.maintenance.load_agent_registry",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("review --full without --execute must not load maintenance agents")),
     )
 
-    result = run(
-        [sys.executable, "-m", "pizhi", "review", "--full"],
-        cwd=initialized_project,
-        capture_output=True,
-        text=True,
-    )
+    exit_code = main(["review", "--full"])
+    output = capsys.readouterr()
 
     report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
 
-    assert result.returncode == 0
+    assert exit_code == 0
     assert report_path.exists()
-    assert "AssertionError" not in result.stderr
+    assert "- Synopsis review: not run." in report_path.read_text(encoding="utf-8")
+    assert not runs_dir.exists()
+    assert "Traceback" not in output.err
 
 
 def test_review_command_chapter_execute_writes_ai_review_and_run_id(

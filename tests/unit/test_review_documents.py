@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pizhi.services.agent_extensions import ExtensionReportSection
+from pizhi.services.agent_extensions import render_extension_runtime_failure_section
+from pizhi.services.agent_extensions import render_extension_setup_failure_section
 from pizhi.services.review_documents import load_chapter_review_notes
 from pizhi.services.review_documents import write_full_review_document
 from pizhi.services.review_documents import write_chapter_review_notes
@@ -209,6 +211,66 @@ def test_write_chapter_review_notes_appends_extension_sections(tmp_path):
     assert "## 作者备注" in raw
     assert "## Review Agent critique.chapter" in raw
     assert "- issue" in raw
+
+
+def test_render_extension_failure_sections_quote_markdown_headings():
+    setup_section = render_extension_setup_failure_section("trace\n## setup heading\nmore")
+    runtime_section = render_extension_runtime_failure_section(
+        "critique.chapter",
+        "trace\n## runtime heading\nmore",
+    )
+
+    assert setup_section.body.startswith("- Status: failed\n- Error: extension setup/load failure\n\n> trace\n> ## setup heading\n> more\n")
+    assert runtime_section.body.startswith("- Status: failed\n- Error: extension runtime failure\n\n> trace\n> ## runtime heading\n> more\n")
+    assert all(
+        not line.startswith("## ")
+        for line in setup_section.body.splitlines()
+    )
+    assert all(
+        not line.startswith("## ")
+        for line in runtime_section.body.splitlines()
+    )
+
+
+def test_load_and_write_chapter_review_notes_keep_failure_text_out_of_section_boundaries(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    failure_section = render_extension_runtime_failure_section(
+        "critique.chapter",
+        "runtime failed\n## nested heading\nstill details",
+    )
+
+    write_chapter_review_notes(
+        notes_path,
+        author_notes="作者备注。\n",
+        structural_markdown="结构检查。\n",
+        ai_review_markdown="AI 审查。\n",
+        extension_sections=[failure_section],
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+    assert loaded.author_notes.strip() == "作者备注。"
+    assert loaded.ai_review_markdown.strip() == "AI 审查。"
+    assert "nested heading" not in loaded.author_notes
+    assert "nested heading" not in loaded.ai_review_markdown
+
+    write_chapter_review_notes(
+        notes_path,
+        author_notes=loaded.author_notes,
+        structural_markdown="重写结构检查。\n",
+        ai_review_markdown=loaded.ai_review_markdown,
+        extension_sections=[failure_section],
+    )
+
+    raw = notes_path.read_text(encoding="utf-8")
+    top_level_headings = [line for line in raw.splitlines() if line.startswith("## ")]
+    assert top_level_headings == [
+        "## 作者备注",
+        "## A 类结构检查",
+        "## B 类 AI 审查",
+        "## Review Agent critique.chapter",
+    ]
+    assert "## nested heading" not in top_level_headings
+    assert "runtime failed" in raw
 
 
 def test_load_chapter_review_notes_treats_extension_only_sections_as_machine_managed(tmp_path):

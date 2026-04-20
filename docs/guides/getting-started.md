@@ -90,7 +90,7 @@ Canonical command shapes:
 
 `pizhi review --execute` runs structural review first, then optional AI review, and writes partitioned notes or a full review report. `pizhi review --full` also runs built-in maintenance. In v1, maintenance does not have a standalone CLI; it runs inside full review and apply-driven closure flows.
 
-If the project config defines internal extension agents, their `review` or `maintenance` findings are appended to the report output. Those hooks are additive only and do not own source-of-truth writes.
+If the project config defines internal extension agents, their `review` findings are appended during `review --execute`. `maintenance` findings appear in `review --full --execute`, `apply --run-id`, and checkpoint-apply closure flows. Non-`--execute` `review --full` stays deterministic and only reruns built-in maintenance.
 
 ## 6. Compile manuscript output
 

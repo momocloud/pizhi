@@ -1,8 +1,12 @@
 from subprocess import run
 import sys
 
+from pizhi.cli import main
+from pizhi.core.config import load_config
+from pizhi.core.config import save_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
+from pizhi.domain.agent_extensions import AgentSpec
 from pizhi.services.chapter_writer import apply_chapter_response
 from pizhi.services.maintenance import run_full_maintenance
 from pizhi.services.write_service import WriteService
@@ -35,6 +39,24 @@ def _prepare_archived_write_context(initialized_project, fixture_text) -> None:
         "# 第051章 封档之后\n\n- 新章节需要承接已封档的关键转折。\n",
         encoding="utf-8",
     )
+
+
+def _configure_maintenance_agent(
+    initialized_project, *, agent_id: str = "archive.audit", prompt_template: str = "Audit the maintenance results."
+) -> None:
+    config_path = initialized_project / ".pizhi" / "config.yaml"
+    config = load_config(config_path)
+    config.agents = [
+        AgentSpec(
+            agent_id=agent_id,
+            kind="maintenance",
+            description="Extension maintenance agent.",
+            enabled=True,
+            target_scope="project",
+            prompt_template=prompt_template,
+        )
+    ]
+    save_config(config_path, config)
 
 
 def _archived_synopsis_response() -> str:
@@ -253,6 +275,45 @@ def test_write_command_applies_response_file(initialized_project, fixture_text):
     assert (chapter_dir / "text.md").exists()
     index_text = (initialized_project / ".pizhi" / "chapters" / "index.jsonl").read_text(encoding="utf-8")
     assert '"status": "drafted"' in index_text
+
+
+def test_write_command_response_file_keeps_maintenance_extensions_enabled(initialized_project, monkeypatch, fixture_text):
+    monkeypatch.chdir(initialized_project)
+    _configure_maintenance_agent(initialized_project)
+
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
+        encoding="utf-8",
+    )
+
+    calls: list[tuple[str, str]] = []
+
+    def fake_execute_agent_spec(_project_root, spec, **kwargs):
+        from pizhi.services.agent_extensions import AgentExecutionResult
+
+        calls.append((spec.agent_id, kwargs["route_name"]))
+        return AgentExecutionResult(
+            agent_id=spec.agent_id,
+            kind="maintenance",
+            status="succeeded",
+            summary="archive summary",
+            issues=[],
+            suggestions=[],
+            failure_reason=None,
+            run_id="run_maint",
+        )
+
+    monkeypatch.setattr("pizhi.services.agent_extensions.execute_agent_spec", fake_execute_agent_spec)
+
+    response_file = initialized_project / "ch001_response.md"
+    response_file.write_text(fixture_text("ch001_response.md"), encoding="utf-8")
+
+    exit_code = main(["write", "--chapter", "1", "--response-file", str(response_file)])
+
+    assert exit_code == 0
+    assert calls == [("archive.audit", "review")]
 
 
 def test_write_command_promotes_valid_synopsis_candidate(initialized_project, fixture_text):

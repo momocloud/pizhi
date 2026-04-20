@@ -6,7 +6,9 @@ from pathlib import Path
 from pizhi.adapters.base import PromptRequest
 from pizhi.domain.agent_extensions import AgentSpec
 from pizhi.domain.ai_review import AIReviewIssue
+from pizhi.domain.ai_review import ALLOWED_REVIEW_SEVERITIES
 from pizhi.domain.ai_review import parse_ai_review_issues
+from pizhi.domain.ai_review import parse_structured_issues
 from pizhi.services.ai_review_service import NO_AI_REVIEW_ISSUES_MESSAGE
 from pizhi.services.provider_execution import execute_prompt_request
 from pizhi.services.run_store import RunStore
@@ -91,7 +93,7 @@ def normalize_agent_execution(spec: AgentSpec, execution) -> AgentExecutionResul
         )
 
     try:
-        issues = parse_ai_review_issues(rendered_markdown)
+        issues = _parse_agent_issues(spec, rendered_markdown)
     except ValueError as exc:
         _mark_failed_run_if_possible(execution, str(exc))
         return AgentExecutionResult.failed(spec, str(exc), run_id=run_id)
@@ -109,6 +111,7 @@ def normalize_agent_execution(spec: AgentSpec, execution) -> AgentExecutionResul
 
 
 def render_agent_prompt(spec: AgentSpec, *, target: str, context_markdown: str) -> str:
+    issue_contract_lines = _render_issue_contract(spec.kind)
     return "\n".join(
         [
             "# Agent Extension Request",
@@ -132,24 +135,19 @@ def render_agent_prompt(spec: AgentSpec, *, target: str, context_markdown: str) 
             "Return either the exact no-issues message or Markdown issue blocks in this format:",
             NO_AI_REVIEW_ISSUES_MESSAGE.strip(),
             "",
-            "### 问题 1",
-            "- **类别**：人物一致性",
-            "- **严重度**：高",
-            "- **描述**：...",
-            "- **证据**：...",
-            "- **建议修法**：...",
+            *issue_contract_lines,
         ]
     ).rstrip() + "\n"
 
 
 def render_agent_execution_section(result: AgentExecutionResult) -> ExtensionReportSection:
     if result.status == "failed":
-        lines = ["- Status: failed"]
-        if result.run_id:
-            lines.append(f"- Run ID: {result.run_id}")
-        if result.failure_reason:
-            lines.append(f"- Error: {result.failure_reason}")
-        body = "\n".join(lines).rstrip() + "\n"
+        body = _render_failure_body(
+            error_label="execution failure",
+            error_text=result.failure_reason or "unknown extension runtime failure",
+            fallback_message="unknown extension runtime failure",
+            run_id=result.run_id,
+        )
         return ExtensionReportSection(
             agent_id=result.agent_id,
             title=f"Review Agent {result.agent_id}",
@@ -172,15 +170,11 @@ def render_extension_setup_failure_section(error_text: str) -> ExtensionReportSe
     return ExtensionReportSection(
         agent_id="extension.setup",
         title="Review Agent extension.setup",
-        body="\n".join(
-            [
-                "- Status: failed",
-                "- Error: extension setup/load failure",
-                "",
-                error_text.strip() or "unknown extension setup failure",
-            ]
-        ).rstrip()
-        + "\n",
+        body=_render_failure_body(
+            error_label="extension setup/load failure",
+            error_text=error_text,
+            fallback_message="unknown extension setup failure",
+        ),
     )
 
 
@@ -188,15 +182,11 @@ def render_extension_runtime_failure_section(agent_id: str, error_text: str) -> 
     return ExtensionReportSection(
         agent_id=agent_id,
         title=f"Review Agent {agent_id}",
-        body="\n".join(
-            [
-                "- Status: failed",
-                "- Error: extension runtime failure",
-                "",
-                error_text.strip() or "unknown extension runtime failure",
-            ]
-        ).rstrip()
-        + "\n",
+        body=_render_failure_body(
+            error_label="extension runtime failure",
+            error_text=error_text,
+            fallback_message="unknown extension runtime failure",
+        ),
     )
 
 
@@ -222,6 +212,58 @@ def _render_issue_markdown(issues: list[AIReviewIssue]) -> str:
             ]
         )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _parse_agent_issues(spec: AgentSpec, rendered_markdown: str) -> list[AIReviewIssue]:
+    if spec.kind == "maintenance":
+        return parse_structured_issues(rendered_markdown, allowed_severities=ALLOWED_REVIEW_SEVERITIES)
+    return parse_ai_review_issues(rendered_markdown)
+
+
+def _render_issue_contract(kind: str) -> list[str]:
+    if kind == "maintenance":
+        return [
+            "### 问题 1",
+            "- **类别**：Archive",
+            "- **严重度**：中",
+            "- **描述**：...",
+            "- **证据**：...",
+            "- **建议修法**：...",
+        ]
+    return [
+        "### 问题 1",
+        "- **类别**：人物一致性",
+        "- **严重度**：高",
+        "- **描述**：...",
+        "- **证据**：...",
+        "- **建议修法**：...",
+    ]
+
+
+def _render_failure_body(
+    *,
+    error_label: str,
+    error_text: str,
+    fallback_message: str,
+    run_id: str | None = None,
+) -> str:
+    lines = ["- Status: failed"]
+    if run_id:
+        lines.append(f"- Run ID: {run_id}")
+    lines.append(f"- Error: {error_label}")
+    lines.append("")
+    lines.extend(_quote_markdown_lines(error_text.strip() or fallback_message))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _quote_markdown_lines(text: str) -> list[str]:
+    lines = text.splitlines()
+    if not lines:
+        return [">"]
+    quoted_lines: list[str] = []
+    for line in lines:
+        quoted_lines.append("> " + line if line else ">")
+    return quoted_lines
 
 
 def _read_normalized_text(execution) -> str:

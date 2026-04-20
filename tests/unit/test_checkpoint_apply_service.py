@@ -9,6 +9,8 @@ from pizhi.services import checkpoint_apply_service
 from pizhi.services.checkpoint_apply_service import apply_checkpoint
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionStore
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.run_store import RunStore
 
 
@@ -18,6 +20,7 @@ class AppliedRun:
     command: str = "write"
     target: str = "ch001"
     status: str = "succeeded"
+    maintenance_result: MaintenanceResult | None = None
 
 
 def _seed_successful_run(
@@ -109,6 +112,50 @@ def test_apply_checkpoint_applies_write_runs_in_chapter_order(initialized_projec
     assert result.session.status == "ready_to_resume"
     assert result.checkpoint.applied_at is not None
     assert result.session.last_checkpoint_id == checkpoint_id
+
+
+def test_apply_checkpoint_returns_write_run_maintenance_results_in_chapter_order(initialized_project, monkeypatch):
+    run_10 = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch010",
+        normalized_text="# chapter 10",
+        metadata={"chapter": 10},
+    )
+    run_2 = _seed_successful_run(
+        initialized_project,
+        command="write",
+        target="ch002",
+        normalized_text="# chapter 2",
+        metadata={"chapter": 2},
+    )
+    _, checkpoint_id = _create_generated_checkpoint(
+        initialized_project,
+        stage="write",
+        run_ids=[run_10, run_2],
+    )
+
+    maintenance_2 = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Maintenance agent", detail="archive.audit: failed - boom")],
+    )
+    maintenance_10 = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Maintenance agent", detail="archive.audit: promoted")],
+    )
+
+    def _record_apply(project_root, run_id):
+        if run_id == run_2:
+            return AppliedRun(run_id=run_id, maintenance_result=maintenance_2)
+        return AppliedRun(run_id=run_id, maintenance_result=maintenance_10)
+
+    monkeypatch.setattr("pizhi.services.checkpoint_apply_service.apply_run", _record_apply)
+
+    result = apply_checkpoint(initialized_project, checkpoint_id)
+
+    assert result.maintenance_results == [(2, maintenance_2), (10, maintenance_10)]
 
 
 def test_apply_checkpoint_stops_on_first_failure(initialized_project, monkeypatch):

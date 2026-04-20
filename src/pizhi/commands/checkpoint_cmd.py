@@ -10,6 +10,7 @@ from pizhi.services.checkpoint_store import CheckpointRecord
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionRecord
 from pizhi.services.continue_session_store import ContinueSessionStore
+from pizhi.services.maintenance import format_maintenance_summary
 
 
 def run_checkpoint_apply(args: argparse.Namespace) -> int:
@@ -22,6 +23,9 @@ def run_checkpoint_apply(args: argparse.Namespace) -> int:
 
     _print_checkpoint(result.checkpoint)
     _print_session(result.session)
+    for chapter_number, maintenance_result in result.maintenance_results:
+        print(f"chapter=ch{chapter_number:03d}")
+        print(format_maintenance_summary(maintenance_result), end="")
     return 0
 
 

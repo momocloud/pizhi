@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from subprocess import run
 import sys
 
+from pizhi.cli import main
+from pizhi.services.maintenance import MaintenanceFinding
+from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.run_store import RunStore
+
+
+@dataclass(frozen=True, slots=True)
+class AppliedRun:
+    run_id: str
+    command: str
+    target: str
+    status: str = "succeeded"
+    maintenance_result: MaintenanceResult | None = None
 
 
 def test_apply_command_rejects_non_success_run(initialized_project):
@@ -92,3 +105,28 @@ def test_apply_command_rejects_directory_normalized_md_without_traceback(initial
     assert result.returncode != 0
     assert "Traceback" not in result.stderr
     assert "normalized.md" in result.stderr
+
+
+def test_apply_command_prints_write_maintenance_summary(initialized_project, monkeypatch, capsys):
+    maintenance_result = MaintenanceResult(
+        synopsis_review=None,
+        archive_result=None,
+        findings=[MaintenanceFinding(category="Maintenance agent", detail="archive.audit: failed - boom")],
+    )
+
+    monkeypatch.setattr(
+        "pizhi.commands.apply_cmd.apply_run",
+        lambda *_args, **_kwargs: AppliedRun(
+            run_id="run-123",
+            command="write",
+            target="ch001",
+            maintenance_result=maintenance_result,
+        ),
+    )
+
+    result = main(["apply", "--run-id", "run-123"])
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert "Applied run: run-123 write ch001" in captured.out
+    assert "Maintenance agent: archive.audit: failed - boom" in captured.out

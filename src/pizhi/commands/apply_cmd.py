@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from pizhi.services.apply_service import apply_run
+from pizhi.services.maintenance import format_maintenance_summary
 
 
 def run_apply(args: argparse.Namespace) -> int:
@@ -15,4 +16,6 @@ def run_apply(args: argparse.Namespace) -> int:
         return 1
 
     print(f"Applied run: {result.run_id} {result.command} {result.target}")
+    if result.maintenance_result is not None:
+        print(format_maintenance_summary(result.maintenance_result), end="")
     return 0

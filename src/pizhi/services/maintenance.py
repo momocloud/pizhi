@@ -40,15 +40,34 @@ def clear_synopsis_review_pending(project_root: Path) -> None:
         marker_path.unlink()
 
 
-def run_after_write(project_root: Path) -> MaintenanceResult:
-    return _run_maintenance(project_root)
+def run_after_write(project_root: Path, *, include_extensions: bool = True) -> MaintenanceResult:
+    return _run_maintenance(project_root, include_extensions=include_extensions)
 
 
-def run_full_maintenance(project_root: Path) -> MaintenanceResult:
-    return _run_maintenance(project_root)
+def run_full_maintenance(project_root: Path, *, include_extensions: bool = True) -> MaintenanceResult:
+    return _run_maintenance(project_root, include_extensions=include_extensions)
 
 
-def _run_maintenance(project_root: Path) -> MaintenanceResult:
+def _run_maintenance(project_root: Path, *, include_extensions: bool) -> MaintenanceResult:
+    core_result = _run_core_maintenance(project_root)
+    if not include_extensions:
+        return core_result
+
+    extension_findings = _run_maintenance_extension_findings(
+        project_root,
+        core_result.synopsis_review,
+        core_result.archive_result,
+    )
+    if not extension_findings:
+        return core_result
+    return MaintenanceResult(
+        synopsis_review=core_result.synopsis_review,
+        archive_result=core_result.archive_result,
+        findings=core_result.findings + extension_findings,
+    )
+
+
+def _run_core_maintenance(project_root: Path) -> MaintenanceResult:
     synopsis_review = None
     candidate_path = project_paths(project_root).synopsis_candidate_file
     marker_path = _synopsis_review_pending_path(project_root)
@@ -57,8 +76,7 @@ def _run_maintenance(project_root: Path) -> MaintenanceResult:
     clear_synopsis_review_pending(project_root)
 
     archive_result = rotate_archives(project_root)
-    extension_findings = _run_maintenance_extension_findings(project_root, synopsis_review, archive_result)
-    findings = _build_findings(synopsis_review, archive_result, extension_findings)
+    findings = _build_findings(synopsis_review, archive_result, [])
     return MaintenanceResult(
         synopsis_review=synopsis_review,
         archive_result=archive_result,
@@ -125,7 +143,9 @@ def _run_maintenance_extension_findings(
         except Exception as exc:
             findings.append(_build_maintenance_extension_failure_finding(spec.agent_id, str(exc)))
             continue
-        findings.append(_build_maintenance_extension_result_finding(result))
+        finding = _build_maintenance_extension_result_finding(result)
+        if finding is not None:
+            findings.append(finding)
     return findings
 
 
@@ -150,9 +170,11 @@ def build_maintenance_context(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _build_maintenance_extension_result_finding(result: AgentExecutionResult) -> MaintenanceFinding:
+def _build_maintenance_extension_result_finding(result: AgentExecutionResult) -> MaintenanceFinding | None:
     if result.status == "succeeded":
-        detail = f"{result.agent_id}: {result.summary}"
+        if not result.issues and result.summary == "No issues found":
+            return None
+        detail = _format_maintenance_extension_success(result)
     else:
         detail = f"{result.agent_id}: failed - {result.failure_reason or 'unknown failure'}"
     return MaintenanceFinding(category="Maintenance agent", detail=detail)
@@ -161,6 +183,17 @@ def _build_maintenance_extension_result_finding(result: AgentExecutionResult) ->
 def _build_maintenance_extension_failure_finding(agent_id: str, error_text: str) -> MaintenanceFinding:
     detail = f"{agent_id}: failed - {error_text.strip() or 'unknown extension runtime failure'}"
     return MaintenanceFinding(category="Maintenance agent", detail=detail)
+
+
+def _format_maintenance_extension_success(result: AgentExecutionResult) -> str:
+    if not result.issues:
+        return f"{result.agent_id}: {result.summary}"
+
+    issue_summaries = [
+        f"[{issue.severity}] {issue.category}: {issue.description} 证据：{issue.evidence} 建议：{issue.suggestion}"
+        for issue in result.issues
+    ]
+    return f"{result.agent_id}: {'; '.join(issue_summaries)}"
 
 
 def format_maintenance_summary(maintenance_result: MaintenanceResult | None) -> str:
@@ -205,6 +238,10 @@ def format_checkpoint_maintenance(chapter_results: list[tuple[int, MaintenanceRe
         archive_details = [finding.detail for finding in result.findings if finding.category == "Archive"]
         if archive_details:
             lines.append(f"  archive: {'; '.join(archive_details)}")
+
+        maintenance_agent_details = [finding.detail for finding in result.findings if finding.category == "Maintenance agent"]
+        if maintenance_agent_details:
+            lines.append(f"  Maintenance agent: {'; '.join(maintenance_agent_details)}")
 
     return "\n".join(lines).rstrip() + "\n"
 

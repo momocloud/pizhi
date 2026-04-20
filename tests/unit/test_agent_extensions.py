@@ -7,8 +7,12 @@ import pytest
 
 from pizhi.domain.agent_extensions import AgentSpec
 from pizhi.services.agent_registry import AgentRegistry
+from pizhi.services.agent_extensions import AgentExecutionResult
 from pizhi.services.agent_extensions import NO_AI_REVIEW_ISSUES_MESSAGE
 from pizhi.services.agent_extensions import execute_agent_spec
+from pizhi.services.agent_extensions import render_agent_execution_section
+from pizhi.services.agent_extensions import render_extension_runtime_failure_section
+from pizhi.services.agent_extensions import render_extension_setup_failure_section
 from pizhi.services.run_store import RunRecord
 from pizhi.services.run_store import RunStore
 
@@ -174,6 +178,44 @@ def test_execute_agent_spec_normalizes_successful_issue_payload(monkeypatch, ini
     assert result.issues[0].category == "人物一致性"
 
 
+def test_execute_agent_spec_allows_maintenance_issue_categories(monkeypatch, initialized_project):
+    spec = AgentSpec(
+        agent_id="archive.audit",
+        kind="maintenance",
+        description="archive audit agent",
+        enabled=True,
+        target_scope="project",
+        prompt_template="Audit maintenance output for archive issues.",
+    )
+    record = _write_success_record(
+        initialized_project / ".pizhi" / "cache" / "runs",
+        """\
+### 问题 1
+- **类别**：Archive
+- **严重度**：中
+- **描述**：归档块缺少章节边界说明。
+- **证据**：timeline_ch001-050.md 只有标题，没有收口说明。
+- **建议修法**：补一行 archive boundary note。
+""",
+    )
+
+    monkeypatch.setattr(
+        "pizhi.services.agent_extensions.execute_prompt_request",
+        lambda *args, **kwargs: FakeExecution(run_id=record.run_id, record=record),
+    )
+
+    result = execute_agent_spec(
+        initialized_project,
+        spec,
+        target="project",
+        context_markdown="context",
+    )
+
+    assert result.status == "succeeded"
+    assert len(result.issues) == 1
+    assert result.issues[0].category == "Archive"
+
+
 def test_execute_agent_spec_converts_provider_failure_into_failed_result(monkeypatch, initialized_project):
     spec = AgentSpec(
         agent_id="critique.chapter",
@@ -257,3 +299,35 @@ def test_execute_agent_spec_converts_parse_failure_into_failed_result(monkeypatc
     persisted = run_store.load(record.run_id)
     assert persisted.status == "failed"
     assert persisted.error_path.read_text(encoding="utf-8").strip() == "ai review markdown must start with an issue block"
+
+
+def test_render_extension_failure_sections_escape_heading_like_error_text():
+    setup_section = render_extension_setup_failure_section("trace\n## setup heading\nmore")
+    runtime_section = render_extension_runtime_failure_section(
+        "critique.chapter",
+        "trace\n## runtime heading\nmore",
+    )
+
+    assert "\n## setup heading\n" not in setup_section.body
+    assert "\n## runtime heading\n" not in runtime_section.body
+    assert "> ## setup heading" in setup_section.body
+    assert "> ## runtime heading" in runtime_section.body
+
+
+def test_render_agent_execution_section_quotes_heading_like_failure_reason():
+    section = render_agent_execution_section(
+        AgentExecutionResult(
+            agent_id="critique.chapter",
+            kind="review",
+            status="failed",
+            summary="Execution failed",
+            issues=[],
+            suggestions=[],
+            failure_reason="trace\n## nested heading\nmore",
+            run_id="run_ext",
+        )
+    )
+
+    assert "\n## nested heading\n" not in section.body
+    assert "> ## nested heading" in section.body
+    assert "- Run ID: run_ext" in section.body

@@ -38,7 +38,9 @@ def run_review(args: argparse.Namespace) -> int:
             return 2
 
     report = run_structural_review(project_root, chapter_number=args.chapter, full=args.full)
-    maintenance_result = run_full_maintenance(project_root) if args.full else None
+    maintenance_result = None
+    if args.full:
+        maintenance_result = run_full_maintenance(project_root, include_extensions=execute)
     print(f"Chapters reviewed: {report.chapters_reviewed}")
     print(f"Chapters with issues: {report.chapters_with_issues}")
     print(f"Chapter issues: {report.total_chapter_issues}")
