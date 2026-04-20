@@ -56,6 +56,7 @@ def execute_agent_spec(
     *,
     target: str,
     context_markdown: str,
+    route_name: str = "review",
 ) -> AgentExecutionResult:
     prompt_request = PromptRequest(
         command_name=f"{spec.kind}-agent",
@@ -64,7 +65,7 @@ def execute_agent_spec(
         referenced_files=[],
     )
     try:
-        execution = execute_prompt_request(project_root, prompt_request, target=target, route_name="review")
+        execution = execute_prompt_request(project_root, prompt_request, target=target, route_name=route_name)
     except Exception as exc:
         return AgentExecutionResult.failed(spec, str(exc))
     return normalize_agent_execution(spec, execution)
@@ -177,6 +178,22 @@ def render_extension_setup_failure_section(error_text: str) -> ExtensionReportSe
                 "- Error: extension setup/load failure",
                 "",
                 error_text.strip() or "unknown extension setup failure",
+            ]
+        ).rstrip()
+        + "\n",
+    )
+
+
+def render_extension_runtime_failure_section(agent_id: str, error_text: str) -> ExtensionReportSection:
+    return ExtensionReportSection(
+        agent_id=agent_id,
+        title=f"Review Agent {agent_id}",
+        body="\n".join(
+            [
+                "- Status: failed",
+                "- Error: extension runtime failure",
+                "",
+                error_text.strip() or "unknown extension runtime failure",
             ]
         ).rstrip()
         + "\n",

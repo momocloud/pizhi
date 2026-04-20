@@ -11,6 +11,7 @@ from pizhi.services.ai_review_context import build_chapter_ai_review_context
 from pizhi.services.ai_review_context import build_full_ai_review_context
 from pizhi.services.ai_review_service import run_ai_review
 from pizhi.services.agent_extensions import execute_agent_spec
+from pizhi.services.agent_extensions import render_extension_runtime_failure_section
 from pizhi.services.agent_extensions import render_extension_setup_failure_section
 from pizhi.services.agent_extensions import render_agent_execution_section
 from pizhi.services.agent_registry import load_agent_registry
@@ -242,19 +243,26 @@ def _run_review_extension_sections(
     try:
         registry = load_agent_registry(project_root)
         review_agents = registry.iter_enabled(kind="review", target_scope=target_scope)
-        return [
-            render_agent_execution_section(
-                execute_agent_spec(
-                    project_root,
-                    spec,
-                    target=target_name,
-                    context_markdown=context_markdown,
-                )
-            )
-            for spec in review_agents
-        ]
     except Exception as exc:
         return [render_extension_setup_failure_section(str(exc))]
+
+    sections = []
+    for spec in review_agents:
+        try:
+            sections.append(
+                render_agent_execution_section(
+                    execute_agent_spec(
+                        project_root,
+                        spec,
+                        target=target_name,
+                        context_markdown=context_markdown,
+                        route_name="review",
+                    )
+                )
+            )
+        except Exception as exc:
+            sections.append(render_extension_runtime_failure_section(spec.agent_id, str(exc)))
+    return sections
 
 
     

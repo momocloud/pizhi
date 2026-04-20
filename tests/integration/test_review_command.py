@@ -98,6 +98,30 @@ def test_review_command_writes_notes_file(initialized_project, fixture_text):
     assert "时间线单调性" in notes_path.read_text(encoding="utf-8")
 
 
+def test_review_command_full_without_execute_does_not_invoke_extension_agents(
+    initialized_project, monkeypatch, fixture_text
+):
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.load_agent_registry",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("extensions should not load")),
+    )
+
+    result = run(
+        [sys.executable, "-m", "pizhi", "review", "--full"],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+
+    assert result.returncode == 0
+    assert report_path.exists()
+    assert "AssertionError" not in result.stderr
+
+
 def test_review_command_chapter_execute_writes_ai_review_and_run_id(
     initialized_project, monkeypatch, capsys, fixture_text
 ):
@@ -133,6 +157,65 @@ def test_review_command_chapter_execute_writes_ai_review_and_run_id(
     assert "## B 类 AI 审查" in notes_text
     assert "人物一致性" in notes_text
     assert "补充动机铺垫" in notes_text
+
+
+def test_review_command_chapter_execute_writes_successful_extension_section(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    _configure_review_agent(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：高
+- **描述**：沈轩前后动机冲突。
+- **证据**：示例证据。
+- **建议修法**：补充动机铺垫。
+""",
+        ),
+    )
+
+    def fake_execute_agent_spec(*_args, **kwargs):
+        from pizhi.services.agent_extensions import AgentExecutionResult
+        assert kwargs["route_name"] == "review"
+        return AgentExecutionResult(
+            agent_id="critique.chapter",
+            kind="review",
+            status="succeeded",
+            summary="1 issue(s) found",
+            issues=[],
+            suggestions=[],
+            failure_reason=None,
+            run_id="run_ext",
+        )
+
+    monkeypatch.setattr("pizhi.commands.review_cmd.execute_agent_spec", fake_execute_agent_spec)
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.render_agent_execution_section",
+        lambda result: __import__("pizhi.services.agent_extensions", fromlist=["ExtensionReportSection"]).ExtensionReportSection(
+            agent_id=result.agent_id,
+            title=f"Review Agent {result.agent_id}",
+            body="- success extension\n",
+        ),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
+
+    exit_code = main(["review", "--chapter", "2", "--execute"])
+    output = capsys.readouterr().out
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch002" / "notes.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    notes_text = notes_path.read_text(encoding="utf-8")
+    assert "## Review Agent critique.chapter" in notes_text
+    assert "- success extension" in notes_text
 
 
 def test_review_command_full_execute_writes_ai_review_and_cache_report(
@@ -173,6 +256,65 @@ def test_review_command_full_execute_writes_ai_review_and_cache_report(
     assert "## B 类 AI 审查" in report_text
     assert "时间线合理性" in report_text
     assert "补充过渡段落" in report_text
+
+
+def test_review_command_full_execute_writes_successful_extension_section(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    _configure_review_agent(initialized_project, target_scope="project")
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：时间线合理性
+- **严重度**：中
+- **描述**：章节时间线略显跳跃。
+- **证据**：示例证据。
+- **建议修法**：补充过渡段落。
+""",
+        ),
+    )
+
+    def fake_execute_agent_spec(*_args, **kwargs):
+        from pizhi.services.agent_extensions import AgentExecutionResult
+        assert kwargs["route_name"] == "review"
+        return AgentExecutionResult(
+            agent_id="critique.chapter",
+            kind="review",
+            status="succeeded",
+            summary="1 issue(s) found",
+            issues=[],
+            suggestions=[],
+            failure_reason=None,
+            run_id="run_ext",
+        )
+
+    monkeypatch.setattr("pizhi.commands.review_cmd.execute_agent_spec", fake_execute_agent_spec)
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.render_agent_execution_section",
+        lambda result: __import__("pizhi.services.agent_extensions", fromlist=["ExtensionReportSection"]).ExtensionReportSection(
+            agent_id=result.agent_id,
+            title=f"Review Agent {result.agent_id}",
+            body="- success extension\n",
+        ),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+
+    exit_code = main(["review", "--full", "--execute"])
+    output = capsys.readouterr().out
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "## Review Agent critique.chapter" in report_text
+    assert "- success extension" in report_text
 
 
 def test_review_command_full_execute_ignores_missing_chapter_argument(
@@ -331,6 +473,96 @@ def test_review_command_execute_records_registry_load_failure_without_losing_bui
     assert "## B 类 AI 审查" in notes_text
     assert "## Review Agent extension.setup" in notes_text
     assert "invalid agent config" in notes_text
+
+
+def test_review_command_execute_records_runtime_failure_per_agent_without_losing_prior_sections(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：高
+- **描述**：沈轩前后动机冲突。
+- **证据**：示例证据。
+- **建议修法**：补充动机铺垫。
+""",
+        ),
+    )
+
+    from pizhi.domain.agent_extensions import AgentSpec
+    from pizhi.services.agent_registry import AgentRegistry
+
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.load_agent_registry",
+        lambda *_args, **_kwargs: AgentRegistry(
+            [
+                AgentSpec(
+                    agent_id="critique.first",
+                    kind="review",
+                    description="first",
+                    enabled=True,
+                    target_scope="chapter",
+                    prompt_template="first",
+                ),
+                AgentSpec(
+                    agent_id="critique.second",
+                    kind="review",
+                    description="second",
+                    enabled=True,
+                    target_scope="chapter",
+                    prompt_template="second",
+                ),
+            ]
+        ),
+    )
+
+    def fake_execute_agent_spec(_project_root, spec, **kwargs):
+        from pizhi.services.agent_extensions import AgentExecutionResult
+
+        assert kwargs["route_name"] == "review"
+        if spec.agent_id == "critique.second":
+            raise RuntimeError("agent runtime boom")
+        return AgentExecutionResult(
+            agent_id=spec.agent_id,
+            kind="review",
+            status="succeeded",
+            summary="No issues found",
+            issues=[],
+            suggestions=[],
+            failure_reason=None,
+            run_id="run_ext",
+        )
+
+    monkeypatch.setattr("pizhi.commands.review_cmd.execute_agent_spec", fake_execute_agent_spec)
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.render_agent_execution_section",
+        lambda result: __import__("pizhi.services.agent_extensions", fromlist=["ExtensionReportSection"]).ExtensionReportSection(
+            agent_id=result.agent_id,
+            title=f"Review Agent {result.agent_id}",
+            body="- success extension\n",
+        ),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
+
+    exit_code = main(["review", "--chapter", "2", "--execute"])
+    output = capsys.readouterr().out
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch002" / "notes.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    notes_text = notes_path.read_text(encoding="utf-8")
+    assert "## Review Agent critique.first" in notes_text
+    assert "- success extension" in notes_text
+    assert "## Review Agent critique.second" in notes_text
+    assert "agent runtime boom" in notes_text
 
 
 def test_review_command_execute_without_scope_returns_readable_error_and_does_not_mutate_notes(
