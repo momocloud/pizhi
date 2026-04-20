@@ -18,6 +18,7 @@
 - Clean baseline:
   - `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
   - Observed while writing this plan: `238 passed in 70.88s`
+  - Observed during Task 5 verification: `261 passed in 76.57s`
 
 ## File Map
 
@@ -559,7 +560,7 @@ git commit -m "feat: add targeted compile modes"
 5. **manuscript 编译粒度**：~~当前按卷编译。是否支持按章、按自定义范围编译？~~ **已决定**：支持按卷、单章、连续章节范围编译。
 ```
 
-- [ ] **Step 2: Run command smoke tests for the new surfaces**
+- [x] **Step 2: Run command smoke tests for the new surfaces**
 
 Run:
 - `python -m pizhi provider configure --help`
@@ -571,7 +572,12 @@ Expected:
 - `provider configure --help` prints the new route-model flags
 - `compile --help` prints `--volume`, `--chapter`, and `--chapters`
 
-- [ ] **Step 3: Run the full test suite**
+Observed:
+- `provider configure --help`: exit `0`; help text lists `--brainstorm-model`, `--outline-model`, `--write-model`, `--continue-model`, `--review-model`, `--review-base-url`, and `--review-api-key-env`
+- `compile --help`: exit `0`; help text lists `--volume`, `--chapter`, and `--chapters`
+- `continue --help`: exit `0`; help text shows the `run`, `sessions`, and `resume` subcommands
+
+- [x] **Step 3: Run the full test suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
@@ -579,7 +585,10 @@ Run:
 Expected:
 - full suite passes with all milestone 1-9 tests green
 
-- [ ] **Step 4: Mark verification steps complete in this plan**
+Observed:
+- `261 passed in 76.57s`
+
+- [x] **Step 4: Mark verification steps complete in this plan**
 
 Record:
 - the observed smoke-test results
