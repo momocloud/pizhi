@@ -42,6 +42,10 @@ def _configure_provider(project_root) -> None:
         model="gpt-5.4",
         base_url="https://api.openai.com/v1",
         api_key_env="OPENAI_API_KEY",
+        brainstorm_model="gpt-5.4-brainstorm",
+        outline_model="gpt-5.4-outline",
+        write_model="gpt-5.4-write",
+        review_model="gpt-5.4-mini",
     )
     save_config(project_root / ".pizhi" / "config.yaml", config)
 
@@ -111,6 +115,79 @@ def test_execute_prompt_request_uses_explicit_provider_config(initialized_projec
     assert provider_request.model == "override-model"
     assert provider_request.base_url == "https://override.example/v1"
     assert provider_request.api_key == "secret"
+
+
+def test_execute_prompt_request_uses_route_config_for_command_family(initialized_project, monkeypatch):
+    request = BrainstormService(initialized_project).build_prompt_request()
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    captured: dict[str, object] = {}
+
+    class RecordingAdapter:
+        def execute(self, provider_request):
+            captured["provider_request"] = provider_request
+            return ProviderResponse(
+                raw_payload={"id": "resp_test"},
+                content_text="## synopsis\n...",
+            )
+
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RecordingAdapter(),
+    )
+
+    result = execute_prompt_request(
+        initialized_project,
+        request,
+        target="project",
+        route_name="brainstorm",
+    )
+
+    provider_request = captured["provider_request"]
+    assert result.status == "succeeded"
+    assert provider_request.model == "gpt-5.4-brainstorm"
+    assert result.record.metadata["model"] == "gpt-5.4-brainstorm"
+
+
+def test_execute_prompt_request_prefers_explicit_provider_config_over_route_name(
+    initialized_project, monkeypatch
+):
+    request = BrainstormService(initialized_project).build_prompt_request()
+    _configure_provider(initialized_project)
+    explicit_provider_config = ProviderSection(
+        provider="openai_compatible",
+        model="override-model",
+        base_url="https://override.example/v1",
+        api_key_env="OVERRIDE_API_KEY",
+    )
+    captured: dict[str, object] = {}
+
+    class RecordingAdapter:
+        def execute(self, provider_request):
+            captured["provider_request"] = provider_request
+            return ProviderResponse(
+                raw_payload={"id": "resp_test"},
+                content_text="## synopsis\n...",
+            )
+
+    monkeypatch.setenv("OVERRIDE_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RecordingAdapter(),
+    )
+
+    result = execute_prompt_request(
+        initialized_project,
+        request,
+        target="project",
+        provider_config=explicit_provider_config,
+        route_name="brainstorm",
+    )
+
+    provider_request = captured["provider_request"]
+    assert result.status == "succeeded"
+    assert provider_request.model == "override-model"
+    assert result.record.metadata["model"] == "override-model"
 
 
 def test_execute_prompt_request_persists_failed_provider_run(initialized_project, monkeypatch):

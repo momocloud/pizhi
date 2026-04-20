@@ -19,7 +19,12 @@ def run_brainstorm(args: argparse.Namespace) -> int:
         try:
             request = service.build_prompt_request()
             prompt_artifact = service.prepare_prompt(request)
-            execution = execute_prompt_request(service.project_root, request, target="project")
+            execution = execute_prompt_request(
+                service.project_root,
+                request,
+                target="project",
+                route_name="brainstorm",
+            )
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1

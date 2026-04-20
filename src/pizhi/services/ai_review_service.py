@@ -74,6 +74,7 @@ def run_ai_review(project_root: Path, context: AIReviewContext) -> AIReviewResul
             project_root,
             prompt_request,
             target=context.target,
+            route_name="review",
             provider_config=review_config,
         )
     except Exception as exc:

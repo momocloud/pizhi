@@ -112,6 +112,62 @@ def test_run_ai_review_executes_with_review_provider_override(initialized_projec
     assert provider_request.api_key == "review-secret"
 
 
+def test_run_ai_review_routes_through_review_command_family(initialized_project, monkeypatch):
+    _configure_review_override(initialized_project)
+    captured: dict[str, object] = {}
+
+    class ExecutePromptStub:
+        def __call__(self, project_root, request, target, provider_config=None, route_name=None):
+            captured["project_root"] = project_root
+            captured["request"] = request
+            captured["target"] = target
+            captured["provider_config"] = provider_config
+            captured["route_name"] = route_name
+
+            run_dir = project_root / ".pizhi" / "cache" / "runs" / "run-test"
+            run_dir.mkdir(parents=True, exist_ok=True)
+            normalized_path = run_dir / "normalized.md"
+            normalized_path.write_text(NO_AI_REVIEW_ISSUES_MESSAGE, encoding="utf-8")
+            error_path = run_dir / "error.txt"
+            error_path.write_text("", encoding="utf-8")
+            record = type(
+                "RunRecordStub",
+                (),
+                {
+                    "run_dir": run_dir,
+                    "normalized_path": normalized_path,
+                    "error_path": error_path,
+                    "status": "succeeded",
+                    "metadata": {},
+                },
+            )()
+            return type(
+                "ExecutionResultStub",
+                (),
+                {
+                    "status": "succeeded",
+                    "run_id": "run-test",
+                    "record": record,
+                },
+            )()
+
+    monkeypatch.setattr("pizhi.services.ai_review_service.execute_prompt_request", ExecutePromptStub())
+
+    context = AIReviewContext(
+        scope="chapter",
+        target="ch002",
+        prompt_context="...",
+        referenced_files=[],
+        metadata={},
+    )
+
+    result = run_ai_review(initialized_project, context)
+
+    assert result.status == "succeeded"
+    assert captured["route_name"] == "review"
+    assert captured["target"] == "ch002"
+
+
 def test_run_ai_review_falls_back_to_default_provider_config_when_review_override_missing(
     initialized_project, monkeypatch
 ):

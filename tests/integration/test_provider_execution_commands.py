@@ -7,6 +7,7 @@ from pizhi.cli import main
 from tests.unit.test_provider_execution import FailingAdapter
 from tests.unit.test_provider_execution import StubAdapter
 from tests.unit.test_provider_execution import _configure_provider
+from pizhi.services.run_store import RunStore
 
 
 @pytest.mark.parametrize(
@@ -185,11 +186,14 @@ def test_brainstorm_execute_writes_run_id_and_run_artifacts(initialized_project,
     captured = capsys.readouterr()
 
     runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+    run_id = _extract_run_id(captured.out)
+    record = RunStore(runs_dir).load(run_id)
 
     assert exit_code == 0
     assert "Prepared prompt packet:" in captured.out
     assert "Run ID:" in captured.out
     assert any(path.joinpath("normalized.md").exists() for path in runs_dir.iterdir())
+    assert record.metadata["model"] == "gpt-5.4-brainstorm"
 
 
 def test_outline_execute_writes_run_id_and_run_artifacts(initialized_project, monkeypatch, capsys):
@@ -205,11 +209,14 @@ def test_outline_execute_writes_run_id_and_run_artifacts(initialized_project, mo
     captured = capsys.readouterr()
 
     runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+    run_id = _extract_run_id(captured.out)
+    record = RunStore(runs_dir).load(run_id)
 
     assert exit_code == 0
     assert "Prepared prompt packet:" in captured.out
     assert "Run ID:" in captured.out
     assert any(path.joinpath("normalized.md").exists() for path in runs_dir.iterdir())
+    assert record.metadata["model"] == "gpt-5.4-outline"
 
 
 def test_write_execute_writes_run_id_and_run_artifacts(initialized_project, monkeypatch, capsys):
@@ -232,11 +239,14 @@ def test_write_execute_writes_run_id_and_run_artifacts(initialized_project, monk
     captured = capsys.readouterr()
 
     runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+    run_id = _extract_run_id(captured.out)
+    record = RunStore(runs_dir).load(run_id)
 
     assert exit_code == 0
     assert "Prepared prompt packet:" in captured.out
     assert "Run ID:" in captured.out
     assert any(path.joinpath("normalized.md").exists() for path in runs_dir.iterdir())
+    assert record.metadata["model"] == "gpt-5.4-write"
 
 
 def test_write_execute_keeps_prompt_only_flow_when_execute_is_omitted(initialized_project, monkeypatch):
@@ -252,3 +262,10 @@ def test_write_execute_keeps_prompt_only_flow_when_execute_is_omitted(initialize
 
     assert exit_code == 0
     assert (initialized_project / ".pizhi" / "cache" / "prompts").exists()
+
+
+def _extract_run_id(stdout: str) -> str:
+    for line in stdout.splitlines():
+        if line.startswith("Run ID: "):
+            return line.removeprefix("Run ID: ").strip()
+    raise AssertionError("missing Run ID output")

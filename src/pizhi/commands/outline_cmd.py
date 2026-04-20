@@ -21,7 +21,12 @@ def run_outline_expand(args: argparse.Namespace) -> int:
             request = service.build_prompt_request(chapter_range, direction=args.direction or "")
             prompt_artifact = service.prepare_prompt(request)
             target = f"ch{chapter_range[0]:03d}-ch{chapter_range[1]:03d}"
-            execution = execute_prompt_request(service.project_root, request, target=target)
+            execution = execute_prompt_request(
+                service.project_root,
+                request,
+                target=target,
+                route_name="outline",
+            )
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1

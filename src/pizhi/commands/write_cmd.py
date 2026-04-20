@@ -19,7 +19,12 @@ def run_write(args: argparse.Namespace) -> int:
         try:
             request = service.build_prompt_request(args.chapter)
             prompt_artifact = service.prepare_prompt(request)
-            execution = execute_prompt_request(service.project_root, request, target=f"ch{args.chapter:03d}")
+            execution = execute_prompt_request(
+                service.project_root,
+                request,
+                target=f"ch{args.chapter:03d}",
+                route_name="write",
+            )
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1

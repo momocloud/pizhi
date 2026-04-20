@@ -43,9 +43,10 @@ def execute_prompt_request(
     project_root: Path,
     request: PromptRequest,
     target: str,
+    route_name: str | None = None,
     provider_config: ProviderSection | None = None,
 ) -> ExecutionResult:
-    provider_config = provider_config or _load_provider_config(project_root)
+    provider_config = provider_config or _load_provider_config(project_root, route_name=route_name)
     api_key = _load_api_key(provider_config.api_key_env)
     adapter = build_provider_adapter(provider_config.provider)
     provider_request = ProviderRequest(
@@ -119,10 +120,12 @@ def execute_prompt_request(
     )
 
 
-def _load_provider_config(project_root: Path) -> ProviderSection:
+def _load_provider_config(project_root: Path, route_name: str | None = None) -> ProviderSection:
     config = load_config(project_paths(project_root).config_file)
     if config.provider is None:
         raise ValueError("provider is not configured")
+    if route_name is not None:
+        return config.provider.resolve_route_config(route_name)
     return config.provider
 
 
