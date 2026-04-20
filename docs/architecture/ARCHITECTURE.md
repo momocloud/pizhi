@@ -55,13 +55,15 @@ Provider-backed generation is never authoritative by itself. Source-of-truth wri
 
 ### Auditable provider flow
 
-The canonical provider-backed pattern is:
+For single-run provider-backed commands, the canonical pattern is:
 
-1. execute a command such as `brainstorm --execute`, `write --execute`, or `continue run --execute`
+1. execute a command such as `brainstorm --execute` or `write --execute`
 2. inspect recorded runs with `runs`
 3. apply the chosen result with `apply --run-id <run_id>`
 
-This keeps prompt execution, normalization, and source mutation separable and inspectable.
+`continue run --execute` is the specialized variant: it still records runs, but progression is driven by generated checkpoints plus `checkpoint apply` and `continue resume` until the session completes rather than by a single plain `apply --run-id` step.
+
+This keeps prompt execution, normalization, and source mutation separable and inspectable across both the generic and checkpointed flows.
 
 ## Storage Layout
 
