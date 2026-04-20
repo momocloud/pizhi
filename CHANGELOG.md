@@ -4,6 +4,6 @@
 
 - Repository organization and public community files.
 
-## v1.0.0
+## v0.1.0
 
 - Initial public baseline.

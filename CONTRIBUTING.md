@@ -5,7 +5,7 @@ Thanks for helping improve Pizhi.
 ## Setup
 
 ```bash
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
 ## Test
