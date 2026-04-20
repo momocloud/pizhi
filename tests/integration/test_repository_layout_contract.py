@@ -3,8 +3,18 @@ def test_public_docs_surface_excludes_internal_process_docs(project_root):
     assert (project_root / "docs" / "guides" / "recovery.md").exists()
     assert (project_root / "docs" / "architecture" / "ARCHITECTURE.md").exists()
     assert not (project_root / "docs" / "superpowers").exists()
+    assert (project_root / "meta" / "specs").exists()
     assert (project_root / "meta" / "plans").exists()
-    assert (project_root / "meta" / "plans" / "2026-04-15-pizhi-milestone-1-bootstrap.md").exists()
+    expected_meta_docs = [
+        "meta/specs/2026-04-15-pizhi-core-design.md",
+        "meta/specs/2026-04-20-pizhi-open-source-repo-organization-design.md",
+        "meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md",
+        "meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md",
+        "meta/plans/2026-04-20-pizhi-open-source-repo-organization.md",
+    ]
+
+    for relative in expected_meta_docs:
+        assert (project_root / relative).exists(), relative
 
 
 def test_repository_contains_expected_open_source_metadata(project_root):

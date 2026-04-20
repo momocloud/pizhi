@@ -85,17 +85,9 @@ An optional lightweight docs index may be added only if it clearly improves navi
 
 ### 4.2 Internal process documentation
 
-Existing implementation-process documents should move from:
+Existing implementation-process documents were relocated from `docs/superpowers/specs/` and `docs/superpowers/plans/` into `meta/specs/` and `meta/plans/`.
 
-- `meta/specs/`
-- `meta/plans/`
-
-to:
-
-- `meta/specs/`
-- `meta/plans/`
-
-The content does not need rewriting during this move. The primary purpose is boundary clarification.
+The content does not need rewriting during this move. The primary purpose is boundary clarification and keeping internal process docs out of the public `docs/` tree.
 
 ### 4.3 Link hygiene
 

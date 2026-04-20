@@ -37,24 +37,24 @@
 - `docs/guides/recovery.md`: keep public recovery-guide path unchanged and update references only if needed
 - `meta/specs/2026-04-20-pizhi-open-source-repo-organization-design.md`: existing design doc; leave in place
 - `meta/plans/2026-04-20-pizhi-open-source-repo-organization.md`: this plan; update verification notes if execution changes the observed results
-- `meta/specs/2026-04-15-pizhi-core-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-16-pizhi-milestone-4-maintenance-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-18-pizhi-milestone-5-maintenance-closure-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-19-pizhi-milestone-6-provider-first-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-19-pizhi-milestone-7-provider-orchestration-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-19-pizhi-milestone-8-ai-review-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-20-pizhi-milestone-9-v1-closure-design.md`: move from the internal process docs tree
-- `meta/specs/2026-04-20-pizhi-milestone-10-delivery-and-extension-design.md`: move from the internal process docs tree
-- `meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md`: move from the internal process docs tree
-- `meta/plans/2026-04-16-pizhi-milestone-2-engine.md`: move from the internal process docs tree
-- `meta/plans/2026-04-16-pizhi-milestone-3-orchestration.md`: move from the internal process docs tree
-- `meta/plans/2026-04-16-pizhi-milestone-4-maintenance.md`: move from the internal process docs tree
-- `meta/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md`: move from the internal process docs tree
-- `meta/plans/2026-04-19-pizhi-milestone-6-provider-first.md`: move from the internal process docs tree
-- `meta/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`: move from the internal process docs tree
-- `meta/plans/2026-04-19-pizhi-milestone-8-ai-review.md`: move from the internal process docs tree
-- `meta/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`: move from the internal process docs tree
-- `meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`: move from the internal process docs tree
+- `meta/specs/2026-04-15-pizhi-core-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-16-pizhi-milestone-4-maintenance-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-18-pizhi-milestone-5-maintenance-closure-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-19-pizhi-milestone-6-provider-first-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-19-pizhi-milestone-7-provider-orchestration-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-19-pizhi-milestone-8-ai-review-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-20-pizhi-milestone-9-v1-closure-design.md`: moved from `docs/superpowers/specs/`
+- `meta/specs/2026-04-20-pizhi-milestone-10-delivery-and-extension-design.md`: moved from `docs/superpowers/specs/`
+- `meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-16-pizhi-milestone-2-engine.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-16-pizhi-milestone-3-orchestration.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-16-pizhi-milestone-4-maintenance.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-19-pizhi-milestone-6-provider-first.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-19-pizhi-milestone-8-ai-review.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`: moved from `docs/superpowers/plans/`
+- `meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`: moved from `docs/superpowers/plans/`
 - `tests/integration/test_docs_contract.py`: extend public-doc checks so they assert the intended public surface after the move
 - `tests/integration/test_repository_layout_contract.py`: add repository-layout and metadata-file assertions for the open-source shape
 
@@ -205,15 +205,7 @@ Expected:
 
 Use repository-native file moves so Git preserves history.
 
-Update any references that still mention:
-
-- `meta/specs/`
-- `meta/plans/`
-
-to:
-
-- `meta/specs/`
-- `meta/plans/`
+Update any references that still point into `docs/superpowers/specs/` or `docs/superpowers/plans/` so they resolve under `meta/specs/` and `meta/plans/`.
 
 After the last file move, confirm the internal process docs tree is gone.
 
