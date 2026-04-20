@@ -3,7 +3,11 @@
 Please do not report security issues through public GitHub issues.
 
 If you believe you have found a security vulnerability, please report it
-privately to: [PROJECT MAINTAINER CONTACT]
+privately through GitHub Security Advisories if this repository has private
+vulnerability reporting enabled.
+
+If that option is unavailable, contact the project maintainer through the
+private channel published by the repository owner.
 
 Include:
 

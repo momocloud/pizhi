@@ -53,3 +53,11 @@ def test_contributing_doc_mentions_setup_and_test_command(project_root):
 def test_security_doc_mentions_private_reporting(project_root):
     security = (project_root / "SECURITY.md").read_text(encoding="utf-8")
     assert "Please do not report security issues through public GitHub issues." in security
+    assert "GitHub Security Advisories" in security
+    assert "maintainer" in security
+
+
+def test_code_of_conduct_mentions_private_enforcement_contact(project_root):
+    code_of_conduct = (project_root / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
+    assert "reported privately through the same maintainer contact channel documented in SECURITY.md" in code_of_conduct
+    assert "Community leaders listed there are responsible for enforcement" in code_of_conduct

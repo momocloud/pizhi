@@ -45,8 +45,7 @@ is officially representing the project in public spaces.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project team.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately through the same maintainer contact channel documented in SECURITY.md. Community leaders listed there are responsible for enforcement.
 
 ## Enforcement Guidelines
 
