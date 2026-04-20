@@ -1,8 +1,11 @@
+import pytest
+
 from pizhi.core.config import ProviderSection
 from pizhi.core.config import default_config
 from pizhi.core.config import load_config
 from pizhi.core.config import save_config
 from pizhi.core.paths import project_paths
+from pizhi.domain.agent_extensions import AgentSpec
 
 
 def test_project_paths_runs_dir_uses_cache_subdir(tmp_path):
@@ -158,3 +161,91 @@ def test_save_config_omits_provider_block_when_missing(tmp_path):
 
     saved_text = path.read_text(encoding="utf-8")
     assert "provider:" not in saved_text
+
+
+def test_config_round_trip_preserves_agent_specs(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+
+    config = default_config(name="Test Novel")
+    config.agents = [
+        AgentSpec(
+            agent_id="critique.chapter",
+            kind="review",
+            description="chapter critique agent",
+            enabled=True,
+            target_scope="chapter",
+            prompt_template="Review the chapter for pacing drift.",
+        ),
+        AgentSpec(
+            agent_id="archive.audit",
+            kind="maintenance",
+            description="archive audit agent",
+            enabled=False,
+            target_scope="project",
+            prompt_template="Audit the maintenance summary for missed archive work.",
+        ),
+    ]
+    save_config(path, config)
+
+    loaded = load_config(path)
+    assert loaded.agents is not None
+    assert [agent.agent_id for agent in loaded.agents] == [
+        "critique.chapter",
+        "archive.audit",
+    ]
+    assert loaded.agents[1].enabled is False
+
+
+def test_load_config_rejects_unknown_agent_kind(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        """
+project: {name: Test, genre: "", pov: "", created: "2026-04-20", last_updated: "2026-04-20"}
+chapters: {total_planned: 0, per_volume: 20}
+generation:
+  context_window: {prev_chapters: 2, max_outline_words: 500, max_chapter_words: 5000}
+  style: {tone: "", dialogue_ratio: 0.35}
+consistency: {auto_check: true, checkpoint_interval: 3}
+foreshadowing: {auto_archive_resolved: true, reminder_threshold: 5}
+agents:
+  - agent_id: unsupported.audit
+    kind: unknown
+    description: bad
+    enabled: true
+    target_scope: project
+    prompt_template: nope
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unknown agent kind"):
+        load_config(path)
+
+
+def test_load_config_rejects_unknown_agent_target_scope(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        """
+project: {name: Test, genre: "", pov: "", created: "2026-04-20", last_updated: "2026-04-20"}
+chapters: {total_planned: 0, per_volume: 20}
+generation:
+  context_window: {prev_chapters: 2, max_outline_words: 500, max_chapter_words: 5000}
+  style: {tone: "", dialogue_ratio: 0.35}
+consistency: {auto_check: true, checkpoint_interval: 3}
+foreshadowing: {auto_archive_resolved: true, reminder_threshold: 5}
+agents:
+  - agent_id: unsupported.audit
+    kind: review
+    description: bad
+    enabled: true
+    target_scope: anywhere
+    prompt_template: nope
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unknown agent target scope"):
+        load_config(path)

@@ -8,6 +8,11 @@ from typing import Any
 
 import yaml
 
+from pizhi.domain.agent_extensions import AgentSpec
+
+_VALID_AGENT_KINDS = {"review", "maintenance"}
+_VALID_TARGET_SCOPES = {"chapter", "project"}
+
 
 @dataclass(slots=True)
 class ProjectSection:
@@ -111,6 +116,7 @@ class ProjectConfig:
     consistency: ConsistencySection
     foreshadowing: ForeshadowingSection
     provider: ProviderSection | None = None
+    agents: list[AgentSpec] | None = None
 
 
 def default_config(
@@ -162,6 +168,8 @@ def save_config(path: Path, config: ProjectConfig) -> None:
     payload = asdict(config)
     if config.provider is None:
         payload.pop("provider", None)
+    if config.agents is None:
+        payload.pop("agents", None)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         yaml.safe_dump(payload, handle, allow_unicode=True, sort_keys=False)
 
@@ -181,6 +189,7 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
     consistency = data["consistency"]
     foreshadowing = data["foreshadowing"]
     provider = data.get("provider")
+    raw_agents = data.get("agents")
 
     return ProjectConfig(
         project=ProjectSection(**project),
@@ -192,4 +201,29 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
         consistency=ConsistencySection(**consistency),
         foreshadowing=ForeshadowingSection(**foreshadowing),
         provider=ProviderSection(**provider) if provider else None,
+        agents=_agent_specs_from_raw(raw_agents),
     )
+
+
+def _agent_specs_from_raw(raw_agents: Any) -> list[AgentSpec] | None:
+    if raw_agents is None:
+        return None
+    if not isinstance(raw_agents, list):
+        raise ValueError("agents must be a list")
+
+    specs: list[AgentSpec] = []
+    for raw_spec in raw_agents:
+        if not isinstance(raw_spec, dict):
+            raise ValueError("agents must contain mappings")
+
+        kind = raw_spec.get("kind")
+        if kind not in _VALID_AGENT_KINDS:
+            raise ValueError(f"unknown agent kind: {kind!r}")
+
+        target_scope = raw_spec.get("target_scope")
+        if target_scope not in _VALID_TARGET_SCOPES:
+            raise ValueError(f"unknown agent target scope: {target_scope!r}")
+
+        specs.append(AgentSpec(**raw_spec))
+
+    return specs
