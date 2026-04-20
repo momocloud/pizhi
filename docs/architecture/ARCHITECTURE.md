@@ -47,9 +47,10 @@ Provider-backed generation is never authoritative by itself. Source-of-truth wri
 
 ### Review and compilation
 
-- `review --chapter` and `review --full` always run built-in structural review
-- `review --execute` layers provider-backed AI review on top of the built-in review path
-- `review --full` also runs deterministic maintenance and writes a full review report
+- non-`--execute` `review --chapter` runs structural review and prints CLI summary counts without rewriting `notes.md`
+- non-`--execute` `review --full` runs structural review plus deterministic maintenance and writes `.pizhi/cache/review_full.md` with a pending AI-review section
+- `review --chapter <n> --execute` rewrites `chNNN/notes.md` with structural and AI-review sections
+- `review --full --execute` rewrites `.pizhi/cache/review_full.md` with structural, maintenance, and AI-review sections
 - `compile` renders manuscript output by volume, chapter, or chapter range
 
 ### Auditable provider flow
@@ -71,7 +72,7 @@ Key directories and files:
 - `.pizhi/chapters/chNNN/`: per-chapter outlines, text, snapshots, and notes
 - `.pizhi/cache/runs/<run_id>/`: prompt, raw payload, normalized output, and manifest for provider-backed runs
 - `.pizhi/cache/review_full.md`: full-project review artifact
-- `.pizhi/continue_sessions/` and `.pizhi/checkpoints/`: persisted continue execution state
+- `.pizhi/cache/continue_sessions/<session_id>/` and `.pizhi/cache/checkpoints/<checkpoint_id>/`: persisted continue execution state
 - `manuscript/`: compiled reading-facing outputs
 
 The directory structure is part of the architecture because the filesystem is the durable state boundary.
@@ -80,7 +81,7 @@ The directory structure is part of the architecture because the filesystem is th
 
 ### Built-in review path
 
-`review` always starts with structural checks. For chapter review, the output lands in `notes.md`. For full review, the report is written to `.pizhi/cache/review_full.md`.
+`review` always starts with structural checks. Non-execute chapter review reports to stdout only. Execute chapter review writes `notes.md`. Full review writes `.pizhi/cache/review_full.md`, with execute mode replacing the pending AI section with the provider-backed result.
 
 ### AI review path
 
@@ -89,6 +90,12 @@ The directory structure is part of the architecture because the filesystem is th
 ### Maintenance path
 
 Maintenance is system-owned and deterministic. In v1 it runs through built-in flows such as full review and apply-driven closure rather than a public standalone maintenance CLI.
+
+The implemented deterministic work includes:
+
+- reviewing `.pizhi/global/synopsis_candidate.md` when `.pizhi/cache/synopsis_review.pending` is present
+- writing `.pizhi/cache/synopsis_review.md` and promoting the candidate into `synopsis.md` only when the coverage markers validate cleanly
+- rotating eligible timeline and foreshadowing content into `.pizhi/archive/` while surfacing archive conflicts or missing close-chapter metadata as maintenance findings
 
 ## v1 Extension Boundary
 

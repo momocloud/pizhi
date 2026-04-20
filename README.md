@@ -24,10 +24,18 @@ Pizhi is a file-backed long-form fiction workflow for planning, drafting, review
    python -m pizhi apply --run-id <run_id>
    ```
 
-4. Continue into drafting, review, and compilation:
+4. Continue through checkpointed execution before review and compilation:
 
    ```bash
    python -m pizhi continue run --count 3 --execute
+   python -m pizhi checkpoints --session-id <session_id>
+   python -m pizhi checkpoint apply --id <checkpoint_id>
+   python -m pizhi continue resume --session-id <session_id>
+   ```
+
+   Repeat checkpoint apply and resume until the continue session reaches `completed`, then run:
+
+   ```bash
    python -m pizhi review --full --execute
    python -m pizhi compile --volume 1
    ```
@@ -39,6 +47,7 @@ Pizhi is a file-backed long-form fiction workflow for planning, drafting, review
 - `pizhi brainstorm`, `pizhi outline expand`, `pizhi write`, `pizhi continue run`, and `pizhi review --execute` can prepare prompts or call the configured provider.
 - `pizhi runs` lists recorded provider executions.
 - `pizhi apply --run-id <run_id>` is the explicit source-of-truth update step for provider-backed runs.
+- `pizhi continue run --count <n> --execute` creates checkpointed session state under `.pizhi/cache/continue_sessions/` and `.pizhi/cache/checkpoints/`; apply each generated checkpoint and resume the session before treating the chapters as complete.
 - `pizhi review --full` also runs built-in maintenance and writes `review_full.md`.
 - `pizhi compile --volume`, `--chapter`, or `--chapters` builds manuscript output from drafted chapters.
 
