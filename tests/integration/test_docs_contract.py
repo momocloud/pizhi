@@ -5,5 +5,6 @@ def test_readme_and_runbook_exist_and_reference_canonical_flow(project_root):
     assert "pizhi init" in readme
     assert "pizhi provider configure" in runbook
     assert "pizhi apply --run-id" in runbook
-    assert "pizhi continue run --execute" in runbook
-    assert "pizhi review --execute" in runbook
+    assert "pizhi continue run --count <n> --execute" in runbook
+    assert "pizhi review --chapter <n> --execute" in runbook
+    assert "pizhi review --full --execute" in runbook

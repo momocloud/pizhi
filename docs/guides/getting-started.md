@@ -48,7 +48,7 @@ For multi-chapter generation, use the canonical execute form:
 python -m pizhi continue run --count 3 --execute
 ```
 
-Canonical command shape: `pizhi continue run --execute`
+Canonical command shape: `pizhi continue run --count <n> --execute`
 
 Prompt-only mode is still available when you already have response files:
 
@@ -83,7 +83,10 @@ python -m pizhi review --chapter 3 --execute
 python -m pizhi review --full --execute
 ```
 
-Canonical command shape: `pizhi review --execute`
+Canonical command shapes:
+
+- `pizhi review --chapter <n> --execute`
+- `pizhi review --full --execute`
 
 `pizhi review --execute` runs structural review first, then optional AI review, and writes partitioned notes or a full review report. `pizhi review --full` also runs built-in maintenance. In v1, maintenance does not have a standalone CLI; it runs inside full review and apply-driven closure flows.
 
