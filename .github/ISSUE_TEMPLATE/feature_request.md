@@ -1,6 +1,14 @@
 ---
 name: Feature request
-about: Placeholder feature request template.
+about: Suggest an improvement or new capability.
+title: "[Feature]: "
+labels: enhancement
 ---
 
-Placeholder feature request template.
+## Problem statement
+
+## Proposed solution
+
+## Alternatives considered
+
+## Additional context

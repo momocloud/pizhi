@@ -40,3 +40,16 @@ def test_repository_contains_expected_open_source_metadata(project_root):
 def test_pyproject_uses_readme_as_package_readme(project_root):
     pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
     assert 'readme = "README.md"' in pyproject
+
+
+def test_contributing_doc_mentions_setup_and_test_command(project_root):
+    contributing = (project_root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "python -m pip install -e ." in contributing
+    assert "python -m pytest tests/unit tests/integration -q --tb=short -rfE" in contributing
+    assert "meta/specs" in contributing
+    assert "meta/plans" in contributing
+
+
+def test_security_doc_mentions_private_reporting(project_root):
+    security = (project_root / "SECURITY.md").read_text(encoding="utf-8")
+    assert "Please do not report security issues through public GitHub issues." in security

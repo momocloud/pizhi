@@ -1,3 +1,9 @@
 # Changelog
 
-Placeholder changelog for the repository layout contract.
+## [Unreleased]
+
+- Repository organization and public community files.
+
+## v1.0.0
+
+- Initial public baseline.

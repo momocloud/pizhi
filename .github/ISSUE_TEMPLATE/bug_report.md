@@ -1,6 +1,20 @@
 ---
 name: Bug report
-about: Placeholder bug report template.
+about: Report a reproducible problem.
+title: "[Bug]: "
+labels: bug
 ---
 
-Placeholder bug report template.
+## What happened?
+
+## Expected behavior
+
+## Steps to reproduce
+
+## Environment
+
+- Pizhi version:
+- OS:
+- Python version:
+
+## Additional context
