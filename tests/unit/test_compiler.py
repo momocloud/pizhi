@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+from pizhi.core.config import load_config
+from pizhi.core.config import save_config
 from pizhi.core.jsonl_store import ChapterIndexStore
 from pizhi.core.paths import project_paths
 from pizhi.services.chapter_writer import apply_chapter_response
@@ -37,6 +39,13 @@ def _seed_chapters(initialized_project, fixture_text, start: int, end: int) -> N
         )
 
 
+def _set_total_planned(initialized_project, total_planned: int) -> None:
+    paths = project_paths(initialized_project)
+    config = load_config(paths.config_file)
+    config.chapters.total_planned = total_planned
+    save_config(paths.config_file, config)
+
+
 def test_compile_target_rejects_invalid_field_combinations():
     with pytest.raises(ValueError, match="exactly one"):
         CompileTarget()
@@ -59,6 +68,18 @@ def test_compile_manuscript_writes_volume_target_and_marks_only_selected_chapter
     assert _chapter_statuses(initialized_project)[1] == "compiled"
     assert _chapter_statuses(initialized_project)[20] == "compiled"
     assert _chapter_statuses(initialized_project)[21] == "drafted"
+
+
+def test_compile_manuscript_writes_partial_final_volume_target(initialized_project, fixture_text):
+    _set_total_planned(initialized_project, 26)
+    _seed_chapters(initialized_project, fixture_text, 21, 26)
+
+    written = compile_manuscript(initialized_project, target=CompileTarget(volume=2))
+
+    assert written == [initialized_project / "manuscript" / "vol_02.md"]
+    assert (initialized_project / "manuscript" / "vol_02.md").read_text(encoding="utf-8").startswith("# Volume 02")
+    assert _chapter_statuses(initialized_project)[21] == "compiled"
+    assert _chapter_statuses(initialized_project)[26] == "compiled"
 
 
 def test_compile_manuscript_rejects_outlined_chapter_in_volume_target(initialized_project, fixture_text):

@@ -84,7 +84,9 @@ def _compile_by_volume(paths, records: list[dict]) -> list[Path]:
 
 def _compile_targeted_volume(paths, config, records_by_number: dict[int, dict], volume: int) -> list[Path]:
     start = (volume - 1) * config.chapters.per_volume + 1
-    end = volume * config.chapters.per_volume
+    end = _volume_end_chapter(config, records_by_number, volume)
+    if start > end:
+        raise ValueError(f"volume {volume:02d} has no chapters to compile")
     selected = _validate_target_chapters(paths, records_by_number, start, end)
     return _write_manuscript(
         paths,
@@ -133,6 +135,15 @@ def _validate_target_chapters(
             raise FileNotFoundError(f"missing text.md for chapter ch{chapter_number:03d}: {text_path}")
         selected.append(record)
     return selected
+
+
+def _volume_end_chapter(config, records_by_number: dict[int, dict], volume: int) -> int:
+    planned_end = volume * config.chapters.per_volume
+    if config.chapters.total_planned > 0:
+        return min(planned_end, config.chapters.total_planned)
+    if records_by_number:
+        return min(planned_end, max(records_by_number))
+    return planned_end
 
 
 def _write_manuscript(paths, records: list[dict], *, destination: Path, title: str) -> list[Path]:
