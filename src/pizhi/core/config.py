@@ -10,9 +10,6 @@ import yaml
 
 from pizhi.domain.agent_extensions import AgentSpec
 
-_VALID_AGENT_KINDS = {"review", "maintenance"}
-_VALID_TARGET_SCOPES = {"chapter", "project"}
-
 
 @dataclass(slots=True)
 class ProjectSection:
@@ -215,15 +212,6 @@ def _agent_specs_from_raw(raw_agents: Any) -> list[AgentSpec] | None:
     for raw_spec in raw_agents:
         if not isinstance(raw_spec, dict):
             raise ValueError("agents must contain mappings")
-
-        kind = raw_spec.get("kind")
-        if kind not in _VALID_AGENT_KINDS:
-            raise ValueError(f"unknown agent kind: {kind!r}")
-
-        target_scope = raw_spec.get("target_scope")
-        if target_scope not in _VALID_TARGET_SCOPES:
-            raise ValueError(f"unknown agent target scope: {target_scope!r}")
-
         specs.append(AgentSpec(**raw_spec))
 
     return specs

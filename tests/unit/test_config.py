@@ -151,6 +151,7 @@ def test_config_loads_legacy_config_without_provider_block(tmp_path):
     loaded = load_config(path)
     assert loaded.project.name == "Legacy Novel"
     assert loaded.provider is None
+    assert loaded.agents is None
 
 
 def test_save_config_omits_provider_block_when_missing(tmp_path):
@@ -161,6 +162,18 @@ def test_save_config_omits_provider_block_when_missing(tmp_path):
 
     saved_text = path.read_text(encoding="utf-8")
     assert "provider:" not in saved_text
+
+
+def test_save_config_omits_agents_block_when_missing(tmp_path):
+    path = tmp_path / ".pizhi" / "config.yaml"
+    path.parent.mkdir(parents=True)
+
+    config = default_config(name="Test Novel")
+    config.agents = None
+    save_config(path, config)
+
+    saved_text = path.read_text(encoding="utf-8")
+    assert "agents:" not in saved_text
 
 
 def test_config_round_trip_preserves_agent_specs(tmp_path):
