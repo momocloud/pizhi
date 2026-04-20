@@ -47,6 +47,22 @@ def _is_parameter_mode(args: argparse.Namespace) -> bool:
     )
 
 
+def _resolve_optional_value(
+    args: argparse.Namespace,
+    field_name: str,
+    label: str,
+    *,
+    existing_value: str | None,
+    interactive: bool,
+) -> str | None:
+    value = getattr(args, field_name)
+    if value is not None:
+        return value
+    if interactive:
+        return _prompt_for_optional_value(label, existing_value)
+    return existing_value
+
+
 def run_provider_configure(args: argparse.Namespace) -> int:
     paths = project_paths(Path.cwd())
     config = load_config(paths.config_file)
@@ -60,32 +76,54 @@ def run_provider_configure(args: argparse.Namespace) -> int:
         or _prompt_for_value("Base URL", existing.base_url if existing else None),
         api_key_env=args.api_key_env
         or _prompt_for_value("API key env", existing.api_key_env if existing else None),
-        review_model=(
-            args.review_model
-            if args.review_model is not None
-            else (
-                _prompt_for_optional_value("Review model", existing.review_model if existing else None)
-                if interactive_review
-                else (existing.review_model if existing else None)
-            )
+        brainstorm_model=_resolve_optional_value(
+            args,
+            "brainstorm_model",
+            "Brainstorm model",
+            existing_value=existing.brainstorm_model if existing else None,
+            interactive=interactive_review,
         ),
-        review_base_url=(
-            args.review_base_url
-            if args.review_base_url is not None
-            else (
-                _prompt_for_optional_value("Review base URL", existing.review_base_url if existing else None)
-                if interactive_review
-                else (existing.review_base_url if existing else None)
-            )
+        outline_model=_resolve_optional_value(
+            args,
+            "outline_model",
+            "Outline model",
+            existing_value=existing.outline_model if existing else None,
+            interactive=interactive_review,
         ),
-        review_api_key_env=(
-            args.review_api_key_env
-            if args.review_api_key_env is not None
-            else (
-                _prompt_for_optional_value("Review API key env", existing.review_api_key_env if existing else None)
-                if interactive_review
-                else (existing.review_api_key_env if existing else None)
-            )
+        write_model=_resolve_optional_value(
+            args,
+            "write_model",
+            "Write model",
+            existing_value=existing.write_model if existing else None,
+            interactive=interactive_review,
+        ),
+        continue_model=_resolve_optional_value(
+            args,
+            "continue_model",
+            "Continue model",
+            existing_value=existing.continue_model if existing else None,
+            interactive=interactive_review,
+        ),
+        review_model=_resolve_optional_value(
+            args,
+            "review_model",
+            "Review model",
+            existing_value=existing.review_model if existing else None,
+            interactive=interactive_review,
+        ),
+        review_base_url=_resolve_optional_value(
+            args,
+            "review_base_url",
+            "Review base URL",
+            existing_value=existing.review_base_url if existing else None,
+            interactive=interactive_review,
+        ),
+        review_api_key_env=_resolve_optional_value(
+            args,
+            "review_api_key_env",
+            "Review API key env",
+            existing_value=existing.review_api_key_env if existing else None,
+            interactive=interactive_review,
         ),
     )
     config.provider = provider_section
