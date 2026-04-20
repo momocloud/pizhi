@@ -144,6 +144,8 @@ def _parse_chapter_review_notes(raw: str) -> ChapterReviewNotes:
             if name == "作者备注":
                 author_parts.append(content)
                 continue
+            if name in {"A 类结构检查", "B 类 AI 审查", "一致性检查结果"}:
+                author_parts.append(raw[match.start():end])
             if name == "B 类 AI 审查":
                 ai_review_markdown = content
             elif name not in SUPPORTED_CHAPTER_REVIEW_HEADINGS:

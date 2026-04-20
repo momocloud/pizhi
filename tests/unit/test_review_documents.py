@@ -96,7 +96,7 @@ def test_load_chapter_review_notes_preserves_duplicate_author_heading_text(tmp_p
     assert raw.count("## B 类 AI 审查") == 1
 
 
-def test_load_chapter_review_notes_ignores_duplicate_machine_headings_when_rewriting(tmp_path):
+def test_load_chapter_review_notes_recovers_duplicate_machine_headings_when_rewriting(tmp_path):
     notes_path = tmp_path / "notes.md"
     notes_path.write_text(
         "## 作者备注\n\n手工备注。\n\n## A 类结构检查\n\n旧 A 内容 1。\n\n## B 类 AI 审查\n\n旧 B 内容 1。\n\n## A 类结构检查\n\n旧 A 内容 2。\n\n## B 类 AI 审查\n\n旧 B 内容 2。\n\n## 临时标题\n\n手工补充。\n",
@@ -117,12 +117,42 @@ def test_load_chapter_review_notes_ignores_duplicate_machine_headings_when_rewri
     assert "手工备注。" in raw
     assert "## 临时标题" in raw
     assert "旧 A 内容 1。" not in raw
-    assert "旧 A 内容 2。" not in raw
     assert "旧 B 内容 1。" not in raw
+    assert "旧 A 内容 2。" in raw
     assert "旧 B 内容 2。" in raw
-    assert raw.count("## A 类结构检查") == 1
-    assert raw.count("## B 类 AI 审查") == 1
-    assert raw.count("## ") == 4
+    assert raw.count("## A 类结构检查") == 2
+    assert raw.count("## B 类 AI 审查") == 2
+    assert raw.count("## ") == 6
+
+
+def test_load_chapter_review_notes_recovers_duplicate_machine_sections_into_author_notes(tmp_path):
+    notes_path = tmp_path / "notes.md"
+    notes_path.write_text(
+        "## 作者备注\n\n手工备注。\n\n## A 类结构检查\n\n旧 A 内容 1。\n\n## 一致性检查结果\n\n旧 C 内容 1。\n\n## B 类 AI 审查\n\n旧 B 内容 1。\n\n## A 类结构检查\n\n旧 A 内容 2。\n\n## 一致性检查结果\n\n旧 C 内容 2。\n\n## B 类 AI 审查\n\n旧 B 内容 2。\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    loaded = load_chapter_review_notes(notes_path)
+    write_chapter_review_notes(
+        notes_path,
+        author_notes=loaded.author_notes,
+        structural_markdown="新 A 内容。\n",
+        ai_review_markdown="新 B 内容。\n",
+    )
+
+    raw = notes_path.read_text(encoding="utf-8")
+
+    assert "手工备注。" in raw
+    assert "旧 A 内容 2。" in raw
+    assert "旧 B 内容 2。" in raw
+    assert "旧 C 内容 2。" in raw
+    assert "旧 A 内容 1。" not in raw
+    assert "旧 B 内容 1。" not in raw
+    assert "旧 C 内容 1。" not in raw
+    assert raw.count("## A 类结构检查") == 2
+    assert raw.count("## B 类 AI 审查") == 2
+    assert raw.count("## 一致性检查结果") == 1
 
 
 def test_write_chapter_review_notes_preserves_author_notes_and_drops_legacy_sections(tmp_path):
