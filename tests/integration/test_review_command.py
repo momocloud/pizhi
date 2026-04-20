@@ -80,6 +80,24 @@ def _configure_review_agent(initialized_project, *, agent_id: str = "critique.ch
     save_config(config_path, config)
 
 
+def _configure_maintenance_agent(
+    initialized_project, *, agent_id: str = "archive.audit", prompt_template: str = "Audit the maintenance results."
+) -> None:
+    config_path = initialized_project / ".pizhi" / "config.yaml"
+    config = load_config(config_path)
+    config.agents = [
+        AgentSpec(
+            agent_id=agent_id,
+            kind="maintenance",
+            description="Extension maintenance agent.",
+            enabled=True,
+            target_scope="project",
+            prompt_template=prompt_template,
+        )
+    ]
+    save_config(config_path, config)
+
+
 def test_review_command_writes_notes_file(initialized_project, fixture_text):
     apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
     apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
@@ -865,3 +883,54 @@ def test_review_command_full_backfills_archive_and_reports_maintenance(initializ
     assert timeline_archive.exists()
     assert "## Maintenance" in report_path.read_text(encoding="utf-8")
     assert "Archive findings" in report_path.read_text(encoding="utf-8")
+
+
+def test_review_command_full_execute_appends_maintenance_extension_findings(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    _configure_maintenance_agent(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：时间线合理性
+- **严重度**：中
+- **描述**：章节时间线略显跳跃。
+- **证据**：示例证据。
+- **建议修法**：补充过渡段落。
+""",
+        ),
+    )
+    monkeypatch.setattr(
+        "pizhi.services.agent_extensions.execute_agent_spec",
+        lambda *args, **kwargs: __import__(
+            "pizhi.services.agent_extensions", fromlist=["AgentExecutionResult"]
+        ).AgentExecutionResult(
+            agent_id="archive.audit",
+            kind="maintenance",
+            status="succeeded",
+            summary="archive summary",
+            issues=[],
+            suggestions=["rotate timeline archive"],
+            failure_reason=None,
+            run_id="run_maint",
+        ),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+
+    exit_code = main(["review", "--full", "--execute"])
+    output = capsys.readouterr().out
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "## Maintenance" in report_text
+    assert "Maintenance agent: archive.audit: archive summary" in report_text
+    assert "## B 类 AI 审查" in report_text

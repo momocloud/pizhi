@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 
 from pizhi.core.paths import project_paths
+from pizhi.services.agent_registry import load_agent_registry
 from pizhi.services.archive_service import ArchiveResult
 from pizhi.services.archive_service import rotate_archives
 from pizhi.services.synopsis_review import SynopsisReviewResult
@@ -52,7 +54,8 @@ def _run_maintenance(project_root: Path) -> MaintenanceResult:
     clear_synopsis_review_pending(project_root)
 
     archive_result = rotate_archives(project_root)
-    findings = _build_findings(synopsis_review, archive_result)
+    extension_findings = _run_maintenance_extension_findings(project_root, synopsis_review, archive_result)
+    findings = _build_findings(synopsis_review, archive_result, extension_findings)
     return MaintenanceResult(
         synopsis_review=synopsis_review,
         archive_result=archive_result,
@@ -63,6 +66,7 @@ def _run_maintenance(project_root: Path) -> MaintenanceResult:
 def _build_findings(
     synopsis_review: SynopsisReviewResult | None,
     archive_result: ArchiveResult | None,
+    extension_findings: list[MaintenanceFinding],
 ) -> list[MaintenanceFinding]:
     findings: list[MaintenanceFinding] = []
 
@@ -87,7 +91,72 @@ def _build_findings(
                 )
             )
 
+    findings.extend(extension_findings)
     return findings
+
+
+def _run_maintenance_extension_findings(
+    project_root: Path,
+    synopsis_review: SynopsisReviewResult | None,
+    archive_result: ArchiveResult | None,
+) -> list[MaintenanceFinding]:
+    agent_extensions = import_module("pizhi.services.agent_extensions")
+    try:
+        registry = load_agent_registry(project_root)
+        maintenance_agents = registry.iter_enabled(kind="maintenance", target_scope="project")
+    except Exception as exc:
+        return [_build_maintenance_extension_failure_finding("extension.setup", str(exc))]
+
+    context_markdown = build_maintenance_context(synopsis_review, archive_result)
+    findings: list[MaintenanceFinding] = []
+    for spec in maintenance_agents:
+        try:
+            result = agent_extensions.execute_agent_spec(
+                project_root,
+                spec,
+                target="project",
+                context_markdown=context_markdown,
+                route_name="review",
+            )
+        except Exception as exc:
+            findings.append(_build_maintenance_extension_failure_finding(spec.agent_id, str(exc)))
+            continue
+        findings.append(_build_maintenance_extension_result_finding(result))
+    return findings
+
+
+def build_maintenance_context(
+    synopsis_review: SynopsisReviewResult | None,
+    archive_result: ArchiveResult | None,
+) -> str:
+    lines = ["# Maintenance Context", ""]
+    if synopsis_review is None:
+        lines.extend(["## Synopsis review", "", "- Not run.", ""])
+    else:
+        synopsis_status = "promoted" if synopsis_review.promoted else "rejected"
+        lines.extend(["## Synopsis review", "", f"- Status: {synopsis_status}.", ""])
+
+    lines.extend(["## Archive findings", ""])
+    archive_findings = archive_result.findings if archive_result is not None else []
+    if archive_findings:
+        for finding in archive_findings:
+            lines.append(f"- {finding.description}")
+    else:
+        lines.append("- None.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _build_maintenance_extension_result_finding(result: agent_extensions.AgentExecutionResult) -> MaintenanceFinding:
+    if result.status == "succeeded":
+        detail = f"{result.agent_id}: {result.summary}"
+    else:
+        detail = f"{result.agent_id}: failed - {result.failure_reason or 'unknown failure'}"
+    return MaintenanceFinding(category="Maintenance agent", detail=detail)
+
+
+def _build_maintenance_extension_failure_finding(agent_id: str, error_text: str) -> MaintenanceFinding:
+    detail = f"{agent_id}: failed - {error_text.strip() or 'unknown extension runtime failure'}"
+    return MaintenanceFinding(category="Maintenance agent", detail=detail)
 
 
 def format_maintenance_summary(maintenance_result: MaintenanceResult | None) -> str:
