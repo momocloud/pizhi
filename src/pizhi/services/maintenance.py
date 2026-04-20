@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from importlib import import_module
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pizhi.core.paths import project_paths
 from pizhi.services.agent_registry import load_agent_registry
@@ -10,6 +10,9 @@ from pizhi.services.archive_service import ArchiveResult
 from pizhi.services.archive_service import rotate_archives
 from pizhi.services.synopsis_review import SynopsisReviewResult
 from pizhi.services.synopsis_review import review_synopsis_candidate
+
+if TYPE_CHECKING:
+    from pizhi.services.agent_extensions import AgentExecutionResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,7 +103,8 @@ def _run_maintenance_extension_findings(
     synopsis_review: SynopsisReviewResult | None,
     archive_result: ArchiveResult | None,
 ) -> list[MaintenanceFinding]:
-    agent_extensions = import_module("pizhi.services.agent_extensions")
+    from pizhi.services.agent_extensions import execute_agent_spec
+
     try:
         registry = load_agent_registry(project_root)
         maintenance_agents = registry.iter_enabled(kind="maintenance", target_scope="project")
@@ -111,7 +115,7 @@ def _run_maintenance_extension_findings(
     findings: list[MaintenanceFinding] = []
     for spec in maintenance_agents:
         try:
-            result = agent_extensions.execute_agent_spec(
+            result = execute_agent_spec(
                 project_root,
                 spec,
                 target="project",
@@ -146,7 +150,7 @@ def build_maintenance_context(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _build_maintenance_extension_result_finding(result: agent_extensions.AgentExecutionResult) -> MaintenanceFinding:
+def _build_maintenance_extension_result_finding(result: AgentExecutionResult) -> MaintenanceFinding:
     if result.status == "succeeded":
         detail = f"{result.agent_id}: {result.summary}"
     else:

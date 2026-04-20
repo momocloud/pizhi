@@ -25,6 +25,22 @@ def configure_maintenance_agent(initialized_project, *, agent_id: str = "archive
     save_config(config_path, config)
 
 
+def configure_chapter_scoped_maintenance_agent(initialized_project, *, agent_id: str = "archive.chapter") -> None:
+    config_path = initialized_project / ".pizhi" / "config.yaml"
+    config = load_config(config_path)
+    config.agents = [
+        AgentSpec(
+            agent_id=agent_id,
+            kind="maintenance",
+            description="Chapter-scoped maintenance agent.",
+            enabled=True,
+            target_scope="chapter",
+            prompt_template="This should not run from maintenance.",
+        )
+    ]
+    save_config(config_path, config)
+
+
 def test_run_full_maintenance_appends_extension_findings(initialized_project, monkeypatch):
     configure_maintenance_agent(initialized_project)
     monkeypatch.setattr(
@@ -88,3 +104,15 @@ def test_run_full_maintenance_records_runtime_failures_as_findings(initialized_p
         finding.category == "Maintenance agent" and "agent runtime boom" in finding.detail
         for finding in result.findings
     )
+
+
+def test_run_full_maintenance_ignores_chapter_scoped_maintenance_agents(initialized_project, monkeypatch):
+    configure_chapter_scoped_maintenance_agent(initialized_project)
+    monkeypatch.setattr(
+        "pizhi.services.agent_extensions.execute_agent_spec",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("chapter-scoped maintenance agents must not run")),
+    )
+
+    result = run_full_maintenance(initialized_project)
+
+    assert all(finding.category != "Maintenance agent" for finding in result.findings)
