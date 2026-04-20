@@ -167,6 +167,22 @@ def render_agent_execution_section(result: AgentExecutionResult) -> ExtensionRep
     )
 
 
+def render_extension_setup_failure_section(error_text: str) -> ExtensionReportSection:
+    return ExtensionReportSection(
+        agent_id="extension.setup",
+        title="Review Agent extension.setup",
+        body="\n".join(
+            [
+                "- Status: failed",
+                "- Error: extension setup/load failure",
+                "",
+                error_text.strip() or "unknown extension setup failure",
+            ]
+        ).rstrip()
+        + "\n",
+    )
+
+
 def _summarize_issues(issues: list[AIReviewIssue]) -> str:
     if not issues:
         return "No issues found"

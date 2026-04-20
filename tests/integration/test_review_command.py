@@ -293,6 +293,46 @@ def test_review_command_execute_records_extension_failure_without_losing_builtin
     assert "failed" in notes_text.lower()
 
 
+def test_review_command_execute_records_registry_load_failure_without_losing_builtin_sections(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：高
+- **描述**：沈轩前后动机冲突。
+- **证据**：示例证据。
+- **建议修法**：补充动机铺垫。
+""",
+        ),
+    )
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.load_agent_registry",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("invalid agent config")),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
+
+    exit_code = main(["review", "--chapter", "2", "--execute"])
+    output = capsys.readouterr().out
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch002" / "notes.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    notes_text = notes_path.read_text(encoding="utf-8")
+    assert "## A 类结构检查" in notes_text
+    assert "## B 类 AI 审查" in notes_text
+    assert "## Review Agent extension.setup" in notes_text
+    assert "invalid agent config" in notes_text
+
+
 def test_review_command_execute_without_scope_returns_readable_error_and_does_not_mutate_notes(
     initialized_project, fixture_text
 ):
@@ -502,6 +542,49 @@ def test_review_command_full_execute_failure_keeps_summary_and_maintenance(
     assert re.search(r"^## Global issues:$", report_text, re.MULTILINE) is None
     assert re.search(r"^## ch\d{3}$", report_text, re.MULTILINE) is None
     assert "AI 审查执行失败" in report_text
+
+
+def test_review_command_full_execute_records_registry_load_failure_without_losing_builtin_sections(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_REVIEW_API_KEY", "review-secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StaticReviewAdapter(
+            """\
+### 问题 1
+- **类别**：时间线合理性
+- **严重度**：中
+- **描述**：章节时间线略显跳跃。
+- **证据**：示例证据。
+- **建议修法**：补充过渡段落。
+""",
+        ),
+    )
+    monkeypatch.setattr(
+        "pizhi.commands.review_cmd.load_agent_registry",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("invalid agent config")),
+    )
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 6, fixture_text("ch001_response.md"))
+
+    exit_code = main(["review", "--full", "--execute"])
+    output = capsys.readouterr().out
+    report_path = initialized_project / ".pizhi" / "cache" / "review_full.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "# Review Full" in report_text
+    assert "## Summary" in report_text
+    assert "## A 类结构检查" in report_text
+    assert "## Maintenance" in report_text
+    assert "## B 类 AI 审查" in report_text
+    assert "## Review Agent extension.setup" in report_text
+    assert "invalid agent config" in report_text
 
 
 def test_review_command_full_writes_cache_report(initialized_project, fixture_text):
