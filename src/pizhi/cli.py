@@ -68,7 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     provider_configure_parser.set_defaults(handler=run_provider_configure)
 
-    compile_parser = subparsers.add_parser("compile", help="compile drafted chapters into manuscript volumes")
+    compile_parser = subparsers.add_parser(
+        "compile",
+        help="compile manuscript output by volume, chapter, or chapter range",
+    )
     compile_target_group = compile_parser.add_mutually_exclusive_group(required=True)
     compile_target_group.add_argument("--volume", type=int, help="compile a single volume")
     compile_target_group.add_argument("--chapter", type=int, help="compile a single chapter")
@@ -111,7 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoints_parser.add_argument("--session-id", required=True, help="continue session identifier")
     checkpoints_parser.set_defaults(handler=run_checkpoints)
 
-    review_parser = subparsers.add_parser("review", help="run structural consistency review")
+    review_parser = subparsers.add_parser("review", help="run structural and optional AI consistency review")
     review_parser.add_argument("--chapter", type=int, help="review a single chapter number")
     review_parser.add_argument("--full", action="store_true", help="review all known chapters")
     review_parser.add_argument("--execute", action="store_true", help="call the configured provider")

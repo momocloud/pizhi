@@ -270,12 +270,16 @@ def execute_agent_spec(project_root: Path, spec: AgentSpec, *, target: str, cont
     return normalize_agent_execution(spec, execution)
 ```
 
-- [ ] **Step 4: Run the targeted tests again**
+- [x] **Step 4: Run the targeted tests again**
 
 Run:
 `python -m pytest tests/unit/test_agent_extensions.py -q --tb=short -rfE`
 
 Expected: selected tests `PASSED`
+
+Observed:
+- `python -m pytest tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py -q --tb=short -rfE`
+- `2 passed in 0.16s`
 
 - [ ] **Step 5: Commit**
 
@@ -456,7 +460,7 @@ git commit -m "feat: add maintenance extension hooks"
 - Test: `tests/integration/test_docs_contract.py`
 - Modify: `docs/superpowers/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`
 
-- [ ] **Step 1: Write the failing documentation contract tests**
+- [x] **Step 1: Write the failing documentation contract tests**
 
 ```python
 def test_readme_and_runbook_exist_and_reference_canonical_flow(project_root):
@@ -480,7 +484,7 @@ def test_cli_help_mentions_delivery_relevant_subcommands():
     assert "review" in help_text
 ```
 
-- [ ] **Step 2: Run the targeted tests to verify they fail**
+- [x] **Step 2: Run the targeted tests to verify they fail**
 
 Run:
 `python -m pytest tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py -q --tb=short -rfE`
@@ -488,7 +492,12 @@ Run:
 Expected:
 - failures because the new delivery docs and contract tests do not exist yet
 
-- [ ] **Step 3: Implement documentation closure and help alignment**
+Observed:
+- `python -m pytest tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py -q --tb=short -rfE`
+- `1 failed, 1 passed in 0.34s`
+- failure was `FileNotFoundError` for missing `README.md`
+
+- [x] **Step 3: Implement documentation closure and help alignment**
 
 ```markdown
 # Pizhi
@@ -518,14 +527,18 @@ Run:
 
 Expected: selected tests `PASSED`
 
-- [ ] **Step 5: Run the full regression suite**
+- [x] **Step 5: Run the full regression suite**
 
 Run:
 `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
 
 Expected: all tests `PASSED`
 
-- [ ] **Step 6: Update plan verification notes and commit**
+Observed:
+- `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
+- `292 passed in 86.69s (0:01:26)`
+
+- [x] **Step 6: Update plan verification notes and commit**
 
 ```bash
 git add README.md docs/guides/getting-started.md docs/guides/recovery.md docs/architecture/ARCHITECTURE.md src/pizhi/cli.py tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py docs/superpowers/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md
@@ -538,6 +551,6 @@ git commit -m "docs: close delivery and extension milestone"
 - [ ] review extension agents append isolated sections without replacing built-in review output
 - [ ] maintenance extension agents append findings without breaking deterministic maintenance behavior
 - [ ] extension-agent failures are visible but do not corrupt notes or reports
-- [ ] delivered docs cover init → provider configure → execute → apply → continue → review → compile
-- [ ] architecture docs describe the implemented v1 extension boundary
-- [ ] `python -m pytest tests/unit tests/integration -q --tb=short -rfE` passes
+- [x] delivered docs cover init → provider configure → execute → apply → continue → review → compile
+- [x] architecture docs describe the implemented v1 extension boundary
+- [x] `python -m pytest tests/unit tests/integration -q --tb=short -rfE` passes
