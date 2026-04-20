@@ -43,7 +43,7 @@
 - `tests/unit/test_review_documents.py`: add malformed/duplicate machine-section regression coverage
 - `tests/unit/test_compiler.py`: cover target-aware compiler behavior and strict failure semantics
 - `tests/integration/test_compile_command.py`: cover `compile --volume`, `compile --chapter`, `compile --chapters`, and target-validation failures
-- `docs/superpowers/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`: mark verification results after execution
+- `meta/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`: mark verification results after execution
 
 ### Task 1: Add Fixed Model Routing To Provider Config
 
@@ -550,7 +550,7 @@ git commit -m "feat: add targeted compile modes"
 
 **Files:**
 - Modify: `docs/architecture/ARCHITECTURE.md`
-- Modify: `docs/superpowers/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`
+- Modify: `meta/plans/2026-04-20-pizhi-milestone-9-v1-closure.md`
 
 - [x] **Step 1: Update the architecture document to close the v1 open question**
 
@@ -597,6 +597,6 @@ Record:
 - [ ] **Step 5: Commit**
 
 ```bash
-git add docs/architecture/ARCHITECTURE.md docs/superpowers/plans/2026-04-20-pizhi-milestone-9-v1-closure.md
+git add docs/architecture/ARCHITECTURE.md meta/plans/2026-04-20-pizhi-milestone-9-v1-closure.md
 git commit -m "docs: record milestone 9 verification state"
 ```

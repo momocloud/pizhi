@@ -25,7 +25,7 @@
 - Modify: `tests/unit/test_structural_review.py`
 - Modify: `tests/integration/test_status_command.py`
 - Modify: `tests/integration/test_review_command.py`
-- Modify: `docs/superpowers/plans/2026-04-16-pizhi-milestone-4-maintenance.md`
+- Modify: `meta/plans/2026-04-16-pizhi-milestone-4-maintenance.md`
 
 ### Planned Responsibilities
 
@@ -358,7 +358,7 @@ git commit -m "feat: add full structural review dashboard"
 ### Task 5: Run milestone 4 verification and update the plan
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-16-pizhi-milestone-4-maintenance.md`
+- Modify: `meta/plans/2026-04-16-pizhi-milestone-4-maintenance.md`
 
 - [x] **Step 1: Run the full milestone 4 test suite**
 
@@ -387,6 +387,6 @@ Update the checkbox states in this file so the plan remains truthful after execu
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-16-pizhi-milestone-4-maintenance.md
+git add meta/plans/2026-04-16-pizhi-milestone-4-maintenance.md
 git commit -m "docs: record milestone 4 verification state"
 ```

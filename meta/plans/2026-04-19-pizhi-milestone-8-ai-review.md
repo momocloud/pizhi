@@ -39,7 +39,7 @@
 - `tests/unit/test_ai_review_service.py`: cover prompt execution, run artifact persistence, success parsing, and failure modes
 - `tests/unit/test_structural_review.py`: update expectations for A-class notes writing responsibilities if needed
 - `tests/integration/test_review_command.py`: cover chapter/full `--execute` behavior and failure semantics
-- `docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md`: mark verification results after execution
+- `meta/plans/2026-04-19-pizhi-milestone-8-ai-review.md`: mark verification results after execution
 
 ### Task 1: Add Review Provider Override Configuration
 
@@ -533,7 +533,7 @@ git commit -m "feat: add ai review execution flow"
 ### Task 6: Final Verification And Plan State Update
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md`
+- Modify: `meta/plans/2026-04-19-pizhi-milestone-8-ai-review.md`
 
 - [x] **Step 1: Run review command smoke tests**
 
@@ -558,7 +558,7 @@ Updated this file so the executed verification boxes are checked and recorded th
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-19-pizhi-milestone-8-ai-review.md
+git add meta/plans/2026-04-19-pizhi-milestone-8-ai-review.md
 git commit -m "docs: record milestone 8 verification state"
 ```
 

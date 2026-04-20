@@ -1,4 +1,4 @@
-def test_public_docs_surface_excludes_internal_process_docs(project_root):
+def test_readme_runbook_and_recovery_content_contract(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
     runbook = (project_root / "docs" / "guides" / "getting-started.md").read_text(encoding="utf-8")
     recovery = (project_root / "docs" / "guides" / "recovery.md").read_text(encoding="utf-8")

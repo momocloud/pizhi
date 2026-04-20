@@ -559,7 +559,7 @@ git commit -m "feat: add run listing and explicit apply command"
 ### Task 6: Final Verification And Plan State Update
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md`
+- Modify: `meta/plans/2026-04-19-pizhi-milestone-6-provider-first.md`
 
 - [x] **Step 1: Run command smoke tests**
 
@@ -604,6 +604,6 @@ Observed results on `2026-04-19` after the final blocker fixes:
   - Includes command-level `normalize_failed` coverage for `brainstorm`, `outline expand`, and `write`
 
 ```bash
-git add docs/superpowers/plans/2026-04-19-pizhi-milestone-6-provider-first.md
+git add meta/plans/2026-04-19-pizhi-milestone-6-provider-first.md
 git commit -m "docs: record milestone 6 verification state"
 ```

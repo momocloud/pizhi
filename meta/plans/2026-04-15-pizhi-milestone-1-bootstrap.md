@@ -394,7 +394,7 @@ git commit -m "docs: move architecture into docs tree"
 ### Task 6: Run the milestone verification suite
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-15-pizhi-milestone-1-bootstrap.md`
+- Modify: `meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md`
 
 - [x] **Step 1: Run the full milestone 1 test suite**
 
@@ -420,7 +420,7 @@ Update the checkbox states in this file for any completed steps so the plan stay
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-15-pizhi-milestone-1-bootstrap.md
+git add meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md
 git commit -m "docs: record milestone 1 verification state"
 ```
 

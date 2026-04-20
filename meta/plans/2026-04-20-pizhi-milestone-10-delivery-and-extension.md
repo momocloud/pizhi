@@ -41,7 +41,7 @@
 - `tests/integration/test_review_command.py`: cover review extension execution and failure isolation at CLI level
 - `tests/integration/test_cli_help_contract.py`: keep key `--help` output aligned with documented major workflows
 - `tests/integration/test_docs_contract.py`: verify the delivered docs exist and mention the canonical command sequence used by the runbook
-- `docs/superpowers/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`: update verification notes as tasks complete
+- `meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`: update verification notes as tasks complete
 
 ### Task 1: Add Declarative Agent Config And Runtime Registry
 
@@ -458,7 +458,7 @@ git commit -m "feat: add maintenance extension hooks"
 - Modify: `src/pizhi/cli.py`
 - Test: `tests/integration/test_cli_help_contract.py`
 - Test: `tests/integration/test_docs_contract.py`
-- Modify: `docs/superpowers/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`
+- Modify: `meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md`
 
 - [x] **Step 1: Write the failing documentation contract tests**
 
@@ -541,7 +541,7 @@ Observed:
 - [x] **Step 6: Update plan verification notes and commit**
 
 ```bash
-git add README.md docs/guides/getting-started.md docs/guides/recovery.md docs/architecture/ARCHITECTURE.md src/pizhi/cli.py tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py docs/superpowers/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md
+git add README.md docs/guides/getting-started.md docs/guides/recovery.md docs/architecture/ARCHITECTURE.md src/pizhi/cli.py tests/integration/test_cli_help_contract.py tests/integration/test_docs_contract.py meta/plans/2026-04-20-pizhi-milestone-10-delivery-and-extension.md
 git commit -m "docs: close delivery and extension milestone"
 ```
 

@@ -423,7 +423,7 @@ git commit -m "feat: add structural consistency review"
 ### Task 6: Run milestone 2 verification and update the plan
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-16-pizhi-milestone-2-engine.md`
+- Modify: `meta/plans/2026-04-16-pizhi-milestone-2-engine.md`
 
 - [x] **Step 1: Run the full milestone 2 test suite**
 
@@ -448,7 +448,7 @@ Update the checkbox states in this file so the plan remains truthful after execu
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-16-pizhi-milestone-2-engine.md
+git add meta/plans/2026-04-16-pizhi-milestone-2-engine.md
 git commit -m "docs: record milestone 2 verification state"
 ```
 

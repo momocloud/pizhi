@@ -87,8 +87,8 @@ An optional lightweight docs index may be added only if it clearly improves navi
 
 Existing implementation-process documents should move from:
 
-- `docs/superpowers/specs/`
-- `docs/superpowers/plans/`
+- `meta/specs/`
+- `meta/plans/`
 
 to:
 
@@ -99,7 +99,7 @@ The content does not need rewriting during this move. The primary purpose is bou
 
 ### 4.3 Link hygiene
 
-Any public-facing links that currently point to `docs/superpowers/...` should be updated to avoid exposing internal process paths as part of the public docs surface.
+Any public-facing links that currently point to the internal process docs tree should be updated to avoid exposing internal process paths as part of the public docs surface.
 
 Internal cross-links between specs and plans may continue to exist after relocation as long as they resolve correctly.
 
@@ -186,7 +186,7 @@ Expected touched or created paths include:
 - `.github/pull_request_template.md`
 - `meta/specs/`
 - `meta/plans/`
-- moved files formerly under `docs/superpowers/`
+- moved files formerly under the internal process docs tree
 
 ## 9. Verification
 

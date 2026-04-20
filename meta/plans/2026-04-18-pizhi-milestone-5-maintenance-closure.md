@@ -406,7 +406,7 @@ git commit -m "feat: wire maintenance into write and review flows"
 ### Task 6: Final Verification And Plan State Update
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md`
+- Modify: `meta/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md`
 
 - [x] **Step 1: Run command smoke tests**
 
@@ -441,6 +441,6 @@ Update this file so the executed verification boxes are checked and add the fina
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md
+git add meta/plans/2026-04-18-pizhi-milestone-5-maintenance-closure.md
 git commit -m "docs: record milestone 5 verification state"
 ```

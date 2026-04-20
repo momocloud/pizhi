@@ -39,7 +39,7 @@
 - `tests/unit/test_checkpoint_apply_service.py`: deterministic apply ordering and all-or-nothing behavior
 - `tests/integration/test_continue_execute_command.py`: command-level provider-backed continue flow
 - `tests/integration/test_checkpoint_commands.py`: session listing, checkpoint listing, checkpoint apply, and resume flow
-- `docs/superpowers/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`: mark verification results after execution
+- `meta/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`: mark verification results after execution
 
 ### Task 1: Add Continue Session And Checkpoint Stores
 
@@ -622,7 +622,7 @@ git commit -m "fix: harden continue orchestration budget handling"
 ### Task 7: Final Verification And Plan State Update
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`
+- Modify: `meta/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md`
 
 - [x] **Step 1: Run command smoke tests**
 
@@ -655,6 +655,6 @@ Update this file so the executed verification boxes are checked and add final ob
 - [x] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md
+git add meta/plans/2026-04-19-pizhi-milestone-7-provider-orchestration.md
 git commit -m "docs: record milestone 7 verification state"
 ```
