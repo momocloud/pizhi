@@ -22,8 +22,9 @@
 ## File Map
 
 - `README.md`: keep as the single public landing page; add links to contribution and security docs if needed
+- `README-package.md`: provide a package-index-safe long description without repo-relative documentation links
 - `ARCHITECTURE.md`: keep as a thin compatibility pointer to `docs/architecture/ARCHITECTURE.md`
-- `pyproject.toml`: point package metadata `readme` at `README.md`
+- `pyproject.toml`: point package metadata `readme` at `README-package.md`
 - `LICENSE`: add the MIT license text
 - `CONTRIBUTING.md`: add local setup, test, PR, and documentation placement guidance
 - `CODE_OF_CONDUCT.md`: add a standard contributor conduct document
@@ -77,6 +78,7 @@ def test_public_docs_surface_excludes_internal_process_docs(project_root):
 def test_repository_contains_expected_open_source_metadata(project_root):
     expected = [
         "README.md",
+        "README-package.md",
         "LICENSE",
         "CONTRIBUTING.md",
         "CODE_OF_CONDUCT.md",
@@ -94,7 +96,7 @@ def test_repository_contains_expected_open_source_metadata(project_root):
 
 def test_pyproject_uses_readme_as_package_readme(project_root):
     pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'readme = "README.md"' in pyproject
+    assert 'readme = "README-package.md"' in pyproject
 ```
 
 - [ ] **Step 2: Run the targeted tests to verify they fail**
@@ -127,7 +129,7 @@ Create the empty directory/file scaffolding needed for the new contract:
 - `SECURITY.md`
 - `CHANGELOG.md`
 
-and update `pyproject.toml` to use `README.md`.
+and update `pyproject.toml` to use `README-package.md`.
 
 - [ ] **Step 4: Run the targeted tests again**
 
@@ -300,7 +302,7 @@ git commit -m "docs: polish public repository navigation"
 ```python
 def test_contributing_doc_mentions_setup_and_test_command(project_root):
     contributing = (project_root / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    assert "python -m pip install -e ." in contributing
+    assert 'python -m pip install -e ".[dev]"' in contributing
     assert "python -m pytest tests/unit tests/integration -q --tb=short -rfE" in contributing
     assert "meta/specs" in contributing
     assert "meta/plans" in contributing
@@ -309,6 +311,7 @@ def test_contributing_doc_mentions_setup_and_test_command(project_root):
 def test_security_doc_mentions_private_reporting(project_root):
     security = (project_root / "SECURITY.md").read_text(encoding="utf-8")
     assert "Please do not report security issues through public GitHub issues." in security
+    assert "GitHub Security Advisories" in security
 ```
 
 - [ ] **Step 2: Run the targeted tests to verify they fail**
@@ -369,7 +372,7 @@ Expected:
 - all selected tests `PASSED`
 
 Observed:
-- `9 passed in 0.18s`
+- `10 passed in 0.20s`
 
 - [ ] **Step 3: Run the full regression suite**
 
@@ -380,7 +383,7 @@ Expected:
 - full suite `PASSED`
 
 Observed:
-- `316 passed in 98.45s`
+- `317 passed in 104.09s`
 
 - [ ] **Step 4: Update the plan with observed verification notes if outputs changed**
 
