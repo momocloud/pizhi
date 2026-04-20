@@ -3,6 +3,8 @@
 Date: 2026-04-20
 Status: v1 implemented
 
+Start at `README.md` for the public landing page, then use the governance links there to reach contributing and security guidance.
+
 ## Purpose
 
 Pizhi is a CLI for long-form fiction workflows that keeps project state on disk, keeps provider execution auditable, and reserves source-of-truth writes for deterministic application steps.

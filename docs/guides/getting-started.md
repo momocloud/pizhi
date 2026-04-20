@@ -1,6 +1,7 @@
 # Getting Started
 
 This runbook covers the supported v1 flow from initialization through compilation. Command examples use `python -m pizhi`, but the installed `pizhi` entry point is equivalent.
+Use `README.md` as the public landing page for the project and governance links.
 
 ## 1. Initialize a project
 

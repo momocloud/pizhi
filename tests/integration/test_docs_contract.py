@@ -18,3 +18,13 @@ def test_readme_runbook_and_recovery_content_contract(project_root):
     assert "pizhi checkpoint apply --id <checkpoint_id>" in runbook
     assert "Do not use `python -m pizhi apply --run-id <run_id>` for failed runs." in recovery
     assert "python -m pizhi continue resume --session-id <session_id>" in recovery
+
+
+def test_readme_links_to_public_docs_and_governance_files(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+
+    assert "[Getting started](docs/guides/getting-started.md)" in readme
+    assert "[Recovery guide](docs/guides/recovery.md)" in readme
+    assert "[Architecture](docs/architecture/ARCHITECTURE.md)" in readme
+    assert "[Contributing](CONTRIBUTING.md)" in readme
+    assert "[Security](SECURITY.md)" in readme

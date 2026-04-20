@@ -51,8 +51,10 @@ Pizhi is a file-backed long-form fiction workflow for planning, drafting, review
 - `pizhi review --full` also runs built-in maintenance and writes `review_full.md`.
 - `pizhi compile --volume`, `--chapter`, or `--chapters` builds manuscript output from drafted chapters.
 
-## Guides
+## Public Docs
 
 - [Getting started](docs/guides/getting-started.md)
 - [Recovery guide](docs/guides/recovery.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)

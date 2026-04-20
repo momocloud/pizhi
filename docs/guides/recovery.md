@@ -1,6 +1,7 @@
 # Recovery Guide
 
 This guide covers failure handling only. Every recovery step below stays within the current v1 command surface.
+Use `README.md` to reach the public docs and repository governance files.
 
 ## Provider execution fails
 

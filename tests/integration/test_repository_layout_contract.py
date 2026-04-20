@@ -20,6 +20,7 @@ def test_public_docs_surface_excludes_internal_process_docs(project_root):
 def test_repository_contains_expected_open_source_metadata(project_root):
     expected = [
         "README.md",
+        "ARCHITECTURE.md",
         "LICENSE",
         "CONTRIBUTING.md",
         "CODE_OF_CONDUCT.md",
