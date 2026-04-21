@@ -63,6 +63,12 @@ Repeat the generate, review, apply, and resume loop until the continue session r
 Before compiling the manuscript, run the appropriate review flow and confirm the project state again:
 
 ```bash
+pizhi review --full --execute
+```
+
+If you are reviewing a narrower target, use the appropriate chapter-scoped review command instead.
+
+```bash
 pizhi status
 ```
 

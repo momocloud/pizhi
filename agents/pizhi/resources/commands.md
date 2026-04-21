@@ -17,15 +17,27 @@ This generates candidates. It does not write source-of-truth changes by itself.
 ## Inspect Continue Outputs
 
 - `pizhi checkpoints --session-id <session_id>`
-- `pizhi continue resume --session-id <session_id>`
 
-Use these commands to inspect the active continue session and resume it after applying a checkpoint.
+Use this command to inspect the available checkpoint outputs for the active continue session.
 
 ## Apply A Chosen Result
 
 - `pizhi checkpoint apply --id <checkpoint_id>`
 
 This is the explicit write step. Apply mutates the source-of-truth.
+
+## Advance The Session
+
+- `pizhi continue resume --session-id <session_id>`
+
+Use this after applying a checkpoint to continue the session toward completion.
+
+## Review Before Compilation
+
+- `pizhi review --full --execute`
+- `pizhi review --chapter <n> --execute`
+
+Use the appropriate review command before compiling manuscript output.
 
 ## Finalize Output
 
