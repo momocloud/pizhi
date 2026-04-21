@@ -228,7 +228,9 @@ Expected:
 
 Update the preflight or verification note if the final observed results differ from:
 
-- `319 passed in 88.83s`
+- `317 passed in 94.41s`
+
+Observed verification result: `319 passed in 88.83s`
 
 - [ ] **Step 3: Record the release handoff note**
 
