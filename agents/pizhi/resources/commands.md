@@ -5,6 +5,7 @@ Commands are grouped by agent task so the playbook stays workflow-oriented rathe
 ## Bootstrap
 
 - `pizhi init`
+- `pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>`
 
 ## Inspect Project State
 
@@ -30,9 +31,10 @@ Use these commands for provider-backed packet flows such as `brainstorm`, `outli
 
 ## Inspect Continue Outputs
 
+- `pizhi continue sessions`
 - `pizhi checkpoints --session-id <session_id>`
 
-Use this command to inspect the available checkpoint outputs for the active continue session.
+Use these commands to inspect available continue sessions and checkpoint outputs.
 
 ## Apply A Chosen Result
 

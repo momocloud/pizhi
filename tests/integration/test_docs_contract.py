@@ -121,6 +121,8 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     assert "`uvx` runs the CLI once without installing a reusable `pizhi` executable." in workflow
     assert 'pizhi init --project-name "Example Novel"' in workflow
     assert "pizhi init" in commands
+    assert "pizhi provider configure" in commands
+    assert "pizhi continue sessions" in commands
     assert "pizhi outline expand --chapters <a-b> --execute" in commands
     assert "pizhi write --chapter <n> --execute" in examples
     assert "pizhi runs" in examples
