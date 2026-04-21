@@ -10,6 +10,24 @@ pizhi provider configure
 pizhi status
 ```
 
+## Install From Git
+
+```bash
+uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
+```
+
+Use the untagged Git URL when a pinned tag is not available yet. Prefer `@v0.1.0` for stable pinned installs once that tag exists.
+
+## Provider Run And Apply
+
+```bash
+pizhi status
+pizhi write --chapter <n> --execute
+pizhi runs
+pizhi apply --run-id <run_id>
+```
+
 ## Continue Session With Checkpoints
 
 ```bash

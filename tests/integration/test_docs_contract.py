@@ -90,3 +90,22 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
         "v0.1.0",
     ]:
         assert marker in recovery, f"Expected failure-recovery.md to include marker: {marker!r}"
+
+
+def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_root):
+    workflow = (project_root / "agents" / "pizhi" / "resources" / "workflow.md").read_text(encoding="utf-8")
+    commands = (project_root / "agents" / "pizhi" / "resources" / "commands.md").read_text(encoding="utf-8")
+    examples = (project_root / "agents" / "pizhi" / "resources" / "examples.md").read_text(encoding="utf-8")
+
+    for marker in [
+        "pizhi runs",
+        "pizhi apply --run-id <run_id>",
+    ]:
+        assert marker in workflow, f"Expected workflow.md to include marker: {marker!r}"
+        assert marker in commands, f"Expected commands.md to include marker: {marker!r}"
+
+    assert "pizhi write --chapter <n> --execute" in examples
+    assert "pizhi runs" in examples
+    assert "pizhi apply --run-id <run_id>" in examples
+    assert "git+https://github.com/momocloud/pizhi.git" in examples
+    assert "git+https://github.com/momocloud/pizhi.git@v0.1.0" in examples

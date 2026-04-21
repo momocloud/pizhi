@@ -18,17 +18,29 @@ pizhi status
 
 Use this to understand chapter progress and whether the project already has draft, review, or compile work in flight.
 
-## 3. Generate Candidate Work
+## 3. Generate Provider-Backed Candidates
 
-Start or continue authoring by generating candidates:
+For provider-backed commands such as `brainstorm`, `outline expand`, or `write`, generate a candidate first:
+
+```bash
+pizhi write --chapter <n> --execute
+pizhi runs
+pizhi apply --run-id <run_id>
+```
+
+`--execute` generates candidates. It does not mutate the source-of-truth by itself. Use `pizhi runs` to inspect the available provider outputs, then apply the selected successful run explicitly.
+
+## 4. Generate Checkpointed Continue Work
+
+For the checkpointed continue flow, generate candidates like this:
 
 ```bash
 pizhi continue run --count <n> --execute
 ```
 
-`--execute` generates candidates. It does not mutate the source-of-truth by itself.
+This creates a continue session with checkpoints instead of a single run to apply.
 
-## 4. Review The Generated Checkpoints
+## 5. Review The Generated Checkpoints
 
 List the generated checkpoints for the active continue session:
 
@@ -38,7 +50,7 @@ pizhi checkpoints --session-id <session_id>
 
 Use this output to inspect the available checkpoint identifiers and choose the candidate you want to keep.
 
-## 5. Apply The Chosen Checkpoint
+## 6. Apply The Chosen Checkpoint
 
 Apply the selected checkpoint explicitly:
 
@@ -48,7 +60,7 @@ pizhi checkpoint apply --id <checkpoint_id>
 
 This is the mutating step. Explicit checkpoint application updates the source-of-truth.
 
-## 6. Resume The Session
+## 7. Resume The Session
 
 After applying a checkpoint, continue the session:
 
@@ -58,7 +70,7 @@ pizhi continue resume --session-id <session_id>
 
 Repeat the generate, review, apply, and resume loop until the continue session reaches `completed`.
 
-## 7. Review Before Compilation
+## 8. Review Before Compilation
 
 Before compiling the manuscript, run the appropriate review flow and confirm the project state again:
 
@@ -72,7 +84,7 @@ If you are reviewing a narrower target, use the appropriate chapter-scoped revie
 pizhi status
 ```
 
-## 8. Compile The Final Output
+## 9. Compile The Final Output
 
 Compile with an explicit target:
 

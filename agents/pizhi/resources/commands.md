@@ -10,9 +10,19 @@ Use this first to understand the current chapter and project state.
 
 ## Generate Candidate Work
 
+- `pizhi brainstorm --execute`
+- `pizhi outline expand --chapter <n> --execute`
+- `pizhi write --chapter <n> --execute`
 - `pizhi continue run --count <n> --execute`
 
-This generates candidates. It does not write source-of-truth changes by itself.
+These commands generate candidates. They do not write source-of-truth changes by themselves.
+
+## Inspect And Apply Provider Runs
+
+- `pizhi runs`
+- `pizhi apply --run-id <run_id>`
+
+Use these commands for provider-backed packet flows such as `brainstorm`, `outline expand`, and `write`.
 
 ## Inspect Continue Outputs
 
