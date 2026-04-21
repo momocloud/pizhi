@@ -32,6 +32,15 @@ def test_readme_links_to_public_docs_and_governance_files(project_root):
     assert "[Security](SECURITY.md)" in readme
 
 
+def test_readme_documents_host_orchestrator_backend_split(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+
+    assert "Claude Code" in readme
+    assert "Pizhi is the orchestrator" in readme
+    assert "opencode" in readme
+    assert "`--execute`" in readme
+
+
 def test_public_docs_cover_git_backed_uv_distribution(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
     package_readme = (project_root / "README-package.md").read_text(encoding="utf-8")
@@ -59,6 +68,14 @@ def test_readme_points_to_agent_playbook(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
 
     assert "](agents/pizhi/AGENTS.md)" in readme
+
+
+def test_agent_playbook_clarifies_external_host_vs_backend(project_root):
+    agents_md = (project_root / "agents" / "pizhi" / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert "drive the `pizhi` CLI" in agents_md
+    assert "opencode" in agents_md
+    assert "Do not change provider configuration unless the user asked." in agents_md
 
 
 def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_root):

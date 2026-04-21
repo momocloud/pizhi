@@ -32,9 +32,21 @@ python -m pizhi provider configure
 
 The interactive flow stores the base route plus optional model overrides such as `--brainstorm-model`, `--continue-model`, and `--review-model`.
 
+If you want `--execute` to run through the first shipped agent backend instead of a direct provider route, configure the agent backend instead:
+
+```bash
+python -m pizhi agent configure --agent-backend opencode --agent-command opencode
+```
+
+Recommended stack:
+
+- `Claude Code + skill` as the external host
+- `Pizhi` as the orchestrator and source-of-truth manager
+- `opencode` as the first agent execution backend
+
 ## 3. Use provider-backed generation with explicit apply
 
-Provider-backed commands record auditable run artifacts before any source-of-truth mutation. The canonical pattern is:
+Execute-backed commands record auditable run artifacts before any source-of-truth mutation. The canonical pattern is:
 
 ```bash
 python -m pizhi brainstorm --execute
@@ -42,7 +54,7 @@ python -m pizhi runs
 python -m pizhi apply --run-id <run_id>
 ```
 
-The same pattern applies to other provider-backed generation commands:
+The same pattern applies to other execute-backed generation commands:
 
 ```bash
 python -m pizhi outline expand --chapters 1-3 --execute
@@ -88,7 +100,7 @@ python -m pizhi review --chapter 3
 python -m pizhi review --full
 ```
 
-Provider-backed review uses the same execute flag:
+Execute-backed review uses the same execute flag:
 
 ```bash
 python -m pizhi review --chapter 3 --execute
@@ -101,6 +113,8 @@ Canonical command shapes:
 - `pizhi review --full --execute`
 
 `pizhi review --execute` runs structural review first, then optional AI review, and writes partitioned notes or a full review report. `pizhi review --full` also runs built-in maintenance. In v1, maintenance does not have a standalone CLI; it runs inside full review and apply-driven closure flows.
+
+Backend selection affects `--execute` only. Deterministic commands such as `pizhi apply --run-id`, `pizhi checkpoint apply --id`, and `pizhi compile` remain owned by Pizhi's deterministic pipeline.
 
 If the project config defines internal extension agents, their `review` findings are appended during `review --execute`. `maintenance` findings appear in `review --full --execute`, `apply --run-id`, and checkpoint-apply closure flows. Non-`--execute` `review --full` stays deterministic and only reruns built-in maintenance.
 
@@ -118,8 +132,8 @@ Compilation reads drafted chapter material and writes the requested manuscript s
 
 ## 7. Common file locations
 
-- `.pizhi/config.yaml`: project and provider configuration
-- `.pizhi/cache/runs/<run_id>/`: provider execution artifacts such as prompts and normalized output
+- `.pizhi/config.yaml`: project and backend configuration
+- `.pizhi/cache/runs/<run_id>/`: execute artifacts such as prompts and normalized output
 - `.pizhi/cache/review_full.md`: full-project review report
 - `.pizhi/chapters/chNNN/notes.md`: chapter review notes
 - `manuscript/`: compiled volume or chapter outputs

@@ -1,6 +1,17 @@
 # Pizhi
 
-Pizhi is a file-backed long-form fiction workflow for planning, drafting, review, recovery, and manuscript compilation. It combines deterministic project files with provider-backed execution, explicit `apply` steps, checkpointed `continue` sessions, structural review, optional AI review, and additive maintenance/report hooks.
+Pizhi is a file-backed long-form fiction workflow for planning, drafting, review, recovery, and manuscript compilation. It combines deterministic project files with backend-pluggable `--execute` flows, explicit `apply` steps, checkpointed `continue` sessions, structural review, optional AI review, and additive maintenance/report hooks.
+
+## Execution Stack
+
+The recommended host entry is `Claude Code` plus the repository-shipped skill/playbook.
+Pizhi is the orchestrator and source-of-truth manager in that stack.
+
+- `Claude Code` is the external host that reads the playbook and drives commands.
+- `Pizhi` is the orchestrator and source-of-truth manager.
+- `opencode` is the first shipped agent execution backend for `--execute` flows.
+
+Backend choice affects `--execute` only. Deterministic commands such as `apply`, `checkpoint apply`, `status`, `review` without `--execute`, and `compile` stay inside Pizhi's own source-of-truth pipeline.
 
 ## Install with uv
 
@@ -30,13 +41,19 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
    python -m pizhi init --project-name "Example Novel" --genre "Fantasy" --total-chapters 60 --per-volume 15 --pov "Third Person Limited"
    ```
 
-2. Configure the provider route used by `--execute` flows:
+2. Configure the execution backend used by `--execute` flows:
 
    ```bash
    python -m pizhi provider configure
    ```
 
-   For unattended agents or scripted setup, prefer parameter mode:
+   Provider-backed execution still uses `pizhi provider configure`. Agent-backed execution can be configured separately:
+
+   ```bash
+   python -m pizhi agent configure --agent-backend opencode --agent-command opencode
+   ```
+
+   For unattended setup, prefer parameter mode:
 
    ```bash
    python -m pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>
@@ -69,12 +86,12 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
 ## Canonical Workflow
 
 - `pizhi init` creates the project tree and `.pizhi/config.yaml`.
-- `pizhi provider configure` stores the provider and model routes used by provider-backed commands.
-- `pizhi brainstorm`, `pizhi outline expand`, `pizhi write`, `pizhi continue run`, and `pizhi review --execute` can prepare prompts or call the configured provider.
-- `pizhi runs` lists recorded provider executions.
-- `pizhi apply --run-id <run_id>` is the explicit source-of-truth update step for provider-backed runs.
+- `pizhi provider configure` and `pizhi agent configure` select how `--execute` steps reach a backend.
+- `pizhi brainstorm`, `pizhi outline expand`, `pizhi write`, `pizhi continue run`, and `pizhi review --execute` can prepare prompts or call the configured backend.
+- `pizhi runs` lists recorded executions.
+- `pizhi apply --run-id <run_id>` is the explicit source-of-truth update step for successful execute runs.
 - `pizhi continue run --count <n> --execute` creates checkpointed session state under `.pizhi/cache/continue_sessions/` and `.pizhi/cache/checkpoints/`; apply each generated checkpoint and resume the session before treating the chapters as complete.
-- `pizhi review --full` also runs built-in maintenance and writes `review_full.md`.
+- `pizhi review --full` also runs built-in maintenance and writes `.pizhi/cache/review_full.md`.
 - `pizhi compile --volume`, `--chapter`, or `--chapters` builds manuscript output from drafted chapters.
 
 ## Public Docs

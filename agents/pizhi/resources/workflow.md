@@ -38,9 +38,15 @@ pizhi status
 
 Use this to understand chapter progress and whether the project already has draft, review, or compile work in flight.
 
+Host/backend boundary for this playbook:
+
+- your host agent drives `pizhi`
+- `Pizhi` owns orchestration and source-of-truth mutation
+- `opencode` may be configured as the execution backend for `--execute`
+
 ## 4. Generate Provider-Backed Candidates
 
-For provider-backed commands such as `brainstorm`, `outline expand`, or `write`, generate a candidate first:
+For execute-backed commands such as `brainstorm`, `outline expand`, or `write`, generate a candidate first:
 
 ```bash
 pizhi write --chapter <n> --execute
@@ -48,7 +54,7 @@ pizhi runs
 pizhi apply --run-id <run_id>
 ```
 
-`--execute` generates candidates. It does not mutate the source-of-truth by itself. Use `pizhi runs` to inspect the available provider outputs, then apply the selected successful run explicitly.
+`--execute` generates candidates. It does not mutate the source-of-truth by itself. Use `pizhi runs` to inspect the available outputs, then apply the selected successful run explicitly.
 
 ## 5. Generate Checkpointed Continue Work
 
@@ -90,6 +96,8 @@ pizhi continue resume --session-id <session_id>
 ```
 
 Repeat the generate, review, apply, and resume loop until the continue session reaches `completed`.
+
+Deterministic commands such as `pizhi apply --run-id <run_id>`, `pizhi checkpoint apply --id <checkpoint_id>`, and `pizhi compile --volume <n>` remain inside Pizhi. Backend choice only changes how `--execute` produces candidates.
 
 ## 9. Review Before Compilation
 

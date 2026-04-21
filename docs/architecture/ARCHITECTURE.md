@@ -7,12 +7,12 @@ Start at `README.md` for the public landing page, then use the governance links 
 
 ## Purpose
 
-Pizhi is a CLI for long-form fiction workflows that keeps project state on disk, keeps provider execution auditable, and reserves source-of-truth writes for deterministic application steps.
+Pizhi is a CLI for long-form fiction workflows that keeps project state on disk, keeps execution auditable, and reserves source-of-truth writes for deterministic application steps.
 
 The product surface now includes:
 
 - deterministic project initialization and file layout
-- provider-backed generation with explicit run recording
+- backend-pluggable generation with explicit run recording
 - explicit `apply --run-id` for source-of-truth mutation
 - checkpointed `continue` execution and resume support
 - structural review, optional AI review, and built-in maintenance
@@ -30,14 +30,22 @@ The project root holds two distinct surfaces:
 
 This separation keeps mutable working data away from published manuscript slices.
 
-### Deterministic vs provider-backed work
+### Deterministic vs backend-backed work
 
 Pizhi uses two execution modes:
 
 - deterministic commands that update project files directly
-- provider-backed commands that first write auditable run artifacts under `.pizhi/cache/runs/<run_id>/`
+- backend-backed commands that first write auditable run artifacts under `.pizhi/cache/runs/<run_id>/`
 
-Provider-backed generation is never authoritative by itself. Source-of-truth writes happen only when the user explicitly applies a successful run or when a built-in deterministic closure step owns the update path.
+Backend-backed generation is never authoritative by itself. Source-of-truth writes happen only when the user explicitly applies a successful run or when a built-in deterministic closure step owns the update path.
+
+### Host, orchestrator, backend
+
+Milestone 11 separates the delivery stack into three layers:
+
+- `Claude Code + skill` is the recommended external host entry.
+- `Pizhi` is the orchestrator and source-of-truth manager.
+- execution backends supply candidate outputs for `--execute`; the first shipped agent backend is `opencode`.
 
 ## Command Architecture
 
@@ -45,7 +53,7 @@ Provider-backed generation is never authoritative by itself. Source-of-truth wri
 
 - `init` creates the baseline file tree and config
 - `brainstorm`, `outline expand`, and `write` support prompt-only and `--execute` flows
-- `continue run` supports prompt-only operation or provider-backed execution with persisted sessions and checkpoints
+- `continue run` supports prompt-only operation or backend-backed execution with persisted sessions and checkpoints
 
 ### Review and compilation
 
@@ -55,9 +63,9 @@ Provider-backed generation is never authoritative by itself. Source-of-truth wri
 - `review --full --execute` rewrites `.pizhi/cache/review_full.md` with structural, maintenance, and AI-review sections
 - `compile` renders manuscript output by volume, chapter, or chapter range
 
-### Auditable provider flow
+### Auditable execute flow
 
-For single-run provider-backed commands, the canonical pattern is:
+For single-run execute-capable commands, the canonical pattern is:
 
 1. execute a command such as `brainstorm --execute` or `write --execute`
 2. inspect recorded runs with `runs`
@@ -71,10 +79,10 @@ This keeps prompt execution, normalization, and source mutation separable and in
 
 Key directories and files:
 
-- `.pizhi/config.yaml`: project configuration plus optional provider and extension-agent settings
+- `.pizhi/config.yaml`: project configuration plus optional execution-backend and extension-agent settings
 - `.pizhi/global/`: global story state
 - `.pizhi/chapters/chNNN/`: per-chapter outlines, text, snapshots, and notes
-- `.pizhi/cache/runs/<run_id>/`: prompt, raw payload, normalized output, and manifest for provider-backed runs
+- `.pizhi/cache/runs/<run_id>/`: prompt, raw payload, normalized output, and manifest for execute-backed runs
 - `.pizhi/cache/review_full.md`: full-project review artifact
 - `.pizhi/cache/continue_sessions/<session_id>/` and `.pizhi/cache/checkpoints/<checkpoint_id>/`: persisted continue execution state
 - `manuscript/`: compiled reading-facing outputs
