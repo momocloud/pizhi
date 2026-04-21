@@ -122,7 +122,9 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     assert "uv tool install git+https://github.com/momocloud/pizhi.git\n" in workflow
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in workflow
     assert "`uvx` runs the CLI once without installing a reusable `pizhi` executable." in workflow
+    assert "Use the untagged Git URL when a pinned tag is not available yet." in workflow
     assert 'pizhi init --project-name "Example Novel"' in workflow
+    assert "If provider configuration is missing, stop and ask before changing it." in workflow
     assert "pizhi init" in commands
     assert "pizhi provider configure" in commands
     assert "pizhi continue sessions" in commands

@@ -13,6 +13,7 @@ uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
 ```
 
 `uvx` runs the CLI once without installing a reusable `pizhi` executable.
+Use the untagged Git URL when a pinned tag is not available yet.
 
 After the CLI is installed, load `agents/pizhi/` and open `AGENTS.md` first.
 
@@ -25,6 +26,7 @@ pizhi init --project-name "Example Novel" --genre "Fantasy" --total-chapters 60 
 ```
 
 If the project already exists, move to the repository root before continuing.
+If provider configuration is missing, stop and ask before changing it.
 
 ## 3. Inspect The Current Project State
 
