@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import json
+from pathlib import Path
+from subprocess import CompletedProcess
 
 import pytest
 
+from pizhi.core.config import AgentBackendSection
 from pizhi.adapters.provider_base import ProviderResponse
 from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
@@ -46,6 +50,17 @@ def _configure_provider(project_root) -> None:
         model="gpt-5.4",
         base_url="https://api.openai.com/v1",
         api_key_env="OPENAI_API_KEY",
+    )
+    save_config(project_root / ".pizhi" / "config.yaml", config)
+
+
+def _configure_agent_backend(project_root) -> None:
+    config = load_config(project_root / ".pizhi" / "config.yaml")
+    config.execution.backend = "agent"
+    config.execution.agent = AgentBackendSection(
+        agent_backend="opencode",
+        agent_command="opencode",
+        agent_args=["run"],
     )
     save_config(project_root / ".pizhi" / "config.yaml", config)
 
@@ -329,6 +344,39 @@ def test_resume_continue_execution_routes_write_checkpoints_through_continue(ini
     assert result.checkpoint is not None
 
 
+def test_resume_continue_execution_uses_agent_backend_when_configured(initialized_project, monkeypatch):
+    _configure_agent_backend(initialized_project)
+    OutlineService(initialized_project).apply_response(_outline_response(1, 3))
+    store = ContinueSessionStore(project_paths(initialized_project).continue_sessions_dir)
+    session = store.create(
+        count=3,
+        direction="hold position",
+        start_chapter=1,
+        target_end_chapter=3,
+        current_stage="outline",
+        current_range=(1, 3),
+        last_checkpoint_id="checkpoint-outline",
+        status="ready_to_resume",
+    )
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        payload = json.loads(Path(cwd, "agent_request.json").read_text(encoding="utf-8"))
+        assert payload["command"] == "write"
+        Path(cwd, "agent_output.md").write_text("# chapter draft\n", encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = resume_continue_execution(initialized_project, session.session_id)
+    run_store = RunStore(project_paths(initialized_project).runs_dir)
+    record = run_store.load(result.checkpoint.run_ids[0])
+
+    assert result.checkpoint is not None
+    assert result.checkpoint.status == "generated"
+    assert record.metadata["backend"] == "agent"
+    assert record.metadata["agent_backend"] == "opencode"
+
+
 def test_resume_continue_execution_blocks_session_on_write_preflight_failure(initialized_project):
     _configure_provider(initialized_project)
     OutlineService(initialized_project).apply_response(_outline_response(1, 3))
@@ -432,3 +480,25 @@ def test_resume_continue_execution_blocks_session_on_write_budget_failure(initia
     assert blocked.last_checkpoint_id == checkpoint.checkpoint_id
     assert checkpoint.stage == "write"
     assert checkpoint.status == "failed"
+
+
+def test_start_continue_execution_uses_agent_backend_when_configured(initialized_project, monkeypatch):
+    _configure_agent_backend(initialized_project)
+    _seed_drafted_range(initialized_project, 1, 2)
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        payload = json.loads(Path(cwd, "agent_request.json").read_text(encoding="utf-8"))
+        assert payload["command"] == "outline-expand"
+        Path(cwd, "agent_output.md").write_text(_outline_response(3, 5), encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = start_continue_execution(initialized_project, count=3, direction="push the dock war")
+    assert result.checkpoint is not None
+    run_store = RunStore(project_paths(initialized_project).runs_dir)
+    record = run_store.load(result.checkpoint.run_ids[0])
+
+    assert result.checkpoint.status == "generated"
+    assert record.metadata["backend"] == "agent"
+    assert record.metadata["agent_backend"] == "opencode"

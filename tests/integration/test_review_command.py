@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 import re
+from pathlib import Path
+from subprocess import CompletedProcess
 from subprocess import run
 import sys
 
 from pizhi.adapters.provider_base import ProviderResponse
 from pizhi.cli import main
+from pizhi.core.config import AgentBackendSection
 from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.config import save_config
@@ -60,6 +63,18 @@ def _configure_review_provider(initialized_project) -> None:
         review_model="gpt-5.4-mini",
         review_base_url="https://api.openai.com/v1/review",
         review_api_key_env="OPENAI_REVIEW_API_KEY",
+    )
+    save_config(config_path, config)
+
+
+def _configure_review_agent_backend(initialized_project) -> None:
+    config_path = initialized_project / ".pizhi" / "config.yaml"
+    config = load_config(config_path)
+    config.execution.backend = "agent"
+    config.execution.agent = AgentBackendSection(
+        agent_backend="opencode",
+        agent_command="opencode",
+        agent_args=["run"],
     )
     save_config(config_path, config)
 
@@ -176,6 +191,42 @@ def test_review_command_chapter_execute_writes_ai_review_and_run_id(
     assert "## B 类 AI 审查" in notes_text
     assert "人物一致性" in notes_text
     assert "补充动机铺垫" in notes_text
+
+
+def test_review_command_chapter_execute_uses_agent_backend(
+    initialized_project, monkeypatch, capsys, fixture_text
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_review_agent_backend(initialized_project)
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        Path(cwd, "agent_output.md").write_text(
+            """\
+### 问题 1
+- **类别**：人物一致性
+- **严重度**：高
+- **描述**：沈轩前后动机冲突。
+- **证据**：示例证据。
+- **建议修法**：补充动机铺垫。
+""",
+            encoding="utf-8",
+        )
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    apply_chapter_response(initialized_project, 1, fixture_text("ch001_response.md"))
+    apply_chapter_response(initialized_project, 2, fixture_text("ch001_response_invalid_timeline.md"))
+
+    exit_code = main(["review", "--chapter", "2", "--execute"])
+    output = capsys.readouterr().out
+    notes_path = initialized_project / ".pizhi" / "chapters" / "ch002" / "notes.md"
+
+    assert exit_code == 0
+    assert "Run ID:" in output
+    notes_text = notes_path.read_text(encoding="utf-8")
+    assert "## B 类 AI 审查" in notes_text
+    assert "人物一致性" in notes_text
 
 
 def test_review_command_chapter_execute_writes_successful_extension_section(

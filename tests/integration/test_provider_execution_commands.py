@@ -1,13 +1,29 @@
 from __future__ import annotations
 
+from pathlib import Path
+from subprocess import CompletedProcess
 import pytest
 
 from pizhi.cli import main
+from pizhi.core.config import AgentBackendSection
+from pizhi.core.config import load_config
+from pizhi.core.config import save_config
 
 from tests.unit.test_provider_execution import FailingAdapter
 from tests.unit.test_provider_execution import StubAdapter
 from tests.unit.test_provider_execution import _configure_provider
 from pizhi.services.run_store import RunStore
+
+
+def _configure_agent_backend(project_root) -> None:
+    config = load_config(project_root / ".pizhi" / "config.yaml")
+    config.execution.backend = "agent"
+    config.execution.agent = AgentBackendSection(
+        agent_backend="opencode",
+        agent_command="opencode",
+        agent_args=["run"],
+    )
+    save_config(project_root / ".pizhi" / "config.yaml", config)
 
 
 @pytest.mark.parametrize(
@@ -262,6 +278,47 @@ def test_write_execute_keeps_prompt_only_flow_when_execute_is_omitted(initialize
 
     assert exit_code == 0
     assert (initialized_project / ".pizhi" / "cache" / "prompts").exists()
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["brainstorm"],
+        ["outline", "expand", "--chapters", "1-2"],
+    ],
+)
+def test_execute_commands_keep_prompt_only_flow_when_execute_is_omitted(initialized_project, monkeypatch, argv):
+    monkeypatch.chdir(initialized_project)
+
+    exit_code = main(argv)
+
+    assert exit_code == 0
+    assert (initialized_project / ".pizhi" / "cache" / "prompts").exists()
+
+
+def test_brainstorm_execute_writes_agent_backend_run_artifacts(initialized_project, monkeypatch, capsys):
+    monkeypatch.chdir(initialized_project)
+    _configure_agent_backend(initialized_project)
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        Path(cwd, "agent_output.md").write_text("## synopsis\n...\n", encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    exit_code = main(["brainstorm", "--execute"])
+    captured = capsys.readouterr()
+
+    runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
+    run_id = _extract_run_id(captured.out)
+    record = RunStore(runs_dir).load(run_id)
+
+    assert exit_code == 0
+    assert record.metadata["backend"] == "agent"
+    assert record.metadata["agent_backend"] == "opencode"
+    assert record.run_dir.joinpath("agent_task.md").exists()
+    assert record.run_dir.joinpath("agent_request.json").exists()
+    assert record.run_dir.joinpath("agent_output.md").exists()
 
 
 def _extract_run_id(stdout: str) -> str:
