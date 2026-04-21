@@ -107,7 +107,4 @@ def test_distribution_metadata_contract(project_root):
     assert 'name = "pizhi"' in pyproject
     assert 'version = "0.1.0"' in pyproject
     assert 'pizhi = "pizhi.cli:main"' in pyproject
-    normalized_contributing = contributing.replace("`", "").lower()
-    assert "@v0.1.0" in normalized_contributing
-    assert "git" in normalized_contributing
-    assert "uv" in normalized_contributing
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in contributing
