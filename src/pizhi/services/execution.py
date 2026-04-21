@@ -5,13 +5,9 @@ from pathlib import Path
 from pizhi.adapters.base import PromptRequest
 from pizhi.backends.base import ExecutionRequest
 from pizhi.backends.base import ExecutionResult
-from pizhi.backends.provider_backend import OpenAICompatibleAdapter
 from pizhi.backends.provider_backend import ProviderExecutionBackend
-from pizhi.backends.provider_backend import build_provider_adapter as _build_provider_adapter
-from pizhi.core.config import ProviderSection
-
-
-build_provider_adapter = _build_provider_adapter
+from pizhi.core.config import load_config
+from pizhi.core.paths import project_paths
 
 
 def execute_prompt_request(
@@ -19,15 +15,21 @@ def execute_prompt_request(
     request: PromptRequest,
     target: str,
     route_name: str | None = None,
-    provider_config: ProviderSection | None = None,
 ) -> ExecutionResult:
-    backend = ProviderExecutionBackend(adapter_builder=build_provider_adapter)
+    config = load_config(project_paths(project_root).config_file)
+    backend_name = config.execution.backend
+    backend = _build_execution_backend(backend_name)
     return backend.execute(
         ExecutionRequest(
             project_root=project_root,
             prompt_request=request,
             target=target,
             route_name=route_name,
-        ),
-        backend_config=provider_config,
+        )
     )
+
+
+def _build_execution_backend(backend_name: str):
+    if backend_name == "provider":
+        return ProviderExecutionBackend()
+    raise ValueError(f"unsupported execution backend: {backend_name}")

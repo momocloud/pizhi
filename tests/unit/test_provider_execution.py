@@ -220,6 +220,7 @@ def test_execute_prompt_request_persists_normalized_success(initialized_project,
     result = execute_prompt_request(initialized_project, request, target="project")
 
     assert result.status == "succeeded"
+    assert result.record.metadata["backend"] == "provider"
     assert result.run_dir.joinpath("normalized.md").read_text(encoding="utf-8").startswith("##")
 
 
