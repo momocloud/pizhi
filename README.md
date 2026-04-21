@@ -22,6 +22,8 @@ Prefer `@v0.1.0` for automation and stable environments. Use the untagged reposi
 
 ## Quick Start
 
+The examples below use `python -m pizhi`, but the installed `pizhi` entry point is equivalent.
+
 1. Initialize a project:
 
    ```bash
