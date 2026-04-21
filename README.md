@@ -76,5 +76,6 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
 - [Getting started](docs/guides/getting-started.md)
 - [Recovery guide](docs/guides/recovery.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
+- [Agent playbook](agents/pizhi/AGENTS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
