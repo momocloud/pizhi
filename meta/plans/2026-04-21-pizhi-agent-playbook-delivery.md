@@ -273,7 +273,7 @@ git commit -m "docs: record agent playbook delivery verification"
 
 - Final observed regression result:
   - `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
-  - `323 passed in 91.11s (0:01:31)`
+  - `323 passed in 89.46s (0:01:29)`
 - Additional verification:
   - `python -m pizhi --help`
   - observed: CLI help rendered successfully
