@@ -28,3 +28,9 @@ python -m pytest tests/unit tests/integration -q --tb=short -rfE
 - Public docs belong in `README.md`, `docs/`, and repository governance files.
 - Internal specs belong in `meta/specs`.
 - Internal plans belong in `meta/plans`.
+
+## Git Distribution Baseline
+
+- The first public stability tag for Git-backed installs is `v0.1.0`.
+- Stable consumer examples should prefer `@v0.1.0`.
+- Any repository change that alters install or packaging behavior must update the public docs and the distribution contract tests.

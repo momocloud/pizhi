@@ -65,6 +65,9 @@ def test_contributing_doc_mentions_setup_and_test_command(project_root):
     assert "python -m pytest tests/unit tests/integration -q --tb=short -rfE" in contributing
     assert "meta/specs" in contributing
     assert "meta/plans" in contributing
+    assert "first public stability tag for Git-backed installs is `v0.1.0`" in contributing
+    assert "Stable consumer examples should prefer `@v0.1.0`." in contributing
+    assert "distribution contract tests" in contributing
 
 
 def test_security_doc_mentions_private_reporting(project_root):
@@ -92,6 +95,7 @@ def test_visible_oss_artifacts_have_expected_markers(project_root):
     assert "MIT License" in license_text
     assert "[Unreleased]" in changelog
     assert "v0.1.0" in changelog
+    assert "Document Git-backed uvx and uv tool install distribution from the public repository." in changelog
     assert "## What happened?" in bug_template
     assert "## Steps to reproduce" in bug_template
     assert "security vulnerability" in bug_template
