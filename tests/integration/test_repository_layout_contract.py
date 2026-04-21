@@ -112,3 +112,16 @@ def test_distribution_metadata_contract(project_root):
     assert 'name = "pizhi"' in pyproject
     assert 'version = "0.1.0"' in pyproject
     assert 'pizhi = "pizhi.cli:main"' in pyproject
+
+
+def test_agent_playbook_delivery_files_exist(project_root):
+    expected = [
+        "agents/pizhi/AGENTS.md",
+        "agents/pizhi/resources/workflow.md",
+        "agents/pizhi/resources/commands.md",
+        "agents/pizhi/resources/failure-recovery.md",
+        "agents/pizhi/resources/examples.md",
+    ]
+
+    for relative in expected:
+        assert (project_root / relative).exists(), relative

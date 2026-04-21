@@ -56,3 +56,32 @@ def test_public_docs_cover_git_backed_uv_distribution(project_root):
     assert caveat in readme
     assert caveat in package_readme
     assert caveat in runbook
+
+
+def test_readme_points_to_agent_playbook(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+
+    assert "agents/pizhi/" in readme
+    assert "AGENTS.md" in readme
+
+
+def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_root):
+    agents = (project_root / "agents" / "pizhi" / "AGENTS.md").read_text(encoding="utf-8")
+    recovery = (project_root / "agents" / "pizhi" / "resources" / "failure-recovery.md").read_text(encoding="utf-8")
+
+    for marker in [
+        "pizhi status",
+        "--execute",
+        "apply",
+        "checkpoints",
+        "Do not edit `.pizhi/`",
+    ]:
+        assert marker in agents
+
+    for marker in [
+        "provider not configured",
+        "failed run",
+        "checkpoint",
+        "v0.1.0",
+    ]:
+        assert marker in recovery
