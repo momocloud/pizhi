@@ -15,6 +15,7 @@ Use this directory as the entrypoint for an external agent that will drive the `
 - Apply the selected checkpoint with `pizhi checkpoint apply --id <checkpoint_id>`.
 - `--execute` generates candidates. Explicit apply mutates the source-of-truth.
 - Do not edit `.pizhi/` directly.
+- Do not change provider configuration unless the user asked.
 
 ## Read Next
 

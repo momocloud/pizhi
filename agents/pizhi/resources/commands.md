@@ -2,6 +2,10 @@
 
 Commands are grouped by agent task so the playbook stays workflow-oriented rather than mirroring raw help output.
 
+## Bootstrap
+
+- `pizhi init`
+
 ## Inspect Project State
 
 - `pizhi status`

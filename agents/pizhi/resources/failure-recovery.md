@@ -12,7 +12,7 @@ This is the `provider not configured` recovery branch:
 pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>
 ```
 
-Use bare `pizhi provider configure` only when a human is present to answer interactive prompts. Do not keep retrying `--execute` commands until provider configuration is in place.
+Use bare `pizhi provider configure` only when a human is present to answer interactive prompts. If the user did not ask you to change provider configuration, stop and ask before rewriting provider settings. Do not keep retrying `--execute` commands until provider configuration is in place.
 
 ## Failed Run
 

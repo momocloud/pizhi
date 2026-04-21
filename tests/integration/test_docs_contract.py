@@ -80,6 +80,7 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
         "pizhi checkpoint apply --id <checkpoint_id>",
         "pizhi checkpoints --session-id <session_id>",
         "Do not edit `.pizhi/`",
+        "Do not change provider configuration unless the user asked.",
     ]:
         assert marker in agents, f"Expected AGENTS.md to include marker: {marker!r}"
 
@@ -114,11 +115,15 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
         assert marker in workflow, f"Expected workflow.md to include marker: {marker!r}"
         assert marker in commands, f"Expected commands.md to include marker: {marker!r}"
 
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in workflow
+    assert 'pizhi init --project-name "Example Novel"' in workflow
+    assert "pizhi init" in commands
     assert "pizhi outline expand --chapters <a-b> --execute" in commands
     assert "pizhi write --chapter <n> --execute" in examples
     assert "pizhi runs" in examples
     assert "pizhi apply --run-id <run_id>" in examples
     assert "git+https://github.com/momocloud/pizhi.git" in examples
     assert "git+https://github.com/momocloud/pizhi.git@v0.1.0" in examples
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in examples
     assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in examples
     assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in recovery
