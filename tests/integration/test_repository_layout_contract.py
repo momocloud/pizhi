@@ -65,8 +65,8 @@ def test_contributing_doc_mentions_setup_and_test_command(project_root):
     assert "python -m pytest tests/unit tests/integration -q --tb=short -rfE" in contributing
     assert "meta/specs" in contributing
     assert "meta/plans" in contributing
-    assert "first public stability tag for Git-backed installs is `v0.1.0`" in contributing
-    assert "Stable consumer examples should prefer `@v0.1.0`." in contributing
+    assert "planned first public stability tag for Git-backed installs is `v0.1.0`" in contributing
+    assert "Stable consumer examples should prefer `@v0.1.0` once that tag is published." in contributing
     assert "distribution contract tests" in contributing
 
 

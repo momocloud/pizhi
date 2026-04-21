@@ -31,6 +31,6 @@ python -m pytest tests/unit tests/integration -q --tb=short -rfE
 
 ## Git Distribution Baseline
 
-- The first public stability tag for Git-backed installs is `v0.1.0`.
-- Stable consumer examples should prefer `@v0.1.0`.
+- The planned first public stability tag for Git-backed installs is `v0.1.0`.
+- Stable consumer examples should prefer `@v0.1.0` once that tag is published.
 - Any repository change that alters install or packaging behavior must update the public docs and the distribution contract tests.
