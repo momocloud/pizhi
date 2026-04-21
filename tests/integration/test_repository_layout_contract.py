@@ -98,3 +98,14 @@ def test_visible_oss_artifacts_have_expected_markers(project_root):
     assert "## Problem statement" in feature_template
     assert "## Proposed solution" in feature_template
     assert "security vulnerability" in feature_template
+
+
+def test_distribution_metadata_contract(project_root):
+    pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
+    contributing = (project_root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+    assert 'name = "pizhi"' in pyproject
+    assert 'version = "0.1.0"' in pyproject
+    assert 'readme = "README-package.md"' in pyproject
+    assert 'pizhi = "pizhi.cli:main"' in pyproject
+    assert "v0.1.0" in contributing

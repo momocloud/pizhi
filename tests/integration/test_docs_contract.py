@@ -28,3 +28,18 @@ def test_readme_links_to_public_docs_and_governance_files(project_root):
     assert "[Architecture](docs/architecture/ARCHITECTURE.md)" in readme
     assert "[Contributing](CONTRIBUTING.md)" in readme
     assert "[Security](SECURITY.md)" in readme
+
+
+def test_public_docs_cover_git_backed_uv_distribution(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+    package_readme = (project_root / "README-package.md").read_text(encoding="utf-8")
+    runbook = (project_root / "docs" / "guides" / "getting-started.md").read_text(encoding="utf-8")
+
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help" in readme
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git" in readme
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help" in readme
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in readme
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help" in package_readme
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in package_readme
+    assert "Install the CLI with uv" in runbook
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in runbook
