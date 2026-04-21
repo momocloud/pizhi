@@ -108,6 +108,6 @@ def test_distribution_metadata_contract(project_root):
     assert 'version = "0.1.0"' in pyproject
     assert 'pizhi = "pizhi.cli:main"' in pyproject
     assert __import__("re").search(
-        r"(v0\.1\.0.{0,80}\b(tag|version)\b|\b(tag|version)\b.{0,80}v0\.1\.0)",
+        r"(v0\.1\.0.{0,80}\btag\b|\btag\b.{0,80}v0\.1\.0)",
         " ".join(contributing.replace("`", " ").lower().split()),
     )
