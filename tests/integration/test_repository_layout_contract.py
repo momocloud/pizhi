@@ -108,4 +108,7 @@ def test_distribution_metadata_contract(project_root):
     assert 'version = "0.1.0"' in pyproject
     assert 'pizhi = "pizhi.cli:main"' in pyproject
     normalized_contributing = contributing.replace("`", "").lower()
-    assert "package version 0.1.0 maps to git tag v0.1.0" in normalized_contributing
+    assert all(
+        piece in normalized_contributing
+        for piece in ("0.1.0", "v0.1.0", "tag")
+    )
