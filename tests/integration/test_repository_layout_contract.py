@@ -95,6 +95,8 @@ def test_visible_oss_artifacts_have_expected_markers(project_root):
     assert "MIT License" in license_text
     assert "[Unreleased]" in changelog
     assert "v0.1.0" in changelog
+    assert "## v0.1.0 (planned)" in changelog
+    assert "Planned first public baseline for Git-backed installs." in changelog
     assert "Document Git-backed uvx and uv tool install distribution from the public repository." in changelog
     assert "## What happened?" in bug_template
     assert "## Steps to reproduce" in bug_template

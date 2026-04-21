@@ -5,6 +5,6 @@
 - Repository organization and public community files.
 - Document Git-backed uvx and uv tool install distribution from the public repository.
 
-## v0.1.0
+## v0.1.0 (planned)
 
-- Initial public baseline.
+- Planned first public baseline for Git-backed installs.
