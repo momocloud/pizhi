@@ -44,3 +44,33 @@ def test_render_opencode_task_package_writes_expected_bridge_files(tmp_path):
     agent_text = package.agent_path.read_text(encoding="utf-8")
     assert "agent_output.md" in agent_text
     assert "Do not modify project source-of-truth files" in agent_text
+
+
+def test_render_opencode_task_package_adds_write_contract_guards(tmp_path):
+    request = PromptRequest(
+        command_name="write",
+        prompt_text="# Chapter Write Request\n\nChapter: 7\n",
+        metadata={"chapter": 7},
+        referenced_files=[".pizhi/chapters/ch007/outline.md"],
+    )
+
+    package = render_opencode_task_package(
+        tmp_path,
+        prompt_request=request,
+        run_id="run-test-5678",
+        target="ch007",
+    )
+
+    task_text = package.task_path.read_text(encoding="utf-8")
+    agent_text = package.agent_path.read_text(encoding="utf-8")
+
+    assert "Start the candidate with YAML frontmatter delimited by `---`." in task_text
+    assert "The candidate must include `## characters_snapshot` and `## relationships_snapshot`." in task_text
+    assert "Do not add commentary before or after the candidate." in task_text
+    assert "For `write`, preserve the exact chapter response contract from the prompt." in task_text
+    assert "`timeline_events` must stay a YAML list of objects." in task_text
+    assert "`foreshadowing` must stay a YAML object with `introduced`, `referenced`, and `resolved` lists." in task_text
+
+    assert "If the task is a `write` step, keep the exact chapter response contract intact." in agent_text
+    assert "Never replace the structured chapter response with free-form prose." in agent_text
+    assert "Do not collapse `timeline_events` into prose bullets or `foreshadowing` into a flat list." in agent_text

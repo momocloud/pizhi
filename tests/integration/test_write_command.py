@@ -544,6 +544,39 @@ def test_write_prompt_ignores_overlapping_archive_turning_points(initialized_pro
     assert "T050-02" not in prompt_text
 
 
+def test_write_prompt_includes_full_chapter_response_contract(initialized_project):
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第001章 雨夜访客\n\n- 沈轩首次发现关键线索。\n",
+        encoding="utf-8",
+    )
+
+    prompt_artifact = WriteService(initialized_project).write(chapter_number=1).prompt_artifact
+    prompt_text = prompt_artifact.prompt_path.read_text(encoding="utf-8")
+
+    assert "## chapter_response_contract" in prompt_text
+    assert "Start the response with YAML frontmatter delimited by `---`." in prompt_text
+    assert "`chapter_title`" in prompt_text
+    assert "`word_count_estimated`" in prompt_text
+    assert "`characters_involved`" in prompt_text
+    assert "`worldview_changed`" in prompt_text
+    assert "`synopsis_changed`" in prompt_text
+    assert "`timeline_events`" in prompt_text
+    assert "`foreshadowing`" in prompt_text
+    assert "`timeline_events` must be a YAML list of objects" in prompt_text
+    assert "`at`" in prompt_text
+    assert "`event`" in prompt_text
+    assert "`is_flashback`" in prompt_text
+    assert "`is_major_turning_point`" in prompt_text
+    assert "`foreshadowing` must be a YAML object with `introduced`, `referenced`, and `resolved` lists." in prompt_text
+    assert "`introduced` entries must be objects containing `id`, `desc`, `planned_payoff`, `priority`, and `related_characters`." in prompt_text
+    assert "`referenced` and `resolved` entries must be objects containing `id`." in prompt_text
+    assert "## characters_snapshot" in prompt_text
+    assert "## relationships_snapshot" in prompt_text
+    assert "Do not wrap the response in code fences." in prompt_text
+
+
 def test_write_command_promotes_synopsis_candidate_covering_archived_turning_points(initialized_project, fixture_text):
     _prepare_archived_write_context(initialized_project, fixture_text)
     response_file = initialized_project / "ch051_response_synopsis_archived.md"

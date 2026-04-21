@@ -116,11 +116,27 @@ def _render_task_markdown(prompt_request: PromptRequest, *, target: str, output_
         "2. Do not modify project source-of-truth files or `.pizhi/`.",
         "3. Do not use stdout or stderr as the result channel.",
         "",
-        "## Prompt",
-        "",
-        prompt_request.prompt_text.rstrip(),
-        "",
     ]
+    if prompt_request.command_name == "write":
+        lines.extend(
+            [
+                "For `write`, preserve the exact chapter response contract from the prompt.",
+                "Start the candidate with YAML frontmatter delimited by `---`.",
+                "`timeline_events` must stay a YAML list of objects.",
+                "`foreshadowing` must stay a YAML object with `introduced`, `referenced`, and `resolved` lists.",
+                "The candidate must include `## characters_snapshot` and `## relationships_snapshot`.",
+                "Do not add commentary before or after the candidate.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Prompt",
+            "",
+            prompt_request.prompt_text.rstrip(),
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -138,6 +154,9 @@ def _render_agent_markdown(*, output_file: str) -> str:
             "- `agent_output.md` is the only result handoff file.",
             "- Do not modify project source-of-truth files, `manuscript/`, or `.pizhi/`.",
             "- Keep stdout and stderr incidental audit channels only.",
+            "- If the task is a `write` step, keep the exact chapter response contract intact.",
+            "- Never replace the structured chapter response with free-form prose.",
+            "- Do not collapse `timeline_events` into prose bullets or `foreshadowing` into a flat list.",
             "",
         ]
     )

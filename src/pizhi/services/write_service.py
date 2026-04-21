@@ -93,6 +93,7 @@ class WriteService:
 
 def _build_prompt(context: ChapterContext, synopsis_coverage: SynopsisCoveragePromptContext) -> str:
     sections = [f"# Chapter Write Request\n\nChapter: {context.chapter_number}"]
+    sections.append(_render_chapter_response_contract())
     sections.append(_render_synopsis_response_contract(context.chapter_number))
     sections.append(_render_synopsis_coverage_requirements(synopsis_coverage))
     for name, content in context.required_inputs.items():
@@ -101,6 +102,27 @@ def _build_prompt(context: ChapterContext, synopsis_coverage: SynopsisCoveragePr
         if content:
             sections.append(f"## {name}\n{content}")
     return "\n\n".join(sections).strip() + "\n"
+
+
+def _render_chapter_response_contract() -> str:
+    return (
+        "## chapter_response_contract\n"
+        "Produce the final chapter candidate only.\n"
+        "Start the response with YAML frontmatter delimited by `---`.\n"
+        "The frontmatter must include these keys exactly: `chapter_title`, `word_count_estimated`, "
+        "`characters_involved`, `worldview_changed`, `synopsis_changed`, `timeline_events`, and `foreshadowing`.\n"
+        "`timeline_events` must be a YAML list of objects with `at`, `event`, `is_flashback`, and "
+        "`is_major_turning_point`.\n"
+        "`foreshadowing` must be a YAML object with `introduced`, `referenced`, and `resolved` lists.\n"
+        "`introduced` entries must be objects containing `id`, `desc`, `planned_payoff`, `priority`, and "
+        "`related_characters`.\n"
+        "`referenced` and `resolved` entries must be objects containing `id`.\n"
+        "After the frontmatter, write the narrative body.\n"
+        "Then add a horizontal rule `---` followed by `## characters_snapshot` and `## relationships_snapshot`.\n"
+        "Only include `## worldview_patch` when `worldview_changed: true`.\n"
+        "Do not wrap the response in code fences.\n"
+        "Do not add commentary before or after the candidate.\n"
+    )
 
 
 def _load_synopsis_coverage_prompt_context(project_root: Path) -> SynopsisCoveragePromptContext:
