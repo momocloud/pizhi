@@ -9,6 +9,8 @@ def test_readme_runbook_and_recovery_content_contract(project_root):
     assert "pizhi checkpoint apply --id <checkpoint_id>" in readme
     assert "pizhi continue resume --session-id <session_id>" in readme
     assert "Repeat checkpoint apply and resume until the continue session reaches `completed`" in readme
+    assert "The examples below use `python -m pizhi`, but the installed `pizhi` entry point is equivalent." in readme
+    assert "Command examples use `python -m pizhi`, but the installed `pizhi` entry point is equivalent." in runbook
     assert "pizhi provider configure" in runbook
     assert "pizhi apply --run-id" in runbook
     assert "pizhi continue run --count <n> --execute" in runbook
