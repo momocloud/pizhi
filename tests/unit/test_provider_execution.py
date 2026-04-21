@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+from subprocess import CompletedProcess
 
 import pytest
 
 from pizhi.adapters.provider_base import ProviderResponse
+from pizhi.core.config import AgentBackendSection
 from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.config import save_config
@@ -222,6 +225,37 @@ def test_execute_prompt_request_persists_normalized_success(initialized_project,
     assert result.status == "succeeded"
     assert result.record.metadata["backend"] == "provider"
     assert result.run_dir.joinpath("normalized.md").read_text(encoding="utf-8").startswith("##")
+
+
+def test_execute_prompt_request_routes_agent_backend_through_compatibility_facade(
+    initialized_project, monkeypatch
+):
+    request = BrainstormService(initialized_project).build_prompt_request()
+    config = load_config(initialized_project / ".pizhi" / "config.yaml")
+    config.execution.backend = "agent"
+    config.execution.agent = AgentBackendSection(
+        agent_backend="opencode",
+        agent_command="opencode",
+        agent_args=["run"],
+    )
+    save_config(initialized_project / ".pizhi" / "config.yaml", config)
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        Path(cwd, "agent_output.md").write_text("## synopsis\n...\n", encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = execute_prompt_request(
+        initialized_project,
+        request,
+        target="project",
+        route_name="brainstorm",
+    )
+
+    assert result.status == "succeeded"
+    assert result.record.metadata["backend"] == "agent"
+    assert result.record.metadata["agent_backend"] == "opencode"
 
 
 def test_execute_prompt_request_persists_normalize_failed_when_provider_returns_no_text(

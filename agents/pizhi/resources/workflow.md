@@ -26,7 +26,7 @@ pizhi init --project-name "Example Novel" --genre "Fantasy" --total-chapters 60 
 ```
 
 If the project already exists, move to the repository root before continuing.
-If provider configuration is missing, stop and ask before changing it.
+If the required execute backend configuration is missing, stop and ask before changing it.
 
 ## 3. Inspect The Current Project State
 
@@ -44,7 +44,7 @@ Host/backend boundary for this playbook:
 - `Pizhi` owns orchestration and source-of-truth mutation
 - `opencode` may be configured as the execution backend for `--execute`
 
-## 4. Generate Provider-Backed Candidates
+## 4. Generate Execute-Backed Candidates
 
 For execute-backed commands such as `brainstorm`, `outline expand`, or `write`, generate a candidate first:
 

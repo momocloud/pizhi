@@ -22,9 +22,9 @@ python -m pizhi init --project-name "Example Novel" --genre "Fantasy" --total-ch
 
 This creates the hidden `.pizhi/` working tree, the visible `manuscript/` output directory, and the baseline global/chapter files.
 
-## 2. Configure provider access
+## 2. Configure execution backend
 
-If you plan to use `--execute`, configure the project-local provider settings first:
+If you plan to use `--execute`, configure the project-local execution backend first:
 
 ```bash
 python -m pizhi provider configure
@@ -44,7 +44,7 @@ Recommended stack:
 - `Pizhi` as the orchestrator and source-of-truth manager
 - `opencode` as the first agent execution backend
 
-## 3. Use provider-backed generation with explicit apply
+## 3. Use execute-backed generation with explicit apply
 
 Execute-backed commands record auditable run artifacts before any source-of-truth mutation. The canonical pattern is:
 

@@ -7,6 +7,7 @@ from pizhi.backends.base import ExecutionRequest
 from pizhi.backends.base import ExecutionResult
 from pizhi.backends.opencode_backend import OpencodeExecutionBackend
 from pizhi.backends.provider_backend import ProviderExecutionBackend
+from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.paths import project_paths
 
@@ -16,11 +17,13 @@ def execute_prompt_request(
     request: PromptRequest,
     target: str,
     route_name: str | None = None,
+    provider_config: ProviderSection | None = None,
+    provider_adapter_builder=None,
 ) -> ExecutionResult:
     config = load_config(project_paths(project_root).config_file)
     backend_name = config.execution.backend
-    backend = _build_execution_backend(backend_name)
-    backend_config = _resolve_backend_config(config, backend_name)
+    backend = _build_execution_backend(backend_name, provider_adapter_builder=provider_adapter_builder)
+    backend_config = _resolve_backend_config(config, backend_name, provider_config=provider_config)
     return backend.execute(
         ExecutionRequest(
             project_root=project_root,
@@ -32,17 +35,17 @@ def execute_prompt_request(
     )
 
 
-def _build_execution_backend(backend_name: str):
+def _build_execution_backend(backend_name: str, *, provider_adapter_builder=None):
     if backend_name == "provider":
-        return ProviderExecutionBackend()
+        return ProviderExecutionBackend(adapter_builder=provider_adapter_builder)
     if backend_name == "agent":
         return OpencodeExecutionBackend()
     raise ValueError(f"unsupported execution backend: {backend_name}")
 
 
-def _resolve_backend_config(config, backend_name: str):
+def _resolve_backend_config(config, backend_name: str, *, provider_config: ProviderSection | None = None):
     if backend_name == "provider":
-        return None
+        return provider_config
     if backend_name == "agent":
         if config.execution.agent is None:
             raise ValueError("agent backend is not configured")

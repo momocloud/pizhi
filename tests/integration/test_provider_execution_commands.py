@@ -296,17 +296,39 @@ def test_execute_commands_keep_prompt_only_flow_when_execute_is_omitted(initiali
     assert (initialized_project / ".pizhi" / "cache" / "prompts").exists()
 
 
-def test_brainstorm_execute_writes_agent_backend_run_artifacts(initialized_project, monkeypatch, capsys):
+@pytest.mark.parametrize(
+    ("argv", "setup", "expected_command", "output_text"),
+    [
+        (["brainstorm", "--execute"], "none", "brainstorm", "## synopsis\n...\n"),
+        (["outline", "expand", "--chapters", "1-2", "--execute"], "none", "outline-expand", "## outline\n...\n"),
+        (["write", "--chapter", "1", "--execute"], "write", "write", "# chapter draft\n"),
+    ],
+)
+def test_execute_commands_write_agent_backend_run_artifacts(
+    initialized_project, monkeypatch, capsys, argv, setup, expected_command, output_text
+):
     monkeypatch.chdir(initialized_project)
     _configure_agent_backend(initialized_project)
 
+    if setup == "write":
+        chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+        chapter_dir.mkdir(parents=True, exist_ok=True)
+        (chapter_dir / "outline.md").write_text(
+            "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
+            encoding="utf-8",
+        )
+
     def fake_run(command, *, cwd, capture_output, text, encoding):
-        Path(cwd, "agent_output.md").write_text("## synopsis\n...\n", encoding="utf-8")
+        payload = load_config(initialized_project / ".pizhi" / "config.yaml")
+        assert payload.execution.backend == "agent"
+        request_payload = Path(cwd, "agent_request.json").read_text(encoding="utf-8")
+        assert expected_command in request_payload
+        Path(cwd, "agent_output.md").write_text(output_text, encoding="utf-8")
         return CompletedProcess(command, 0, stdout="", stderr="")
 
     monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
 
-    exit_code = main(["brainstorm", "--execute"])
+    exit_code = main(argv)
     captured = capsys.readouterr()
 
     runs_dir = initialized_project / ".pizhi" / "cache" / "runs"
