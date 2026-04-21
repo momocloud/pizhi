@@ -39,6 +39,8 @@ def test_provider_configure_command_supports_interactive_mode(initialized_projec
     assert result.returncode == 0
     assert "Provider:" in result.stdout
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.provider == "openai_compatible"
     assert loaded.provider.model == "gpt-5.4"
@@ -79,6 +81,8 @@ def test_provider_configure_command_supports_interactive_review_override(initial
     assert result.returncode == 0
     assert "Review model (leave blank to skip):" in result.stdout
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.review_model == "gpt-5.4-mini"
     assert loaded.provider.review_base_url == "https://api.openai.com/v1"
@@ -109,6 +113,8 @@ def test_provider_configure_command_writes_provider_block(initialized_project):
 
     assert result.returncode == 0
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.provider == "openai_compatible"
     assert loaded.provider.model == "gpt-5.4"
@@ -144,6 +150,8 @@ def test_provider_configure_command_writes_review_override_fields(initialized_pr
 
     assert result.returncode == 0
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.review_model == "gpt-5.4-mini"
 
@@ -180,6 +188,8 @@ def test_provider_configure_command_writes_route_model_overrides(initialized_pro
 
     assert result.returncode == 0
     loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.brainstorm_model == "gpt-5.4-brainstorm"
     assert loaded.provider.outline_model == "gpt-5.4-outline"
@@ -225,7 +235,40 @@ def test_provider_configure_command_parameter_mode_preserves_existing_review_ove
     assert result.returncode == 0
     assert "Review model" not in result.stdout
     loaded = load_config(config_path)
+    assert loaded.execution.backend == "provider"
+    assert loaded.execution.provider is not None
     assert loaded.provider is not None
     assert loaded.provider.review_model == "gpt-5.4-mini"
     assert loaded.provider.review_base_url == "https://api.openai.com/v1/review"
     assert loaded.provider.review_api_key_env == "OPENAI_REVIEW_API_KEY"
+
+
+def test_agent_configure_command_writes_agent_backend_block(initialized_project):
+    result = run(
+        [
+            sys.executable,
+            "-m",
+            "pizhi",
+            "agent",
+            "configure",
+            "--agent-backend",
+            "opencode",
+            "--agent-command",
+            "opencode",
+            "--agent-arg",
+            "run",
+            "--agent-arg=--non-interactive",
+        ],
+        cwd=initialized_project,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    loaded = load_config(initialized_project / ".pizhi" / "config.yaml")
+    assert loaded.execution.backend == "agent"
+    assert loaded.execution.agent is not None
+    assert loaded.execution.agent.agent_backend == "opencode"
+    assert loaded.execution.agent.agent_command == "opencode"
+    assert loaded.execution.agent.agent_args == ["run", "--non-interactive"]
+    assert loaded.provider is None

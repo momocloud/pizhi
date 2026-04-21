@@ -66,7 +66,7 @@ def _resolve_optional_value(
 def run_provider_configure(args: argparse.Namespace) -> int:
     paths = project_paths(Path.cwd())
     config = load_config(paths.config_file)
-    existing = config.provider
+    existing = config.execution.provider
     interactive_review = not _is_parameter_mode(args)
     provider_section = ProviderSection(
         provider=args.provider
@@ -126,7 +126,8 @@ def run_provider_configure(args: argparse.Namespace) -> int:
             interactive=interactive_review,
         ),
     )
-    config.provider = provider_section
+    config.execution.backend = "provider"
+    config.execution.provider = provider_section
     save_config(paths.config_file, config)
     print(f"Provider configured: {provider_section.provider} {provider_section.model}")
     return 0

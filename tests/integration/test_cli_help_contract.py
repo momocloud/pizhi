@@ -6,6 +6,7 @@ def test_cli_help_mentions_delivery_relevant_subcommands():
     help_text = " ".join(parser.format_help().split())
 
     assert "provider" in help_text
+    assert "agent" in help_text
     assert "apply" in help_text
     assert "continue" in help_text
     assert "review" in help_text

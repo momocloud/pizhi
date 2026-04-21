@@ -5,6 +5,7 @@ import sys
 from collections.abc import Sequence
 
 from pizhi import __version__
+from pizhi.commands.agent_cmd import run_agent_configure
 from pizhi.commands.brainstorm_cmd import run_brainstorm
 from pizhi.commands.compile_cmd import run_compile
 from pizhi.commands.apply_cmd import run_apply
@@ -67,6 +68,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="environment variable name for the review API key",
     )
     provider_configure_parser.set_defaults(handler=run_provider_configure)
+
+    agent_parser = subparsers.add_parser("agent", help="configure agent backend settings")
+    agent_subparsers = agent_parser.add_subparsers(dest="agent_command")
+
+    agent_configure_parser = agent_subparsers.add_parser("configure", help="create or update agent backend config")
+    agent_configure_parser.add_argument("--agent-backend", help="agent backend identifier")
+    agent_configure_parser.add_argument("--agent-command", help="agent CLI command")
+    agent_configure_parser.add_argument(
+        "--agent-arg",
+        action="append",
+        dest="agent_args",
+        help="repeatable agent CLI argument",
+    )
+    agent_configure_parser.set_defaults(handler=run_agent_configure)
 
     compile_parser = subparsers.add_parser(
         "compile",

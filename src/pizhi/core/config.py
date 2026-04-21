@@ -106,14 +106,40 @@ class ProviderSection:
 
 
 @dataclass(slots=True)
+class AgentBackendSection:
+    agent_backend: str
+    agent_command: str
+    agent_args: list[str]
+
+    def __post_init__(self) -> None:
+        self.agent_args = list(self.agent_args)
+
+
+@dataclass(slots=True)
+class ExecutionConfig:
+    backend: str = "provider"
+    provider: ProviderSection | None = None
+    agent: AgentBackendSection | None = None
+
+
+@dataclass(slots=True)
 class ProjectConfig:
     project: ProjectSection
     chapters: ChaptersSection
     generation: GenerationSection
     consistency: ConsistencySection
     foreshadowing: ForeshadowingSection
-    provider: ProviderSection | None = None
+    execution: ExecutionConfig
     agents: list[AgentSpec] | None = None
+
+    @property
+    def provider(self) -> ProviderSection | None:
+        return self.execution.provider
+
+    @provider.setter
+    def provider(self, value: ProviderSection | None) -> None:
+        self.execution.backend = "provider"
+        self.execution.provider = value
 
 
 def default_config(
@@ -157,6 +183,7 @@ def default_config(
             auto_archive_resolved=True,
             reminder_threshold=5,
         ),
+        execution=ExecutionConfig(),
     )
 
 
@@ -164,8 +191,14 @@ def save_config(path: Path, config: ProjectConfig) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     _validate_unique_agent_ids(config.agents)
     payload = asdict(config)
-    if config.provider is None:
-        payload.pop("provider", None)
+    execution_payload = payload.get("execution")
+    if execution_payload is not None:
+        if config.execution.provider is None:
+            execution_payload.pop("provider", None)
+        if config.execution.agent is None:
+            execution_payload.pop("agent", None)
+        if not execution_payload.get("provider") and not execution_payload.get("agent"):
+            payload.pop("execution", None)
     if config.agents is None:
         payload.pop("agents", None)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -186,6 +219,7 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
     style = generation["style"]
     consistency = data["consistency"]
     foreshadowing = data["foreshadowing"]
+    execution = data.get("execution")
     provider = data.get("provider")
     raw_agents = data.get("agents")
 
@@ -198,9 +232,34 @@ def _config_from_dict(data: dict[str, Any]) -> ProjectConfig:
         ),
         consistency=ConsistencySection(**consistency),
         foreshadowing=ForeshadowingSection(**foreshadowing),
-        provider=ProviderSection(**provider) if provider else None,
+        execution=_execution_config_from_raw(execution, provider),
         agents=_agent_specs_from_raw(raw_agents),
     )
+
+
+def _execution_config_from_raw(
+    raw_execution: Any,
+    raw_provider: Any,
+) -> ExecutionConfig:
+    if raw_execution is not None:
+        if not isinstance(raw_execution, dict):
+            raise ValueError("execution must be a mapping")
+        provider = raw_execution.get("provider")
+        agent = raw_execution.get("agent")
+        return ExecutionConfig(
+            backend=raw_execution.get("backend", "provider"),
+            provider=ProviderSection(**provider) if provider else None,
+            agent=AgentBackendSection(**agent) if agent else None,
+        )
+
+    if raw_provider is not None:
+        return ExecutionConfig(
+            backend="provider",
+            provider=ProviderSection(**raw_provider),
+            agent=None,
+        )
+
+    return ExecutionConfig()
 
 
 def _agent_specs_from_raw(raw_agents: Any) -> list[AgentSpec] | None:
