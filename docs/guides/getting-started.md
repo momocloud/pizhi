@@ -8,11 +8,11 @@ Use `README.md` as the public landing page for the project and governance links.
 ```bash
 uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
 uv tool install git+https://github.com/momocloud/pizhi.git
-uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
-uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1
 ```
 
-Before the `v0.1.0` release tag is created on merged `main`, the untagged Git URL is the immediately valid install path. Once that tag exists, the `@v0.1.0` forms become the stable path for automation and pinned installs.
+Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.1` for stable automation and pinned installs.
 
 ## 1. Initialize a project
 

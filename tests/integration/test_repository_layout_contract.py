@@ -65,8 +65,8 @@ def test_contributing_doc_mentions_setup_and_test_command(project_root):
     assert "python -m pytest tests/unit tests/integration -q --tb=short -rfE" in contributing
     assert "meta/specs" in contributing
     assert "meta/plans" in contributing
-    assert "planned first public stability tag for Git-backed installs is `v0.1.0`" in contributing
-    assert "Stable consumer examples should prefer `@v0.1.0` once that tag is published." in contributing
+    assert "current public stability tag for Git-backed installs is `v0.1.1`" in contributing
+    assert "Stable consumer examples should prefer `@v0.1.1`." in contributing
     assert "distribution contract tests" in contributing
 
 
@@ -94,8 +94,8 @@ def test_visible_oss_artifacts_have_expected_markers(project_root):
 
     assert "MIT License" in license_text
     assert "[Unreleased]" in changelog
-    assert "v0.1.0" in changelog
-    assert "## v0.1.0 (planned)" in changelog
+    assert "v0.1.1" in changelog
+    assert "## v0.1.0" in changelog
     assert "Planned first public baseline for Git-backed installs." in changelog
     assert "Document Git-backed uvx and uv tool install distribution from the public repository." in changelog
     assert "## What happened?" in bug_template
@@ -110,7 +110,7 @@ def test_distribution_metadata_contract(project_root):
     pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
 
     assert 'name = "pizhi"' in pyproject
-    assert 'version = "0.1.0"' in pyproject
+    assert 'version = "0.1.1"' in pyproject
     assert 'pizhi = "pizhi.cli:main"' in pyproject
 
 
