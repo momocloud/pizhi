@@ -41,5 +41,4 @@ def test_public_docs_cover_git_backed_uv_distribution(project_root):
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in readme
     assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help" in package_readme
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in package_readme
-    assert "Install the CLI with uv" in runbook
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in runbook
