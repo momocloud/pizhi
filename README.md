@@ -2,6 +2,24 @@
 
 Pizhi is a file-backed long-form fiction workflow for planning, drafting, review, recovery, and manuscript compilation. It combines deterministic project files with provider-backed execution, explicit `apply` steps, checkpointed `continue` sessions, structural review, optional AI review, and additive maintenance/report hooks.
 
+## Install with uv
+
+Run the CLI directly from Git without installing it permanently:
+
+```bash
+uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
+```
+
+Install the CLI as a managed `uv` tool:
+
+```bash
+uv tool install git+https://github.com/momocloud/pizhi.git
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
+```
+
+Prefer `@v0.1.0` for automation and stable environments. Use the untagged repository only when you intentionally want to follow the latest `main` branch tip.
+
 ## Quick Start
 
 1. Initialize a project:

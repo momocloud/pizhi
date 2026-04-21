@@ -3,6 +3,17 @@
 This runbook covers the supported v1 flow from initialization through compilation. Command examples use `python -m pizhi`, but the installed `pizhi` entry point is equivalent.
 Use `README.md` as the public landing page for the project and governance links.
 
+## Install the CLI with uv
+
+```bash
+uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
+uv tool install git+https://github.com/momocloud/pizhi.git
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
+```
+
+Prefer `@v0.1.0` for automation and stable environments. Use the untagged repository only when you intentionally want to follow the latest `main` branch tip.
+
 ## 1. Initialize a project
 
 ```bash
