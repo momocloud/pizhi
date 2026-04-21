@@ -15,6 +15,7 @@ pizhi status
 ```bash
 uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
 uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
+uv tool install git+https://github.com/momocloud/pizhi.git
 uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
 ```
 
