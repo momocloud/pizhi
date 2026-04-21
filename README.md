@@ -73,6 +73,8 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
 
 ## Public Docs
 
+`agents/pizhi/` is a repository-shipped delivery artifact for external agents.
+
 - [Getting started](docs/guides/getting-started.md)
 - [Recovery guide](docs/guides/recovery.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
