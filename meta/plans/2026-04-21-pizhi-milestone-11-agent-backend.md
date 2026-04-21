@@ -451,3 +451,13 @@ Record that:
 git add meta/plans/2026-04-21-pizhi-milestone-11-agent-backend.md
 git commit -m "docs: record milestone 11 verification"
 ```
+
+## Execution Note
+
+- Final full regression on this branch: `python -m pytest tests/unit tests/integration -q --tb=short -rfE` -> `344 passed in 103.77s (0:01:43)`.
+- Final CLI help validation: `python -m pizhi --help` printed the backend-aware command surface, including `provider` and `agent`, without traceback.
+- Milestone 11 outcome:
+  - execution is now backend-pluggable
+  - provider-backed execution still works
+  - `opencode` is available as the first agent backend
+  - external hosts still drive the CLI rather than replacing Pizhi orchestration
