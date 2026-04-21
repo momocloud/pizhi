@@ -57,6 +57,7 @@ pizhi continue run --count <n> --execute
 ```
 
 This creates a continue session with checkpoints instead of a single run to apply.
+Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.
 
 ## 6. Review The Generated Checkpoints
 

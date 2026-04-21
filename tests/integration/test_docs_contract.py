@@ -90,6 +90,7 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
         "checkpoint apply --id <checkpoint_id>",
         "v0.1.0",
         "If the session is waiting_apply, apply a checkpoint before resume.",
+        "Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.",
     ]:
         assert marker in recovery, f"Expected failure-recovery.md to include marker: {marker!r}"
 
@@ -115,6 +116,8 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     ]:
         assert marker in workflow, f"Expected workflow.md to include marker: {marker!r}"
         assert marker in commands, f"Expected commands.md to include marker: {marker!r}"
+
+    assert "pizhi checkpoint apply --id <checkpoint_id>\npizhi continue resume --session-id <session_id>" in recovery
 
     assert "uv tool install git+https://github.com/momocloud/pizhi.git\n" in workflow
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in workflow

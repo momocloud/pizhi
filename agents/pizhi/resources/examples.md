@@ -43,6 +43,7 @@ pizhi continue resume --session-id <session_id>
 ```
 
 Repeat the checkpoint apply and resume loop until the continue session reaches `completed`.
+Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.
 
 ## Review Before Compile
 

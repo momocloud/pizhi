@@ -44,10 +44,12 @@ If the continue flow is interrupted, return to the active session explicitly:
 ```bash
 pizhi continue sessions
 pizhi checkpoints --session-id <session_id>
+pizhi checkpoint apply --id <checkpoint_id>
 pizhi continue resume --session-id <session_id>
 ```
 
 If the session is waiting_apply, apply a checkpoint before resume.
+Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.
 
 Use checkpoint apply --id <checkpoint_id> only after reviewing the available checkpoint outputs.
 

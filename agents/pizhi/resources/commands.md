@@ -47,6 +47,7 @@ This is the explicit write step. Apply mutates the source-of-truth.
 - `pizhi continue resume --session-id <session_id>`
 
 Use this after applying a checkpoint to continue the session toward completion.
+Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.
 
 ## Review Before Compilation
 
