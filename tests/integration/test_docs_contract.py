@@ -65,14 +65,20 @@ def test_readme_points_to_agent_playbook(project_root):
 
 
 def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_root):
-    agents = (project_root / "agents" / "pizhi" / "AGENTS.md").read_text(encoding="utf-8")
-    recovery = (project_root / "agents" / "pizhi" / "resources" / "failure-recovery.md").read_text(encoding="utf-8")
+    agents_path = project_root / "agents" / "pizhi" / "AGENTS.md"
+    recovery_path = project_root / "agents" / "pizhi" / "resources" / "failure-recovery.md"
+
+    assert agents_path.exists(), f"Missing agent playbook: {agents_path}"
+    assert recovery_path.exists(), f"Missing failure recovery guide: {recovery_path}"
+
+    agents = agents_path.read_text(encoding="utf-8")
+    recovery = recovery_path.read_text(encoding="utf-8")
 
     for marker in [
         "pizhi status",
-        "--execute",
-        "pizhi checkpoint apply",
-        "pizhi checkpoints --session-id",
+        "pizhi continue run --count <n> --execute",
+        "pizhi checkpoint apply --id <checkpoint_id>",
+        "pizhi checkpoints --session-id <session_id>",
         "Do not edit `.pizhi/`",
     ]:
         assert marker in agents, f"Expected AGENTS.md to include marker: {marker!r}"
@@ -80,7 +86,7 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
     for marker in [
         "provider not configured",
         "failed run",
-        "checkpoint apply",
+        "checkpoint apply --id <checkpoint_id>",
         "v0.1.0",
     ]:
         assert marker in recovery, f"Expected failure-recovery.md to include marker: {marker!r}"
