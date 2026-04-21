@@ -20,3 +20,5 @@ Use this directory as the entrypoint for an external agent that will drive the `
 
 - `resources/workflow.md`
 - `resources/commands.md`
+- `resources/failure-recovery.md`
+- `resources/examples.md`
