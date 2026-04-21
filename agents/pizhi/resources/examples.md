@@ -18,6 +18,8 @@ uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help
 uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
 ```
 
+`uvx` runs the CLI once without installing a reusable `pizhi` executable.
+
 Use the untagged Git URL when a pinned tag is not available yet. Prefer `@v0.1.0` for stable pinned installs once that tag exists.
 
 ## Provider Run And Apply

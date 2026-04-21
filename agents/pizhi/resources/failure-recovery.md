@@ -47,6 +47,8 @@ pizhi checkpoints --session-id <session_id>
 pizhi continue resume --session-id <session_id>
 ```
 
+If the session is waiting_apply, apply a checkpoint before resume.
+
 Use checkpoint apply --id <checkpoint_id> only after reviewing the available checkpoint outputs.
 
 ## Stable Git Install Path

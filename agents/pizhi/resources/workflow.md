@@ -11,6 +11,8 @@ uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
 uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
 ```
 
+`uvx` runs the CLI once without installing a reusable `pizhi` executable.
+
 After the CLI is installed, load `agents/pizhi/` and open `AGENTS.md` first.
 
 ## 2. Initialize Or Open A Project
