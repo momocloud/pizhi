@@ -268,3 +268,16 @@ git commit -m "docs: record agent playbook delivery verification"
 - Keep `AGENTS.md` short and use `resources/` for detail.
 - Avoid copying full CLI help text into the playbook.
 - The playbook should constrain agent behavior, not merely list commands.
+
+## Execution Notes
+
+- Final observed regression result:
+  - `python -m pytest tests/unit tests/integration -q --tb=short -rfE`
+  - `322 passed in 92.27s (0:01:32)`
+- Additional verification:
+  - `python -m pizhi --help`
+  - observed: CLI help rendered successfully
+- Delivery surface now present:
+  - `agents/pizhi/` is a repository-shipped delivery directory
+  - `README.md` points external agents to `agents/pizhi/AGENTS.md`
+  - the playbook remains host-agnostic and CLI-driven
