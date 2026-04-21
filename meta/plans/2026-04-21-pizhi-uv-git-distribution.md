@@ -230,12 +230,6 @@ Update the preflight or verification note if the final observed results differ f
 
 - `317 passed in 94.41s`
 
-Observed verification result: `319 passed in 88.83s`
-
-Release handoff note:
-- After merging this branch to `main`, create tag `v0.1.0` on the merged `main` commit.
-- Push `main` and `v0.1.0` to `origin` before running remote Git-backed `uv` smoke checks.
-
 - [ ] **Step 3: Record the release handoff note**
 
 Add a short note to this plan that final tagging must happen on merged `main`:
@@ -267,6 +261,11 @@ Expected:
 - the public GitHub repo resolves
 - the `v0.1.0` tag is reachable remotely
 - the installed `pizhi` entry point starts successfully
+
+Execution notes:
+- Observed verification result: `319 passed in 88.83s`
+- Release handoff note: After merging this branch to `main`, create tag `v0.1.0` on the merged `main` commit.
+- Push `main` and `v0.1.0` to `origin` before running remote Git-backed `uv` smoke checks.
 
 ## Notes
 
