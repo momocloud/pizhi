@@ -61,8 +61,7 @@ def test_public_docs_cover_git_backed_uv_distribution(project_root):
 def test_readme_points_to_agent_playbook(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
 
-    assert "agents/pizhi/" in readme
-    assert "AGENTS.md" in readme
+    assert "](agents/pizhi/AGENTS.md)" in readme
 
 
 def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_root):
@@ -72,16 +71,16 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
     for marker in [
         "pizhi status",
         "--execute",
-        "apply",
-        "checkpoints",
+        "pizhi checkpoint apply",
+        "pizhi checkpoints --session-id",
         "Do not edit `.pizhi/`",
     ]:
-        assert marker in agents
+        assert marker in agents, f"Expected AGENTS.md to include marker: {marker!r}"
 
     for marker in [
         "provider not configured",
         "failed run",
-        "checkpoint",
+        "checkpoint apply",
         "v0.1.0",
     ]:
-        assert marker in recovery
+        assert marker in recovery, f"Expected failure-recovery.md to include marker: {marker!r}"
