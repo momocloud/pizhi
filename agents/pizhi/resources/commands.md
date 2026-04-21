@@ -11,7 +11,7 @@ Use this first to understand the current chapter and project state.
 ## Generate Candidate Work
 
 - `pizhi brainstorm --execute`
-- `pizhi outline expand --chapter <n> --execute`
+- `pizhi outline expand --chapters <a-b> --execute`
 - `pizhi write --chapter <n> --execute`
 - `pizhi continue run --count <n> --execute`
 

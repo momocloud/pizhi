@@ -18,7 +18,7 @@ Use this directory as the entrypoint for an external agent that will drive the `
 
 ## Read Next
 
-- `resources/workflow.md`
-- `resources/commands.md`
-- `resources/failure-recovery.md`
-- `resources/examples.md`
+- [workflow.md](resources/workflow.md)
+- [commands.md](resources/commands.md)
+- [failure-recovery.md](resources/failure-recovery.md)
+- [examples.md](resources/examples.md)

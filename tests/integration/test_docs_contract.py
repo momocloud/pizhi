@@ -93,9 +93,18 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
 
 
 def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_root):
+    agents = (project_root / "agents" / "pizhi" / "AGENTS.md").read_text(encoding="utf-8")
     workflow = (project_root / "agents" / "pizhi" / "resources" / "workflow.md").read_text(encoding="utf-8")
     commands = (project_root / "agents" / "pizhi" / "resources" / "commands.md").read_text(encoding="utf-8")
     examples = (project_root / "agents" / "pizhi" / "resources" / "examples.md").read_text(encoding="utf-8")
+
+    for marker in [
+        "[workflow.md](resources/workflow.md)",
+        "[commands.md](resources/commands.md)",
+        "[failure-recovery.md](resources/failure-recovery.md)",
+        "[examples.md](resources/examples.md)",
+    ]:
+        assert marker in agents, f"Expected AGENTS.md to link marker: {marker!r}"
 
     for marker in [
         "pizhi runs",
@@ -104,6 +113,7 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
         assert marker in workflow, f"Expected workflow.md to include marker: {marker!r}"
         assert marker in commands, f"Expected commands.md to include marker: {marker!r}"
 
+    assert "pizhi outline expand --chapters <a-b> --execute" in commands
     assert "pizhi write --chapter <n> --execute" in examples
     assert "pizhi runs" in examples
     assert "pizhi apply --run-id <run_id>" in examples
