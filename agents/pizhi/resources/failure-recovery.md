@@ -26,10 +26,15 @@ Do not apply a failed run. Only apply successful outputs.
 
 ## Rejected Apply
 
-If a candidate should not become source-of-truth, do not force it through:
+If a run-based candidate should not become source-of-truth, do not force it through:
 
 - leave the run unapplied
-- generate a new candidate
+- generate a new candidate run
+- only use `pizhi apply --run-id <run_id>` for a successful run you intend to keep
+
+If you are in a checkpointed continue flow, keep the checkpoint model separate:
+
+- review checkpoints first
 - only use `pizhi checkpoint apply --id <checkpoint_id>` when you have chosen the checkpoint you want to keep
 
 ## Interrupted Checkpoint Flow
@@ -37,6 +42,7 @@ If a candidate should not become source-of-truth, do not force it through:
 If the continue flow is interrupted, return to the active session explicitly:
 
 ```bash
+pizhi continue sessions
 pizhi checkpoints --session-id <session_id>
 pizhi continue resume --session-id <session_id>
 ```

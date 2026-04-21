@@ -13,6 +13,7 @@ pizhi status
 ## Continue Session With Checkpoints
 
 ```bash
+pizhi status
 pizhi continue run --count 3 --execute
 pizhi checkpoints --session-id <session_id>
 pizhi checkpoint apply --id <checkpoint_id>
@@ -24,8 +25,8 @@ Repeat the checkpoint apply and resume loop until the continue session reaches `
 ## Review Before Compile
 
 ```bash
-pizhi review --full --execute
 pizhi status
+pizhi review --full --execute
 pizhi compile --volume 1
 ```
 
