@@ -30,6 +30,10 @@ class RunStore:
     def __init__(self, runs_dir: Path) -> None:
         self.runs_dir = runs_dir
 
+    @staticmethod
+    def new_run_id() -> str:
+        return RunStore._new_run_id()
+
     def mark_failure(self, run_id: str, *, error_text: str, status: str = "failed") -> RunRecord:
         record = self.load(run_id)
         record.error_path.write_text(error_text, encoding="utf-8", newline="\n")
@@ -66,6 +70,7 @@ class RunStore:
     def write_success(
         self,
         *,
+        run_id: str | None = None,
         command: str,
         target: str,
         prompt_text: str,
@@ -73,8 +78,9 @@ class RunStore:
         normalized_text: str,
         metadata: dict[str, Any],
         referenced_files: list[str] | None = None,
+        extra_files: dict[str, str] | None = None,
     ) -> RunRecord:
-        run_id = self._new_run_id()
+        run_id = run_id or self._new_run_id()
         run_dir = self.runs_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -92,6 +98,7 @@ class RunStore:
             newline="\n",
         )
         normalized_path.write_text(normalized_text, encoding="utf-8", newline="\n")
+        self._write_extra_files(run_dir, extra_files)
         manifest_path.write_text(
             json.dumps(
                 self._build_manifest(
@@ -125,6 +132,7 @@ class RunStore:
     def write_failure(
         self,
         *,
+        run_id: str | None = None,
         command: str,
         target: str,
         prompt_text: str,
@@ -134,8 +142,9 @@ class RunStore:
         status: str = "failed",
         metadata: dict[str, Any],
         referenced_files: list[str] | None = None,
+        extra_files: dict[str, str] | None = None,
     ) -> RunRecord:
-        run_id = self._new_run_id()
+        run_id = run_id or self._new_run_id()
         run_dir = self.runs_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -156,6 +165,7 @@ class RunStore:
         if normalized_text is not None:
             normalized_path.write_text(normalized_text, encoding="utf-8", newline="\n")
         error_path.write_text(error_text, encoding="utf-8", newline="\n")
+        self._write_extra_files(run_dir, extra_files)
         manifest_path.write_text(
             json.dumps(
                 self._build_manifest(
@@ -262,6 +272,13 @@ class RunStore:
         provider = metadata.get("provider")
         model = metadata.get("model")
         base_url = metadata.get("base_url")
+        backend = metadata.get("backend")
+        backend_implementation = metadata.get("backend_implementation")
+        request_path = metadata.get("request_path")
+        task_path = metadata.get("task_path")
+        output_path = metadata.get("output_path")
+        stdout_path = metadata.get("stdout_path")
+        stderr_path = metadata.get("stderr_path")
         return {
             "run_id": run_id,
             "command": command,
@@ -271,9 +288,25 @@ class RunStore:
             "provider": provider,
             "model": model,
             "base_url": base_url,
+            "backend": backend,
+            "backend_implementation": backend_implementation,
+            "request_path": request_path,
+            "task_path": task_path,
+            "output_path": output_path,
+            "stdout_path": stdout_path,
+            "stderr_path": stderr_path,
             "metadata": metadata,
             "referenced_files": referenced_files,
         }
+
+    @staticmethod
+    def _write_extra_files(run_dir: Path, extra_files: dict[str, str] | None) -> None:
+        if not extra_files:
+            return
+        for relative_path, content in extra_files.items():
+            path = run_dir / relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8", newline="\n")
 
     @staticmethod
     def _created_at() -> str:
