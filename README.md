@@ -18,7 +18,7 @@ uv tool install git+https://github.com/momocloud/pizhi.git
 uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0
 ```
 
-Prefer `@v0.1.0` for automation and stable environments. Use the untagged repository only when you intentionally want to follow the latest `main` branch tip.
+Before the `v0.1.0` release tag is created on merged `main`, the untagged Git URL is the immediately valid install path. Once that tag exists, the `@v0.1.0` forms become the stable path for automation and pinned installs.
 
 ## Quick Start
 

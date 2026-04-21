@@ -49,9 +49,10 @@ def test_public_docs_cover_git_backed_uv_distribution(project_root):
     assert "uv tool install git+https://github.com/momocloud/pizhi.git" in runbook
     assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.0 pizhi --help" in runbook
     assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.0" in runbook
-    assert "Prefer `@v0.1.0` for automation and stable environments." in readme
-    assert "Prefer `@v0.1.0` for automation and stable environments." in package_readme
-    assert "Prefer `@v0.1.0` for automation and stable environments." in runbook
-    assert "follow the latest `main` branch tip" in readme
-    assert "follow the latest `main` branch tip" in package_readme
-    assert "follow the latest `main` branch tip" in runbook
+    caveat = (
+        "Before the `v0.1.0` release tag is created on merged `main`, the untagged Git URL is the immediately valid install path. "
+        "Once that tag exists, the `@v0.1.0` forms become the stable path for automation and pinned installs."
+    )
+    assert caveat in readme
+    assert caveat in package_readme
+    assert caveat in runbook
