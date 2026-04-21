@@ -9,10 +9,10 @@ If a provider-backed command fails because the provider is not configured, stop 
 This is the `provider not configured` recovery branch:
 
 ```bash
-pizhi provider configure
+pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>
 ```
 
-Do not keep retrying `--execute` commands until provider configuration is in place.
+Use bare `pizhi provider configure` only when a human is present to answer interactive prompts. Do not keep retrying `--execute` commands until provider configuration is in place.
 
 ## Failed Run
 

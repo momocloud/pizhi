@@ -6,7 +6,7 @@ These examples show the expected external-agent workflow.
 
 ```bash
 pizhi init --project-name "Example Novel" --genre "Fantasy" --total-chapters 60 --per-volume 15 --pov "Third Person Limited"
-pizhi provider configure
+pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>
 pizhi status
 ```
 

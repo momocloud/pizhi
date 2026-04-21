@@ -36,6 +36,12 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
    python -m pizhi provider configure
    ```
 
+   For unattended agents or scripted setup, prefer parameter mode:
+
+   ```bash
+   python -m pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>
+   ```
+
 3. Generate content with an execute-first flow, then apply the selected run:
 
    ```bash

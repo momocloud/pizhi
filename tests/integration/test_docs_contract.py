@@ -97,6 +97,7 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     workflow = (project_root / "agents" / "pizhi" / "resources" / "workflow.md").read_text(encoding="utf-8")
     commands = (project_root / "agents" / "pizhi" / "resources" / "commands.md").read_text(encoding="utf-8")
     examples = (project_root / "agents" / "pizhi" / "resources" / "examples.md").read_text(encoding="utf-8")
+    recovery = (project_root / "agents" / "pizhi" / "resources" / "failure-recovery.md").read_text(encoding="utf-8")
 
     for marker in [
         "[workflow.md](resources/workflow.md)",
@@ -119,3 +120,5 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     assert "pizhi apply --run-id <run_id>" in examples
     assert "git+https://github.com/momocloud/pizhi.git" in examples
     assert "git+https://github.com/momocloud/pizhi.git@v0.1.0" in examples
+    assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in examples
+    assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in recovery
