@@ -11,6 +11,7 @@ from scripts.verification.e2e_claude_opencode import build_stage_config
 from scripts.verification.e2e_claude_opencode import build_stage_report_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_name
+from scripts.verification.e2e_claude_opencode import evaluate_stage_outcome
 from scripts.verification.e2e_claude_opencode import invoke_claude_stage
 from scripts.verification.e2e_claude_opencode import main
 from scripts.verification.e2e_claude_opencode import collect_host_pizhi_outputs
@@ -58,25 +59,106 @@ def test_render_claude_stage_prompt_mentions_agents_playbook():
         target_chapters=3,
         genre="urban fantasy",
     )
-    assert "agents/pizhi/AGENTS.md" in prompt
+    assert "AGENTS.md" in prompt
+    assert "resources/workflow.md" in prompt
+    assert "resources/commands.md" in prompt
     assert "repo/playbook are read-only" in prompt
-    assert "only modify the temp project" in prompt
+    assert "Only modify the temp project" in prompt
+    assert "Do not directly edit `.pizhi/`, `manuscript/`, chapter source files, or `meta.json`." in prompt
+    assert "Do not stop after reading files" in prompt
+    assert "Do not reply with a plan first" in prompt
     assert "pizhi continue run --count" in prompt
     assert "review --full" in prompt
     assert "compile" in prompt
-    assert "Once you reach the target chapters" in prompt
-    assert "stage-end review" in prompt
-    assert "stop" in prompt.lower()
+    assert "Stage success conditions" in prompt
+    assert "Execute this validation stage now" in prompt
     assert "stage1" in prompt
     assert "C:/tmp/project" in prompt
     assert "C:/repo/Pizhi" in prompt
+    assert "C:/repo/Pizhi/agents/pizhi" in prompt
     assert "3" in prompt
     assert "urban fantasy" in prompt
     assert "${stage_slug}" not in prompt
     assert "${project_root}" not in prompt
     assert "${repo_root}" not in prompt
+    assert "${playbook_root}" not in prompt
     assert "${target_chapters}" not in prompt
     assert "${genre}" not in prompt
+
+
+def test_render_claude_stage_prompt_uses_playbook_relative_paths():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage1",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=3,
+        genre="urban fantasy",
+    )
+    assert "C:/repo/Pizhi/agents/pizhi/AGENTS.md" in prompt
+    assert "C:/repo/Pizhi/agents/pizhi/resources/workflow.md" in prompt
+    assert "C:/repo/Pizhi/agents/pizhi/resources/commands.md" in prompt
+    assert "`agents/pizhi/AGENTS.md`" not in prompt
+    assert "`agents/pizhi/resources/workflow.md`" not in prompt
+    assert "`agents/pizhi/resources/commands.md`" not in prompt
+
+
+def test_render_claude_stage_prompt_states_stage_deliverables_explicitly():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage1",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=3,
+        genre="urban fantasy",
+    )
+    assert "Stage success conditions" in prompt
+    assert 'pizhi init --project-name "Urban Fantasy Validation"' in prompt
+    assert '--genre "urban fantasy"' in prompt
+    assert "pizhi agent configure" in prompt
+    assert ".pizhi/cache/review_full.md" in prompt
+    assert "manuscript/" in prompt
+    assert "run/session/checkpoint" in prompt
+
+
+def test_render_claude_stage_prompt_uses_stage1_command_targets():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage1",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=3,
+        genre="urban fantasy",
+    )
+    assert "pizhi continue run --count 3 --execute" in prompt
+    assert "pizhi checkpoints --session-id <session_id>" in prompt
+    assert "pizhi review --full" in prompt
+    assert "pizhi compile --chapters 1-3" in prompt
+    assert "Do not stop after reading files, after `pizhi init`, or after `pizhi status`." in prompt
+    assert "If `pizhi review --full` or `pizhi compile --chapters 1-3` fails, report the failure and stop." in prompt
+
+
+def test_render_claude_stage_prompt_overrides_generic_playbook_defaults_for_stage1():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage1",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=3,
+        genre="urban fantasy",
+    )
+    assert "The stage-specific workflow below overrides any generic guidance in the playbook resources." in prompt
+    assert "For this stage, the only valid value for `pizhi continue run --count` is `3`." in prompt
+    assert "Do not use any other count." in prompt
+
+
+def test_render_claude_stage_prompt_stops_after_first_target_write_checkpoint():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage1",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=3,
+        genre="urban fantasy",
+    )
+    assert "After you apply the write checkpoint for chapters `1-3`, do not run `pizhi continue resume` again." in prompt
+    assert "Do not generate or apply checkpoints for chapters outside `1-3`." in prompt
+    assert "Treat any failed `pizhi checkpoint apply --id <checkpoint_id>` as a blocking failure." in prompt
 
 
 def test_collect_stage_artifacts_indexes_buckets_with_stable_absolute_paths(tmp_path, monkeypatch):
@@ -129,6 +211,91 @@ def test_collect_stage_artifacts_indexes_buckets_with_stable_absolute_paths(tmp_
         (manuscript_dir / "vol_1.md").resolve().as_posix(),
         (manuscript_dir / "vol_2.md").resolve().as_posix(),
     ]
+
+
+def test_evaluate_stage_outcome_marks_stage1_failed_when_artifacts_overshoot_target(tmp_path):
+    project_root = tmp_path / "project"
+    index_path = project_root / ".pizhi" / "chapters" / "index.jsonl"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        "\n".join(
+            [
+                '{"n": 1, "title": "第001章", "vol": 1, "status": "compiled", "updated": "2026-04-22"}',
+                '{"n": 2, "title": "第002章", "vol": 1, "status": "compiled", "updated": "2026-04-22"}',
+                '{"n": 3, "title": "第003章", "vol": 1, "status": "compiled", "updated": "2026-04-22"}',
+                '{"n": 4, "title": "第004章", "vol": 1, "status": "drafted", "updated": "2026-04-22"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    artifact_index = {
+        "runs": ["run-1"],
+        "sessions": ["session-1"],
+        "checkpoints": ["checkpoint-1", "checkpoint-2"],
+        "reports": [],
+        "manuscript": [],
+    }
+
+    effective_returncode, outcome_summary = evaluate_stage_outcome(
+        stage_slug="stage1",
+        returncode=0,
+        artifact_index=artifact_index,
+        project_root=project_root,
+    )
+
+    assert effective_returncode == 1
+    assert "review report was not generated" in outcome_summary
+    assert "compiled manuscript output was not generated" in outcome_summary
+    assert "chapters beyond 1-3 advanced unexpectedly" in outcome_summary
+
+
+def test_evaluate_stage_outcome_treats_malformed_index_as_validation_failure(tmp_path):
+    project_root = tmp_path / "project"
+    index_path = project_root / ".pizhi" / "chapters" / "index.jsonl"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text('{"n": 1, "status": "compiled"}\n{bad json}\n', encoding="utf-8")
+
+    effective_returncode, outcome_summary = evaluate_stage_outcome(
+        stage_slug="stage1",
+        returncode=0,
+        artifact_index={
+            "runs": ["run-1"],
+            "sessions": ["session-1"],
+            "checkpoints": ["checkpoint-1"],
+            "reports": ["review_full.md"],
+            "manuscript": ["manuscript/ch001-ch003.md"],
+        },
+        project_root=project_root,
+    )
+
+    assert effective_returncode == 1
+    assert "chapter index could not be parsed" in outcome_summary
+
+
+def test_evaluate_stage_outcome_treats_invalid_index_schema_as_validation_failure(tmp_path):
+    project_root = tmp_path / "project"
+    index_path = project_root / ".pizhi" / "chapters" / "index.jsonl"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        '{"n": 1, "status": "compiled"}\n{"n": "oops", "title": "bad n", "status": "drafted"}\n',
+        encoding="utf-8",
+    )
+
+    effective_returncode, outcome_summary = evaluate_stage_outcome(
+        stage_slug="stage1",
+        returncode=0,
+        artifact_index={
+            "runs": ["run-1"],
+            "sessions": ["session-1"],
+            "checkpoints": ["checkpoint-1"],
+            "reports": ["review_full.md"],
+            "manuscript": ["manuscript/ch001-ch003.md"],
+        },
+        project_root=project_root,
+    )
+
+    assert effective_returncode == 1
+    assert "chapter index schema is invalid" in outcome_summary
 
 
 def test_render_claude_stage_prompt_reports_missing_template_clearly(tmp_path, monkeypatch):
@@ -263,11 +430,7 @@ def test_invoke_claude_stage_runs_expected_subprocess_surface(tmp_path, monkeypa
         "--add-dir",
         str(playbook_root.resolve()),
         "-p",
-        (
-            "Execute the following validation task exactly as written. "
-            "Treat it as your active assignment, not as a prompt template to discuss. "
-            "Do not ask for clarification before starting.\n\nrendered prompt"
-        ),
+        "rendered prompt",
     ]
     assert observed["kwargs"] == {
         "capture_output": True,

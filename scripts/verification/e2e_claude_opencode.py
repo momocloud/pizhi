@@ -4,6 +4,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
+import json
 from pathlib import Path
 import re
 import shutil
@@ -48,6 +49,7 @@ _STAGE_CONFIGS = {
 }
 
 _CLAUDE_STAGE_PROMPT_TEMPLATE_PATH = Path(__file__).with_name("templates") / "claude_stage_prompt.md"
+_ADVANCED_CHAPTER_STATUSES = {"outlined", "drafted", "reviewed", "compiled"}
 
 
 def build_validation_root_name(timestamp: str) -> str:
@@ -91,14 +93,18 @@ def render_claude_stage_prompt(
     stage_slug: str,
     project_root: str | Path,
     repo_root: str | Path,
+    playbook_root: str | Path | None = None,
     target_chapters: int,
     genre: str,
 ) -> str:
+    repo_root_path = Path(repo_root)
+    playbook_root_path = Path(playbook_root) if playbook_root is not None else repo_root_path / "agents" / "pizhi"
     template = Template(_load_claude_stage_prompt_template())
     return template.substitute(
         stage_slug=stage_slug,
         project_root=Path(project_root).as_posix(),
-        repo_root=Path(repo_root).as_posix(),
+        repo_root=repo_root_path.as_posix(),
+        playbook_root=playbook_root_path.as_posix(),
         target_chapters=target_chapters,
         genre=genre,
     )
@@ -134,6 +140,7 @@ def invoke_claude_stage(
         stage_slug=stage_slug,
         project_root=root,
         repo_root=repo_root_path,
+        playbook_root=playbook_root,
         target_chapters=stage_config.target_chapters,
         genre=genre,
         )
@@ -159,16 +166,22 @@ def invoke_claude_stage(
     )
     artifact_index = collect_stage_artifacts(root)
     pizhi_outputs = collect_host_pizhi_outputs(root, artifact_index=artifact_index)
+    effective_returncode, outcome_summary = evaluate_stage_outcome(
+        stage_slug=stage_slug,
+        returncode=completed.returncode,
+        artifact_index=artifact_index,
+        project_root=root,
+    )
     return StageExecutionResult(
         stage_name=stage_config.slug.replace("stage", "Stage "),
         project_root=root,
         command_log=commands,
         pizhi_outputs=pizhi_outputs,
         artifact_index=artifact_index,
-        outcome_summary=_summarize_stage_outcome(stage_slug, completed.returncode, artifact_index),
+        outcome_summary=outcome_summary,
         claude_stdout=(completed.stdout or "").strip(),
         claude_stderr=(completed.stderr or "").strip(),
-        returncode=completed.returncode,
+        returncode=effective_returncode,
     )
 
 
@@ -330,12 +343,7 @@ def _build_claude_execution_prompt(prompt: str) -> str:
     if normalized_prompt.startswith("# "):
         _heading, _separator, remainder = normalized_prompt.partition("\n")
         normalized_prompt = remainder.lstrip()
-    return (
-        "Execute the following validation task exactly as written. "
-        "Treat it as your active assignment, not as a prompt template to discuss. "
-        "Do not ask for clarification before starting.\n\n"
-        f"{normalized_prompt}"
-    )
+    return normalized_prompt
 
 
 def _resolve_cli_command(command_name: str) -> str:
@@ -400,6 +408,106 @@ def _summarize_stage_outcome(
             f"Collected {run_count} run artifact(s) and {checkpoint_count} checkpoint artifact(s)."
         )
     return f"{stage_slug} invocation failed with exit code {returncode}."
+
+
+def evaluate_stage_outcome(
+    *,
+    stage_slug: str,
+    returncode: int,
+    artifact_index: dict[str, list[str]],
+    project_root: str | Path,
+) -> tuple[int, str]:
+    issues: list[str] = []
+    target_chapters = int(_stage_config(stage_slug)["target_chapters"])
+
+    if returncode != 0:
+        issues.append(f"{stage_slug} invocation failed with exit code {returncode}")
+
+    if not artifact_index.get("runs"):
+        issues.append("no run artifacts were produced")
+    if not artifact_index.get("sessions"):
+        issues.append("no continue session artifacts were produced")
+    if not artifact_index.get("checkpoints"):
+        issues.append("no checkpoint artifacts were produced")
+    if not artifact_index.get("reports"):
+        issues.append("review report was not generated")
+    if not artifact_index.get("manuscript"):
+        issues.append("compiled manuscript output was not generated")
+
+    records, chapter_index_error = _load_chapter_index_records(project_root)
+    if chapter_index_error is not None:
+        issues.append(chapter_index_error)
+    elif records is None:
+        issues.append("chapter index was not generated")
+    else:
+        issues.extend(_validate_target_chapters(records, target_chapters))
+        issues.extend(_validate_no_overshoot(records, target_chapters))
+
+    if issues:
+        effective_returncode = returncode if returncode != 0 else 1
+        return effective_returncode, f"{stage_slug} validation failed: {'; '.join(issues)}."
+
+    return returncode, _summarize_stage_outcome(stage_slug, returncode, artifact_index)
+
+
+def _load_chapter_index_records(project_root: str | Path) -> tuple[list[dict[str, object]] | None, str | None]:
+    index_path = Path(project_root) / ".pizhi" / "chapters" / "index.jsonl"
+    if not index_path.exists():
+        return None, None
+    records: list[dict[str, object]] = []
+    try:
+        for raw_line in index_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            record = json.loads(line)
+            if not isinstance(record, dict) or "n" not in record:
+                return None, "chapter index schema is invalid"
+            try:
+                record["n"] = int(record["n"])
+            except (TypeError, ValueError):
+                return None, "chapter index schema is invalid"
+            records.append(record)
+    except json.JSONDecodeError:
+        return None, "chapter index could not be parsed"
+    return records, None
+
+
+def _validate_target_chapters(records: list[dict[str, object]], target_chapters: int) -> list[str]:
+    record_map = {int(record["n"]): record for record in records if "n" in record}
+    issues: list[str] = []
+    missing = [number for number in range(1, target_chapters + 1) if number not in record_map]
+    if missing:
+        rendered = ", ".join(f"ch{number:03d}" for number in missing)
+        issues.append(f"target chapters are missing from the chapter index: {rendered}")
+        return issues
+
+    not_compiled = [
+        number
+        for number in range(1, target_chapters + 1)
+        if str(record_map[number].get("status")) != "compiled"
+    ]
+    if not_compiled:
+        rendered = ", ".join(
+            f"ch{number:03d} ({record_map[number].get('status', 'missing')})" for number in not_compiled
+        )
+        issues.append(f"target chapters did not reach compiled status: {rendered}")
+    return issues
+
+
+def _validate_no_overshoot(records: list[dict[str, object]], target_chapters: int) -> list[str]:
+    advanced = [
+        record
+        for record in records
+        if int(record.get("n", 0)) > target_chapters
+        and str(record.get("status")) in _ADVANCED_CHAPTER_STATUSES
+    ]
+    if not advanced:
+        return []
+    rendered = ", ".join(
+        f"ch{int(record['n']):03d} ({record.get('status', 'unknown')})" for record in advanced
+    )
+    return [f"chapters beyond 1-{target_chapters} advanced unexpectedly: {rendered}"]
 
 
 def _current_report_date() -> str:
