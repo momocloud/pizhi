@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import date
+from datetime import datetime
 from pathlib import Path
 import re
 from string import Template
@@ -27,6 +28,7 @@ class StageExecutionResult:
     claude_stdout: str
     claude_stderr: str
     returncode: int
+    report_path: Path | None = None
 
 
 _STAGE_CONFIGS = {
@@ -209,7 +211,7 @@ def render_stage_report(
             lines.append("")
     else:
         lines.extend(["- No artifacts collected.", ""])
-    lines.extend(["## Pizhi Outputs", ""])
+    lines.extend(["## Host-Observed Pizhi Outputs", ""])
     if pizhi_outputs:
         for command, output_text in pizhi_outputs:
             lines.extend(
@@ -260,7 +262,7 @@ def run_stage(
     genre: str,
     command_log: list[str] | None = None,
     report_date: str | None = None,
-) -> Path:
+) -> StageExecutionResult:
     stage_config = build_stage_config(stage_slug, report_date=report_date or _current_report_date())
     result = invoke_claude_stage(
         stage_slug=stage_slug,
@@ -279,7 +281,19 @@ def run_stage(
         claude_stdout=result.claude_stdout,
         claude_stderr=result.claude_stderr,
     )
-    return write_stage_report(stage_config.report_path, report)
+    report_path = write_stage_report(stage_config.report_path, report)
+    return StageExecutionResult(
+        stage_name=result.stage_name,
+        project_root=result.project_root,
+        command_log=result.command_log,
+        pizhi_outputs=result.pizhi_outputs,
+        artifact_index=result.artifact_index,
+        outcome_summary=result.outcome_summary,
+        claude_stdout=result.claude_stdout,
+        claude_stderr=result.claude_stderr,
+        returncode=result.returncode,
+        report_path=report_path,
+    )
 
 
 def _load_claude_stage_prompt_template() -> str:
@@ -339,10 +353,28 @@ def _current_report_date() -> str:
     return date.today().isoformat()
 
 
+def _current_timestamp() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _default_validation_base_dir(repo_root: str | Path) -> Path:
+    root = Path(repo_root).resolve()
+    if root.parent.name == ".worktrees":
+        return root.parents[2] / "tmp"
+    return root.parent / "tmp"
+
+
+def _default_project_root(repo_root: str | Path) -> Path:
+    return build_validation_root_path(
+        _current_timestamp(),
+        base_dir=_default_validation_base_dir(repo_root),
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a thin Claude-hosted Pizhi verification stage.")
     parser.add_argument("--stage", required=True, choices=sorted(_STAGE_CONFIGS))
-    parser.add_argument("--project-root", required=True)
+    parser.add_argument("--project-root")
     parser.add_argument("--repo-root", default=Path(__file__).resolve().parents[2].as_posix())
     parser.add_argument("--genre", default="urban fantasy")
     return parser
@@ -350,14 +382,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    report_path = run_stage(
+    result = run_stage(
         stage_slug=args.stage,
-        project_root=args.project_root,
+        project_root=args.project_root or _default_project_root(args.repo_root),
         repo_root=args.repo_root,
         genre=args.genre,
     )
-    print(report_path.as_posix())
-    return 0
+    if result.report_path is not None:
+        print(result.report_path.as_posix())
+    return result.returncode
 
 
 if __name__ == "__main__":

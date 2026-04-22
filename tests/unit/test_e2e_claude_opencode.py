@@ -1,15 +1,21 @@
 from pathlib import Path
+import subprocess
 
 import pytest
 
 import scripts.verification.e2e_claude_opencode as e2e_claude_opencode
+from scripts.verification.e2e_claude_opencode import StageConfig
+from scripts.verification.e2e_claude_opencode import StageExecutionResult
 from scripts.verification.e2e_claude_opencode import collect_stage_artifacts
 from scripts.verification.e2e_claude_opencode import build_stage_config
 from scripts.verification.e2e_claude_opencode import build_stage_report_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_name
+from scripts.verification.e2e_claude_opencode import invoke_claude_stage
+from scripts.verification.e2e_claude_opencode import main
 from scripts.verification.e2e_claude_opencode import render_claude_stage_prompt
 from scripts.verification.e2e_claude_opencode import render_stage_report
+from scripts.verification.e2e_claude_opencode import run_stage
 
 
 def test_build_validation_root_name_is_timestamped_and_stable():
@@ -158,3 +164,126 @@ def test_render_stage_report_contains_summary_and_artifact_index():
     assert "Stage completed." in report
     assert "Project healthy." in report
     assert "Review report generated." in report
+
+
+def test_invoke_claude_stage_runs_expected_subprocess_surface(tmp_path, monkeypatch):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    observed: dict[str, object] = {}
+
+    def fake_subprocess_run(command, **kwargs):
+        observed["command"] = command
+        observed["kwargs"] = kwargs
+        return subprocess.CompletedProcess(
+            args=command,
+            returncode=4,
+            stdout="claude stdout\n",
+            stderr="claude stderr\n",
+        )
+
+    monkeypatch.setattr(e2e_claude_opencode, "subprocess", type("FakeSubprocess", (), {"run": staticmethod(fake_subprocess_run)}))
+    monkeypatch.setattr(e2e_claude_opencode, "_current_report_date", lambda: "2026-04-22")
+    monkeypatch.setattr(e2e_claude_opencode, "render_claude_stage_prompt", lambda **_: "rendered prompt")
+    monkeypatch.setattr(e2e_claude_opencode, "collect_stage_artifacts", lambda _: {"runs": ["run-1"]})
+    monkeypatch.setattr(
+        e2e_claude_opencode,
+        "collect_host_pizhi_outputs",
+        lambda *_args, **_kwargs: [("pizhi review --full", "review output")],
+    )
+
+    result = invoke_claude_stage(
+        stage_slug="stage1",
+        project_root=project_root,
+        repo_root="C:/repo/Pizhi",
+        genre="urban fantasy",
+        command_log=["pizhi status"],
+    )
+
+    assert observed["command"] == ["claude", "-p", "rendered prompt"]
+    assert observed["kwargs"] == {
+        "capture_output": True,
+        "text": True,
+        "check": False,
+        "cwd": project_root.resolve(),
+    }
+    assert result.command_log == ["pizhi status", "claude -p <rendered prompt>"]
+    assert result.pizhi_outputs == [("pizhi review --full", "review output")]
+    assert result.returncode == 4
+    assert result.claude_stdout == "claude stdout"
+    assert result.claude_stderr == "claude stderr"
+
+
+def test_run_stage_writes_report_and_preserves_execution_result(tmp_path, monkeypatch):
+    report_path = tmp_path / "docs" / "verification" / "stage-report.md"
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    execution_result = StageExecutionResult(
+        stage_name="Stage 1",
+        project_root=project_root.resolve(),
+        command_log=["pizhi status", "claude -p <rendered prompt>"],
+        pizhi_outputs=[("pizhi review --full", "review output")],
+        artifact_index={"runs": ["run-1"]},
+        outcome_summary="Stage failed cleanly.",
+        claude_stdout="stdout text",
+        claude_stderr="stderr text",
+        returncode=9,
+        report_path=None,
+    )
+
+    monkeypatch.setattr(
+        e2e_claude_opencode,
+        "build_stage_config",
+        lambda *_args, **_kwargs: StageConfig(slug="stage1", target_chapters=3, report_path=report_path),
+    )
+    monkeypatch.setattr(e2e_claude_opencode, "invoke_claude_stage", lambda **_kwargs: execution_result)
+
+    result = run_stage(
+        stage_slug="stage1",
+        project_root=project_root,
+        repo_root="C:/repo/Pizhi",
+        genre="urban fantasy",
+        report_date="2026-04-22",
+    )
+
+    assert result.returncode == 9
+    assert result.report_path == report_path
+    assert report_path.exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Stage failed cleanly." in report_text
+    assert "review output" in report_text
+    assert "stderr text" in report_text
+
+
+def test_main_defaults_project_root_for_stage_entrypoint_and_returns_exit_code(tmp_path, monkeypatch, capsys):
+    repo_root = tmp_path / "noval" / "Pizhi" / ".worktrees" / "e2e-claude-opencode-validation"
+    repo_root.mkdir(parents=True)
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(e2e_claude_opencode, "_current_timestamp", lambda: "2026-04-22T12:34:56")
+
+    def fake_run_stage(**kwargs):
+        captured.update(kwargs)
+        return StageExecutionResult(
+            stage_name="Stage 1",
+            project_root=Path(kwargs["project_root"]).resolve(),
+            command_log=[],
+            pizhi_outputs=[],
+            artifact_index={},
+            outcome_summary="done",
+            claude_stdout="",
+            claude_stderr="",
+            returncode=6,
+            report_path=tmp_path / "docs" / "verification" / "report.md",
+        )
+
+    monkeypatch.setattr(e2e_claude_opencode, "run_stage", fake_run_stage)
+
+    exit_code = main(["--stage", "stage1", "--repo-root", repo_root.as_posix()])
+
+    assert exit_code == 6
+    assert Path(captured["project_root"]) == (
+        tmp_path / "noval" / "tmp" / "pizhi-e2e-claude-opencode-2026-04-22T12-34-56"
+    )
+    assert captured["repo_root"] == repo_root.as_posix()
+    assert captured["genre"] == "urban fantasy"
+    assert capsys.readouterr().out.strip() == (tmp_path / "docs" / "verification" / "report.md").as_posix()
