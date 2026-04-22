@@ -13,6 +13,7 @@ from scripts.verification.e2e_claude_opencode import build_validation_root_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_name
 from scripts.verification.e2e_claude_opencode import invoke_claude_stage
 from scripts.verification.e2e_claude_opencode import main
+from scripts.verification.e2e_claude_opencode import collect_host_pizhi_outputs
 from scripts.verification.e2e_claude_opencode import render_claude_stage_prompt
 from scripts.verification.e2e_claude_opencode import render_stage_report
 from scripts.verification.e2e_claude_opencode import run_stage
@@ -252,6 +253,69 @@ def test_run_stage_writes_report_and_preserves_execution_result(tmp_path, monkey
     assert "Stage failed cleanly." in report_text
     assert "review output" in report_text
     assert "stderr text" in report_text
+
+
+def test_run_stage_anchors_report_output_to_repo_root(tmp_path, monkeypatch):
+    repo_root = tmp_path / "repo" / "Pizhi"
+    project_root = tmp_path / "project"
+    repo_root.mkdir(parents=True)
+    project_root.mkdir()
+    observed: dict[str, object] = {}
+    execution_result = StageExecutionResult(
+        stage_name="Stage 1",
+        project_root=project_root.resolve(),
+        command_log=[],
+        pizhi_outputs=[],
+        artifact_index={},
+        outcome_summary="done",
+        claude_stdout="",
+        claude_stderr="",
+        returncode=0,
+    )
+
+    def fake_build_stage_config(stage_slug, report_date, docs_dir=None):
+        observed["stage_slug"] = stage_slug
+        observed["report_date"] = report_date
+        observed["docs_dir"] = docs_dir
+        return StageConfig(
+            slug=stage_slug,
+            target_chapters=3,
+            report_path=Path(docs_dir) / "2026-04-22-e2e-stage-1-smoke.md",
+        )
+
+    monkeypatch.setattr(e2e_claude_opencode, "build_stage_config", fake_build_stage_config)
+    monkeypatch.setattr(e2e_claude_opencode, "invoke_claude_stage", lambda **_kwargs: execution_result)
+
+    result = run_stage(
+        stage_slug="stage1",
+        project_root=project_root,
+        repo_root=repo_root,
+        genre="urban fantasy",
+        report_date="2026-04-22",
+    )
+
+    assert observed["docs_dir"] == repo_root / "docs" / "verification"
+    assert result.report_path == repo_root / "docs" / "verification" / "2026-04-22-e2e-stage-1-smoke.md"
+
+
+def test_collect_host_pizhi_outputs_prefers_highest_numbered_manuscript(tmp_path):
+    project_root = tmp_path / "project"
+    manuscript_dir = project_root / "manuscript"
+    manuscript_dir.mkdir(parents=True)
+    earlier = manuscript_dir / "vol_2.md"
+    later = manuscript_dir / "vol_10.md"
+    earlier.write_text("volume two", encoding="utf-8")
+    later.write_text("volume ten", encoding="utf-8")
+
+    outputs = collect_host_pizhi_outputs(
+        project_root,
+        artifact_index={
+            "reports": [],
+            "manuscript": [earlier.resolve().as_posix(), later.resolve().as_posix()],
+        },
+    )
+
+    assert outputs == [("pizhi compile", "volume ten")]
 
 
 def test_main_defaults_project_root_for_stage_entrypoint_and_returns_exit_code(tmp_path, monkeypatch, capsys):

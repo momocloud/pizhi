@@ -168,7 +168,7 @@ def collect_host_pizhi_outputs(
         outputs.append(("pizhi review --full", _read_output_preview(Path(review_reports[0]))))
     manuscript_paths = artifacts.get("manuscript", [])
     if manuscript_paths:
-        outputs.append(("pizhi compile", _read_output_preview(Path(manuscript_paths[-1]))))
+        outputs.append(("pizhi compile", _read_output_preview(_select_manuscript_preview_path(manuscript_paths))))
     return outputs
 
 
@@ -263,7 +263,11 @@ def run_stage(
     command_log: list[str] | None = None,
     report_date: str | None = None,
 ) -> StageExecutionResult:
-    stage_config = build_stage_config(stage_slug, report_date=report_date or _current_report_date())
+    stage_config = build_stage_config(
+        stage_slug,
+        report_date=report_date or _current_report_date(),
+        docs_dir=Path(repo_root) / "docs" / "verification",
+    )
     result = invoke_claude_stage(
         stage_slug=stage_slug,
         project_root=project_root,
@@ -332,6 +336,19 @@ def _read_output_preview(path: Path, max_chars: int = 4000) -> str:
     if len(content) <= max_chars:
         return content
     return f"{content[:max_chars].rstrip()}\n...[truncated]"
+
+
+def _select_manuscript_preview_path(manuscript_paths: list[str]) -> Path:
+    candidates = [Path(path) for path in manuscript_paths]
+    return max(candidates, key=_manuscript_preview_sort_key)
+
+
+def _manuscript_preview_sort_key(path: Path) -> tuple[int, int, str]:
+    name = path.stem.lower()
+    numbers = [int(match) for match in re.findall(r"\d+", name)]
+    if numbers:
+        return (1, numbers[-1], path.name.lower())
+    return (0, 0, path.name.lower())
 
 
 def _summarize_stage_outcome(
