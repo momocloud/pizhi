@@ -263,6 +263,7 @@ def test_main_defaults_project_root_for_stage_entrypoint_and_returns_exit_code(t
 
     def fake_run_stage(**kwargs):
         captured.update(kwargs)
+        captured["project_root_exists"] = Path(kwargs["project_root"]).exists()
         return StageExecutionResult(
             stage_name="Stage 1",
             project_root=Path(kwargs["project_root"]).resolve(),
@@ -284,6 +285,7 @@ def test_main_defaults_project_root_for_stage_entrypoint_and_returns_exit_code(t
     assert Path(captured["project_root"]) == (
         tmp_path / "noval" / "tmp" / "pizhi-e2e-claude-opencode-2026-04-22T12-34-56"
     )
+    assert captured["project_root_exists"] is True
     assert captured["repo_root"] == repo_root.as_posix()
     assert captured["genre"] == "urban fantasy"
     assert capsys.readouterr().out.strip() == (tmp_path / "docs" / "verification" / "report.md").as_posix()

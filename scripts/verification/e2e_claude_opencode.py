@@ -382,9 +382,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    project_root = Path(args.project_root) if args.project_root else _default_project_root(args.repo_root)
+    project_root.mkdir(parents=True, exist_ok=True)
     result = run_stage(
         stage_slug=args.stage,
-        project_root=args.project_root or _default_project_root(args.repo_root),
+        project_root=project_root,
         repo_root=args.repo_root,
         genre=args.genre,
     )
