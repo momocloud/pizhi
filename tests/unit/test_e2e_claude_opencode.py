@@ -9,6 +9,7 @@ from scripts.verification.e2e_claude_opencode import build_stage_report_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_path
 from scripts.verification.e2e_claude_opencode import build_validation_root_name
 from scripts.verification.e2e_claude_opencode import render_claude_stage_prompt
+from scripts.verification.e2e_claude_opencode import render_stage_report
 
 
 def test_build_validation_root_name_is_timestamped_and_stable():
@@ -133,3 +134,21 @@ def test_render_claude_stage_prompt_reports_missing_template_clearly(tmp_path, m
             target_chapters=3,
             genre="urban fantasy",
         )
+
+
+def test_render_stage_report_contains_summary_and_artifact_index():
+    report = render_stage_report(
+        stage_name="Stage 1",
+        project_root="C:/tmp/project",
+        command_log=["pizhi status", "pizhi review --full", "pizhi compile --chapter 1"],
+        artifact_index={
+            "runs": ["run-1"],
+            "sessions": ["session-1"],
+            "checkpoints": ["checkpoint-1"],
+        },
+        outcome_summary="Stage completed.",
+    )
+    assert "Stage 1" in report
+    assert "run-1" in report
+    assert "checkpoint-1" in report
+    assert "Stage completed." in report
