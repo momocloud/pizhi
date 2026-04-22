@@ -6,6 +6,7 @@ from datetime import date
 from datetime import datetime
 from pathlib import Path
 import re
+import shutil
 from string import Template
 import subprocess
 
@@ -124,20 +125,35 @@ def invoke_claude_stage(
     command_log: list[str] | None = None,
 ) -> StageExecutionResult:
     root = Path(project_root).resolve()
+    repo_root_path = Path(repo_root).resolve()
+    playbook_root = repo_root_path / "agents" / "pizhi"
     stage_config = build_stage_config(stage_slug, report_date=_current_report_date())
-    prompt = render_claude_stage_prompt(
+    claude_command = _resolve_cli_command("claude")
+    prompt = _build_claude_execution_prompt(
+        render_claude_stage_prompt(
         stage_slug=stage_slug,
         project_root=root,
-        repo_root=repo_root,
+        repo_root=repo_root_path,
         target_chapters=stage_config.target_chapters,
         genre=genre,
+        )
     )
     commands = [] if command_log is None else list(command_log)
-    commands.append("claude -p <rendered prompt>")
+    commands.append("claude --permission-mode bypassPermissions --add-dir <repo_root>/agents/pizhi -p <rendered prompt>")
     completed = subprocess.run(
-        ["claude", "-p", prompt],
+        [
+            claude_command,
+            "--permission-mode",
+            "bypassPermissions",
+            "--add-dir",
+            str(playbook_root),
+            "-p",
+            prompt,
+        ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
         cwd=root,
     )
@@ -150,8 +166,8 @@ def invoke_claude_stage(
         pizhi_outputs=pizhi_outputs,
         artifact_index=artifact_index,
         outcome_summary=_summarize_stage_outcome(stage_slug, completed.returncode, artifact_index),
-        claude_stdout=completed.stdout.strip(),
-        claude_stderr=completed.stderr.strip(),
+        claude_stdout=(completed.stdout or "").strip(),
+        claude_stderr=(completed.stderr or "").strip(),
         returncode=completed.returncode,
     )
 
@@ -307,6 +323,26 @@ def _load_claude_stage_prompt_template() -> str:
         raise RuntimeError(
             f"unable to load Claude stage prompt template at {_CLAUDE_STAGE_PROMPT_TEMPLATE_PATH}"
         ) from exc
+
+
+def _build_claude_execution_prompt(prompt: str) -> str:
+    normalized_prompt = prompt.lstrip()
+    if normalized_prompt.startswith("# "):
+        _heading, _separator, remainder = normalized_prompt.partition("\n")
+        normalized_prompt = remainder.lstrip()
+    return (
+        "Execute the following validation task exactly as written. "
+        "Treat it as your active assignment, not as a prompt template to discuss. "
+        "Do not ask for clarification before starting.\n\n"
+        f"{normalized_prompt}"
+    )
+
+
+def _resolve_cli_command(command_name: str) -> str:
+    resolved = shutil.which(command_name)
+    if resolved is None:
+        raise RuntimeError(f"required command not found on PATH: {command_name}")
+    return resolved
 
 
 def _collect_artifact_entries(directory: Path, filename: str | None = None) -> list[str]:

@@ -11,10 +11,12 @@ Start by reading `agents/pizhi/AGENTS.md`, then the supporting workflow and comm
 
 Follow the playbook exactly:
 
+The repo/playbook are read-only. only modify the temp project at `${project_root}`.
+
 1. Inspect the current project state with `pizhi status`.
 2. Drive candidate generation with `pizhi continue run --count <n> --execute`.
-3. Review the generated checkpoints, apply the selected checkpoint, and resume the session until the stage target is reached.
-4. Run `pizhi review --full --execute` before final validation.
-5. Run `pizhi compile` with the appropriate explicit target when you are ready to build manuscript output.
+3. Review the generated checkpoints, apply the selected checkpoint, and resume the session only until the stage target is reached.
+4. Once you reach the target chapters, immediately run `pizhi review --full --execute` and then `pizhi compile` with the appropriate explicit target.
+5. Stop after stage-end review and compile. Do not keep generating more chapters or continue the workflow past the requested stage target.
 
 Keep the host boundary clear: `pizhi` owns deterministic project state, and you only orchestrate the workflow from this prompt.

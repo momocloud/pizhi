@@ -59,9 +59,14 @@ def test_render_claude_stage_prompt_mentions_agents_playbook():
         genre="urban fantasy",
     )
     assert "agents/pizhi/AGENTS.md" in prompt
+    assert "repo/playbook are read-only" in prompt
+    assert "only modify the temp project" in prompt
     assert "pizhi continue run --count" in prompt
     assert "review --full" in prompt
     assert "compile" in prompt
+    assert "Once you reach the target chapters" in prompt
+    assert "stage-end review" in prompt
+    assert "stop" in prompt.lower()
     assert "stage1" in prompt
     assert "C:/tmp/project" in prompt
     assert "C:/repo/Pizhi" in prompt
@@ -143,6 +148,48 @@ def test_render_claude_stage_prompt_reports_missing_template_clearly(tmp_path, m
         )
 
 
+def test_invoke_claude_stage_strips_heading_from_rendered_prompt(tmp_path, monkeypatch):
+    project_root = tmp_path / "project"
+    repo_root = tmp_path / "repo"
+    project_root.mkdir()
+    repo_root.mkdir()
+    observed: dict[str, object] = {}
+
+    def fake_subprocess_run(command, **kwargs):
+        observed["command"] = command
+        return subprocess.CompletedProcess(
+            args=command,
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(e2e_claude_opencode, "subprocess", type("FakeSubprocess", (), {"run": staticmethod(fake_subprocess_run)}))
+    monkeypatch.setattr(
+        e2e_claude_opencode,
+        "shutil",
+        type("FakeShutil", (), {"which": staticmethod(lambda _name: "C:/tools/claude.cmd")}),
+    )
+    monkeypatch.setattr(e2e_claude_opencode, "_current_report_date", lambda: "2026-04-22")
+    monkeypatch.setattr(
+        e2e_claude_opencode,
+        "render_claude_stage_prompt",
+        lambda **_: "# Claude Stage Prompt\n\nStep 1\nStep 2",
+    )
+    monkeypatch.setattr(e2e_claude_opencode, "collect_stage_artifacts", lambda _: {})
+    monkeypatch.setattr(e2e_claude_opencode, "collect_host_pizhi_outputs", lambda *_args, **_kwargs: [])
+
+    invoke_claude_stage(
+        stage_slug="stage1",
+        project_root=project_root,
+        repo_root=repo_root,
+        genre="urban fantasy",
+    )
+
+    assert observed["command"][-1].endswith("Step 1\nStep 2")
+    assert "# Claude Stage Prompt" not in observed["command"][-1]
+
+
 def test_render_stage_report_contains_summary_and_artifact_index():
     report = render_stage_report(
         stage_name="Stage 1",
@@ -169,8 +216,12 @@ def test_render_stage_report_contains_summary_and_artifact_index():
 
 def test_invoke_claude_stage_runs_expected_subprocess_surface(tmp_path, monkeypatch):
     project_root = tmp_path / "project"
+    repo_root = tmp_path / "repo"
+    playbook_root = repo_root / "agents" / "pizhi"
     project_root.mkdir()
+    repo_root.mkdir()
     observed: dict[str, object] = {}
+    resolved_command = Path("C:/tools/claude.cmd")
 
     def fake_subprocess_run(command, **kwargs):
         observed["command"] = command
@@ -183,6 +234,11 @@ def test_invoke_claude_stage_runs_expected_subprocess_surface(tmp_path, monkeypa
         )
 
     monkeypatch.setattr(e2e_claude_opencode, "subprocess", type("FakeSubprocess", (), {"run": staticmethod(fake_subprocess_run)}))
+    monkeypatch.setattr(
+        e2e_claude_opencode,
+        "shutil",
+        type("FakeShutil", (), {"which": staticmethod(lambda name: str(resolved_command) if name == "claude" else None)}),
+    )
     monkeypatch.setattr(e2e_claude_opencode, "_current_report_date", lambda: "2026-04-22")
     monkeypatch.setattr(e2e_claude_opencode, "render_claude_stage_prompt", lambda **_: "rendered prompt")
     monkeypatch.setattr(e2e_claude_opencode, "collect_stage_artifacts", lambda _: {"runs": ["run-1"]})
@@ -195,19 +251,36 @@ def test_invoke_claude_stage_runs_expected_subprocess_surface(tmp_path, monkeypa
     result = invoke_claude_stage(
         stage_slug="stage1",
         project_root=project_root,
-        repo_root="C:/repo/Pizhi",
+        repo_root=repo_root,
         genre="urban fantasy",
         command_log=["pizhi status"],
     )
 
-    assert observed["command"] == ["claude", "-p", "rendered prompt"]
+    assert observed["command"] == [
+        str(resolved_command),
+        "--permission-mode",
+        "bypassPermissions",
+        "--add-dir",
+        str(playbook_root.resolve()),
+        "-p",
+        (
+            "Execute the following validation task exactly as written. "
+            "Treat it as your active assignment, not as a prompt template to discuss. "
+            "Do not ask for clarification before starting.\n\nrendered prompt"
+        ),
+    ]
     assert observed["kwargs"] == {
         "capture_output": True,
         "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
         "check": False,
         "cwd": project_root.resolve(),
     }
-    assert result.command_log == ["pizhi status", "claude -p <rendered prompt>"]
+    assert result.command_log == [
+        "pizhi status",
+        "claude --permission-mode bypassPermissions --add-dir <repo_root>/agents/pizhi -p <rendered prompt>",
+    ]
     assert result.pizhi_outputs == [("pizhi review --full", "review output")]
     assert result.returncode == 4
     assert result.claude_stdout == "claude stdout"
