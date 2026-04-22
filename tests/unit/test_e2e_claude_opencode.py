@@ -141,6 +141,10 @@ def test_render_stage_report_contains_summary_and_artifact_index():
         stage_name="Stage 1",
         project_root="C:/tmp/project",
         command_log=["pizhi status", "pizhi review --full", "pizhi compile --chapter 1"],
+        pizhi_outputs=[
+            ("pizhi status", "Project healthy."),
+            ("pizhi review --full", "Review report generated."),
+        ],
         artifact_index={
             "runs": ["run-1"],
             "sessions": ["session-1"],
@@ -152,3 +156,5 @@ def test_render_stage_report_contains_summary_and_artifact_index():
     assert "run-1" in report
     assert "checkpoint-1" in report
     assert "Stage completed." in report
+    assert "Project healthy." in report
+    assert "Review report generated." in report

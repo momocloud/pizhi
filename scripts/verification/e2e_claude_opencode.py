@@ -21,6 +21,7 @@ class StageExecutionResult:
     stage_name: str
     project_root: Path
     command_log: list[str]
+    pizhi_outputs: list[tuple[str, str]]
     artifact_index: dict[str, list[str]]
     outcome_summary: str
     claude_stdout: str
@@ -139,10 +140,12 @@ def invoke_claude_stage(
         cwd=root,
     )
     artifact_index = collect_stage_artifacts(root)
+    pizhi_outputs = collect_host_pizhi_outputs(root, artifact_index=artifact_index)
     return StageExecutionResult(
         stage_name=stage_config.slug.replace("stage", "Stage "),
         project_root=root,
         command_log=commands,
+        pizhi_outputs=pizhi_outputs,
         artifact_index=artifact_index,
         outcome_summary=_summarize_stage_outcome(stage_slug, completed.returncode, artifact_index),
         claude_stdout=completed.stdout.strip(),
@@ -151,11 +154,28 @@ def invoke_claude_stage(
     )
 
 
+def collect_host_pizhi_outputs(
+    project_root: str | Path,
+    *,
+    artifact_index: dict[str, list[str]] | None = None,
+) -> list[tuple[str, str]]:
+    artifacts = collect_stage_artifacts(project_root) if artifact_index is None else artifact_index
+    outputs: list[tuple[str, str]] = []
+    review_reports = artifacts.get("reports", [])
+    if review_reports:
+        outputs.append(("pizhi review --full", _read_output_preview(Path(review_reports[0]))))
+    manuscript_paths = artifacts.get("manuscript", [])
+    if manuscript_paths:
+        outputs.append(("pizhi compile", _read_output_preview(Path(manuscript_paths[-1]))))
+    return outputs
+
+
 def render_stage_report(
     *,
     stage_name: str,
     project_root: str | Path,
     command_log: list[str],
+    pizhi_outputs: list[tuple[str, str]] | None = None,
     artifact_index: dict[str, list[str]],
     outcome_summary: str,
     claude_stdout: str = "",
@@ -189,6 +209,21 @@ def render_stage_report(
             lines.append("")
     else:
         lines.extend(["- No artifacts collected.", ""])
+    lines.extend(["## Pizhi Outputs", ""])
+    if pizhi_outputs:
+        for command, output_text in pizhi_outputs:
+            lines.extend(
+                [
+                    f"### {command}",
+                    "",
+                    "```text",
+                    output_text or "<empty>",
+                    "```",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["- No host-driven Pizhi outputs captured.", ""])
     lines.extend(
         [
             "## Claude Output",
@@ -238,6 +273,7 @@ def run_stage(
         stage_name=result.stage_name,
         project_root=result.project_root,
         command_log=result.command_log,
+        pizhi_outputs=result.pizhi_outputs,
         artifact_index=result.artifact_index,
         outcome_summary=result.outcome_summary,
         claude_stdout=result.claude_stdout,
@@ -272,6 +308,16 @@ def _stage_config(stage_slug: str) -> dict[str, object]:
         return _STAGE_CONFIGS[stage_slug]
     except KeyError as exc:
         raise ValueError(f"unknown stage slug: {stage_slug}") from exc
+
+
+def _read_output_preview(path: Path, max_chars: int = 4000) -> str:
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return "<missing>"
+    if len(content) <= max_chars:
+        return content
+    return f"{content[:max_chars].rstrip()}\n...[truncated]"
 
 
 def _summarize_stage_outcome(
