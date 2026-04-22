@@ -86,7 +86,7 @@ def render_claude_stage_prompt(
 
 
 def collect_stage_artifacts(project_root: str | Path) -> dict[str, list[str]]:
-    root = Path(project_root)
+    root = Path(project_root).resolve()
     cache_root = root / ".pizhi" / "cache"
     return {
         "runs": _collect_artifact_entries(cache_root / "runs"),
@@ -98,18 +98,23 @@ def collect_stage_artifacts(project_root: str | Path) -> dict[str, list[str]]:
 
 
 def _load_claude_stage_prompt_template() -> str:
-    return _CLAUDE_STAGE_PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
+    try:
+        return _CLAUDE_STAGE_PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"unable to load Claude stage prompt template at {_CLAUDE_STAGE_PROMPT_TEMPLATE_PATH}"
+        ) from exc
 
 
 def _collect_artifact_entries(directory: Path, filename: str | None = None) -> list[str]:
     if filename is not None:
         path = directory / filename
-        return [path.as_posix()] if path.exists() else []
+        return [path.resolve().as_posix()] if path.exists() else []
     if not directory.exists():
         return []
     entries: list[str] = []
     for path in sorted(directory.iterdir(), key=lambda candidate: candidate.name):
-        entries.append(path.as_posix())
+        entries.append(path.resolve().as_posix())
     return entries
 
 
