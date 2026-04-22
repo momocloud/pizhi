@@ -87,5 +87,8 @@ def time_sort_key(value: str) -> tuple[str, int, int]:
         parsed = datetime.strptime(value, "%Y-%m-%d %H:%M")
         return parsed.date().isoformat(), 0, parsed.hour * 60 + parsed.minute
 
+    if " " not in value:
+        return value, 0, 0
+
     date_part, period = value.rsplit(" ", 1)
-    return date_part, 1, PERIOD_ORDER[period]
+    return date_part, 1, PERIOD_ORDER.get(period, 0)

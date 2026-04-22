@@ -107,6 +107,9 @@ def render_claude_stage_prompt(
         playbook_root=playbook_root_path.as_posix(),
         target_chapters=target_chapters,
         genre=genre,
+        stop_rule=_render_stage_stop_rule(target_chapters),
+        batch_rules=_render_stage_batch_rules(target_chapters),
+        workflow_instructions=_render_stage_workflow(target_chapters, genre=genre),
     )
 
 
@@ -336,6 +339,65 @@ def _load_claude_stage_prompt_template() -> str:
         raise RuntimeError(
             f"unable to load Claude stage prompt template at {_CLAUDE_STAGE_PROMPT_TEMPLATE_PATH}"
         ) from exc
+
+
+def _render_stage_batch_rules(target_chapters: int) -> str:
+    if target_chapters <= 3:
+        return ""
+    return (
+        "- Continue sessions may emit checkpoints in smaller chapter batches instead of the full target range.\n"
+        f"- Do not treat the first `1-3` batch as stage completion for this stage.\n"
+        f"- If the highest applied written chapter is still below `{target_chapters}`, run "
+        "`pizhi continue resume --session-id <session_id>` again to generate the next batch.\n"
+    )
+
+
+def _render_stage_stop_rule(target_chapters: int) -> str:
+    if target_chapters <= 3:
+        return (
+            f"- After you apply the write checkpoint for chapters `1-{target_chapters}`, do not run "
+            "`pizhi continue resume` again.\n"
+        )
+    return (
+        f"- After chapters `1-{target_chapters}` all have applied write checkpoints, do not run "
+        "`pizhi continue resume` again.\n"
+    )
+
+
+def _render_stage_workflow(target_chapters: int, *, genre: str) -> str:
+    if target_chapters <= 3:
+        return (
+            "1. If `.pizhi/config.yaml` is missing, run `pizhi init --project-name "
+            f'"Urban Fantasy Validation" --genre "{genre}" --total-chapters 60 --per-volume 15 '
+            '--pov "Third Person Limited"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.\n'
+            "2. Run `pizhi status`.\n"
+            f"3. Run `pizhi continue run --count {target_chapters} --execute`.\n"
+            "4. Capture the returned `session_id`.\n"
+            f"5. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `1-{target_chapters}` with `pizhi checkpoint apply --id <checkpoint_id>`.\n"
+            "6. Run `pizhi continue resume --session-id <session_id>`.\n"
+            f"7. Run `pizhi checkpoints --session-id <session_id>` again and apply the generated write checkpoint for chapters `1-{target_chapters}`.\n"
+            "8. If the session is `ready_to_resume` or `completed`, run `pizhi review --full`.\n"
+            f"9. Run `pizhi compile --chapters 1-{target_chapters}`.\n"
+            "10. Run `pizhi status` again and stop.\n"
+        )
+
+    return (
+        "1. If `.pizhi/config.yaml` is missing, run `pizhi init --project-name "
+        f'"Urban Fantasy Validation" --genre "{genre}" --total-chapters 60 --per-volume 15 '
+        '--pov "Third Person Limited"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.\n'
+        "2. Run `pizhi status`.\n"
+        f"3. Run `pizhi continue run --count {target_chapters} --execute`.\n"
+        "4. Capture the returned `session_id`.\n"
+        f"5. Loop until chapters `1-{target_chapters}` all have applied write checkpoints.\n"
+        "6. In each loop iteration, run `pizhi checkpoints --session-id <session_id>` and inspect the next generated checkpoint for the next unfinished chapter range.\n"
+        "7. If the next generated checkpoint is an outline checkpoint, apply it with `pizhi checkpoint apply --id <checkpoint_id>` and then run `pizhi continue resume --session-id <session_id>` to generate the paired write checkpoint for the same range.\n"
+        "8. If the next generated checkpoint is a write checkpoint, apply it with `pizhi checkpoint apply --id <checkpoint_id>`.\n"
+        f"9. After applying a write checkpoint, if the highest applied written chapter is still below `{target_chapters}`, run `pizhi continue resume --session-id <session_id>` again to generate the next batch.\n"
+        f"10. Do not apply or generate checkpoints beyond chapters `1-{target_chapters}`. Stop the continue loop as soon as chapters `1-{target_chapters}` all have applied write checkpoints.\n"
+        "11. Run `pizhi review --full`.\n"
+        f"12. Run `pizhi compile --chapters 1-{target_chapters}`.\n"
+        "13. Run `pizhi status` again and stop.\n"
+    )
 
 
 def _build_claude_execution_prompt(prompt: str) -> str:

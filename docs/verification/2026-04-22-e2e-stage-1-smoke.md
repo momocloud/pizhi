@@ -1,10 +1,10 @@
 # Stage 1 Report
 
-- Project root: `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12`
+- Project root: `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08`
 
 ## Outcome Summary
 
-stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 checkpoint artifact(s).
+stage1 validation failed: chapters beyond 1-3 advanced unexpectedly: ch004 (compiled), ch005 (compiled), ch006 (compiled), ch007 (compiled), ch008 (compiled), ch009 (compiled), ch010 (compiled), ch011 (compiled), ch012 (compiled), ch013 (compiled), ch014 (compiled), ch015 (compiled), ch016 (compiled), ch017 (compiled), ch018 (compiled), ch019 (compiled), ch020 (compiled), ch021 (compiled), ch022 (compiled), ch023 (compiled), ch024 (compiled), ch025 (compiled), ch026 (compiled), ch027 (compiled), ch028 (compiled), ch029 (compiled), ch030 (compiled).
 
 ## Command Log
 
@@ -14,27 +14,146 @@ stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 
 
 ### runs
 
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/runs/run-20260422080555582368-b28a7767`
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/runs/run-20260422080736151690-bcad936a`
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/runs/run-20260422081033751044-38164d4a`
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/runs/run-20260422081357835758-23b766f3`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422052926601667-647832d4`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422053012127383-80ccf23d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422053124429532-4098e25c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422053242925688-7cb8e0f3`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422053631496282-411a58e2`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422053707518690-bc4ed2a2`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422054039025549-70b9e6df`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422054456504825-1efa6f77`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422054705501225-a4a49f50`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422055641929567-016f0fa9`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422055745814075-01c7a696`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422055832911068-f5c128ff`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422062004114310-d1532947`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422062044913955-54a27853`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422062831065335-205c964d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422062958718421-156b0d5f`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422063633469100-4b726be5`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422063814410766-34a99eac`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422064434081206-c0ae1062`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422064606389836-e9b1bea4`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422065141025156-adb85392`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422065259167105-37717823`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422065836955500-f21b7d74`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422065933806953-09a748f8`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422071206343051-7b564905`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422071321459708-01cea0d3`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422071923496721-2b403101`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422072019740225-7c2037ce`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422073114594651-81b8112b`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422073202654351-f7d956c6`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422073739662491-856d2a92`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422073839187127-383c124d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422074609882931-29116a45`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422074725467506-a60a337e`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422075218718066-3ed6ace8`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422075721278113-e59d093d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422080100090309-d7e3db01`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422080255519835-6e24140a`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422080726703050-a7136181`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422081014351043-9f41cbb8`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422081326679290-60d7f789`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422081514547835-197a4c45`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422081725303662-eb88d930`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422082056729535-738992cc`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422082459305442-c6d60a54`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422082710867218-2c3aa7d7`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422083341710825-0e3ba06d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422083916076389-25bd8210`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422084334819388-319df814`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422084516485496-a9d6f3dd`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422084944951009-c19ef229`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422085334224900-6f871f86`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422085736985072-31d99f09`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422085837569625-70efa7bb`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422090337851970-c91c72be`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/runs/run-20260422092303643141-6d45e6df`
 
 ### sessions
 
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/continue_sessions/session-20260422080555575261-393e4dec`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422052926594644-8efd0bab`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422053631489777-bbf9353c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422054705494320-83faa0e7`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422055641923263-0854317e`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422055745807384-0ee7f970`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422055832904617-81c02b2d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422055944359256-57ee3e6c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422062004107838-64d36ed9`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422062831058555-09dca335`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422063633459979-d563ebeb`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422064434074499-6af31920`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422065141018617-af74d6d3`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422065836948502-bc305b14`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422071206336462-01a35443`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422071923489869-4ad84c5e`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422073114587548-485804f1`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422073739655625-df2ad07a`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422074609876334-fa235099`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422080100083705-c9e8b790`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422081326672697-940ea225`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422082459298828-37020e60`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/continue_sessions/session-20260422084334812860-171a4fa3`
 
 ### checkpoints
 
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/checkpoints/checkpoint-20260422080659272667-747e3b77`
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/checkpoints/checkpoint-20260422081629348607-8a822095`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422053004028820-35f4504e`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422053510749628-02e3bc00`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422053659704027-87dca896`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422054648536032-7e5c7bae`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055632834470-dcc63993`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055732602590-c863c50d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055740929107-8c070f8a`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055819846100-699111f5`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055827936835-aa7d4c9f`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055901459143-699a1721`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422055909498752-8add6d75`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422062035517195-8262df0d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422062751471789-cf85dcee`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422062940638026-3f649688`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422063628101005-c09758b8`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422063753181667-df9dd29d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422064236306900-1f13b58d`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422064555932760-29dff502`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422065115651512-49f7c9d0`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422065245602464-fd94f4cc`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422065810580987-f4f6dab8`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422065923174171-0ff2011c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422071134542871-ba0c2f87`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422071309814365-94f5fa5c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422071831697148-56c362af`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422072009744448-c45211b7`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422073023865035-d77e8339`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422073147291344-6f12a93a`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422073714525253-36f6ba76`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422073825766970-1a709074`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422074320294902-3d22b24b`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422074714087870-520f9ae7`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422080008744302-b24bd9d4`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422080213839033-c05a86d4`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422081220820072-2e543e5a`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422081454924320-d919be0b`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422082355972904-361e04d2`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422082555891902-4332f763`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422084303093413-e640244c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422084459732267-24e5e37c`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422085723643410-6db59084`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422085815644103-61736be6`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/checkpoints/checkpoint-20260422090731418311-79006a46`
 
 ### reports
 
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/.pizhi/cache/review_full.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/.pizhi/cache/review_full.md`
 
 ### manuscript
 
-- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T16-02-12/manuscript/ch001-ch003.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/ch001-ch003.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/ch004-ch013.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/ch014-ch030.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/vol_01.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/vol_02.md`
+- `C:/Users/kywin/ownProject/noval/tmp/pizhi-e2e-claude-opencode-2026-04-22T13-27-08/manuscript/vol_03.md`
 
 ## Host-Observed Pizhi Outputs
 
@@ -45,9 +164,9 @@ stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 
 
 ## Summary
 
-- Chapters reviewed: 3
-- Chapters with issues: 3
-- Chapter issues: 6
+- Chapters reviewed: 30
+- Chapters with issues: 27
+- Chapter issues: 58
 - Global issues: 0
 - Maintenance findings: 0
 
@@ -62,9 +181,16 @@ stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 
 #### Issue 1
 - Category: 出场角色一致性
 - Severity: 中
-- Description: frontmatter 声明了角色 苏晴，但正文中未出现该名字。
-- Evidence: 苏晴 不在 text.md 中
+- Description: frontmatter 声明了角色 陈教授（导师，仅回忆与信息中出现），但正文中未出现该名字。
+- Evidence: 陈教授（导师，仅回忆与信息中出现） 不在 text.md 中
 - Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 2
+- Category: 时间线单调性
+- Severity: 高
+- Description: 第 1 章的非闪回事件时间早于上一条非闪回事件。
+- Evidence: 前往坐标途中 < 陨落事件后第三年，清晨
+- Suggestion: 调整事件时间或将该事件显式标记为闪回。
 
 
 ### ch002
@@ -72,215 +198,338 @@ stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 
 #### Issue 1
 - Category: 出场角色一致性
 - Severity: 中
-- Description: frontmatter 声明了角色 黑袍人（未具名），但正文中未出现该名字。
-- Evidence: 黑袍人（未具名） 不在 text.md 中
+- Description: frontmatter 声明了角色 陈博士（提及/尸体），但正文中未出现该名字。
+- Evidence: 陈博士（提及/尸体） 不在 text.md 中
 - Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
 
 #### Issue 2
-- Category: 出场角色一致性
-- Severity: 中
-- Description: frontmatter 声明了角色 老周（杂货铺老板），但正文中未出现该名字。
-- Evidence: 老周（杂货铺老板） 不在 text.md 中
-- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
-
-#### Issue 3
 - Category: 时间线单调性
 - Severity: 高
 - Description: 第 2 章的非闪回事件时间早于上一条非闪回事件。
-- Evidence: 密室坍塌后，地面出口 < 隧道深处，符文密室
+- Evidence: 22:15 < 抵达坐标地点
 - Suggestion: 调整事件时间或将该事件显式标记为闪回。
 
 
 ### ch003
 
+- None.
+
+### ch004
+
+#### Issue 1
+- Category: 时间线单调性
+- Severity: 高
+- Description: 第 4 章的非闪回事件时间早于上一条非闪回事件。
+- Evidence: 逃亡第三日，夜晚 < 逃亡第三日，黄昏
+- Suggestion: 调整事件时间或将该事件显式标记为闪回。
+
+
+### ch005
+
 #### Issue 1
 - Category: 出场角色一致性
 - Severity: 中
-- Description: frontmatter 声明了角色 神秘中年人，但正文中未出现该名字。
-- Evidence: 神秘中年人 不在 text.md 中
+- Description: frontmatter 声明了角色 陆衡（新登场），但正文中未出现该名字。
+- Evidence: 陆衡（新登场） 不在 text.md 中
 - Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
 
 #### Issue 2
 - Category: 时间线单调性
 - Severity: 高
-- Description: 第 3 章的非闪回事件时间早于上一条非闪回事件。
-- Evidence: 凌晨，地下情报交易所"迷雾阁" < 深夜，旧城区废弃钟楼
+- Description: 第 5 章的非闪回事件时间早于上一条非闪回事件。
+- Evidence: T005-01 < 逃亡第三日，深夜
 - Suggestion: 调整事件时间或将该事件显式标记为闪回。
 
-## Maintenance
 
-- Synopsis review: not run.
-- Archive findings: none.
+### ch006
 
-## B 类 AI 审查
+#### Issue 1
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 灯塔指挥官，但正文中未出现该名字。
+- Evidence: 灯塔指挥官 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
 
-- 未执行 AI 审查。
+#### Issue 2
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 同盟军成员，但正文中未出现该名字。
+- Evidence: 同盟军成员 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+
+### ch007
+
+#### Issue 1
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 陈博士（信息残留），但正文中未出现该名字。
+- Evidence: 陈博士（信息残留） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 2
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 灯塔指挥官（幕后），但正文中未出现该名字。
+- Evidence: 灯塔指挥官（幕后） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+
+### ch008
+
+#### Issue 1
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 陈默（ARK-03-α-0892），但正文中未出现该名字。
+- Evidence: 陈默（ARK-03-α-0892） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 2
+- Category: 时间线单调性
+- Severity: 高
+- Description: 第 8 章的非闪回事件时间早于上一条非闪回事件。
+- Evidence: 凌晨03:17 < 第007章 第七节
+- Suggestion: 调整事件时间或将该事件显式标记为闪回。
+
+#### Issue 3
+- Category: 伏笔 ID 引用合法性
+- Severity: 高
+- Description: resolved 中引用的 F005-01 在写入前不在 active/referenced 中。
+- Evidence: available ids: ['F001', 'F002', 'F003', 'F004', 'F005', 'F006']
+- Suggestion: 只回收已激活或已引用的伏笔，或先在前文埋设该 ID。
+
+#### Issue 4
+- Category: 伏笔 ID 引用合法性
+- Severity: 高
+- Description: resolved 中引用的 F007-01 在写入前不在 active/referenced 中。
+- Evidence: available ids: ['F001', 'F002', 'F003', 'F004', 'F005', 'F006']
+- Suggestion: 只回收已激活或已引用的伏笔，或先在前文埋设该 ID。
+
+
+### ch009
+
+#### Issue 1
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 陈默（ARK-03-α-0892），但正文中未出现该名字。
+- Evidence: 陈默（ARK-03-α-0892） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 2
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 灯塔信使，但正文中未出现该名字。
+- Evidence: 灯塔信使 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 3
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 "摆渡人"（提及），但正文中未出现该名字。
+- Evidence: "摆渡人"（提及） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 4
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 陈牧野/导师（音频遗言），但正文中未出现该名字。
+- Evidence: 陈牧野/导师（音频遗言） 不在 text.md 中
+- Suggestion: 补写该角色的实际出场，或从 metadata 中移除。
+
+#### Issue 5
+- Category: 时间线单调性
+- Severity: 高
+- Description: 第 9 章的非闪回事件时间早于上一条非闪回事件。
+- Evidence: 上午08:30 < 凌晨05:00
+- Suggestion: 调整事件时间或将该事件显式标记为闪回。
+
+
+### ch010
+
+#### Issue 1
+- Category: 出场角色一致性
+- Severity: 中
+- Description: frontmatter 声明了角色 陈默（ARK-03-α-0892），但正文中未出现该名字。
+- Evidence: 陈
+...[truncated]
 ```
 
 ### pizhi compile
 
 ```text
-# Chapters 001-003
+# Chapters 014-030
 
-## 序幕：命运的起点
+## 暗流涌动
 
-霓虹灯在雨后的街道上晕染开来，像是打翻了的调色盘。林夜把便利店卷帘门拉下一半，透过缝隙望着外面湿漉漉的夜色。这是他在"24小时便利屋"打工的第三个月，也是大学休学后的第七个月。
+## 一
 
-"小林，今晚你一个人可以吗？"店长老王从里间探出头，手里还攥着半根没抽完的烟。
+B区实验室的空调系统发出低沉的嗡鸣，将空气维持在一种令人不适的恒温状态。林远站在金属台旁，目光扫过墙壁上那些闪烁的显示屏。波形图和数据流以固定的节奏跳动，像某种巨大生物的心电图。
 
-"没问题，王叔。"林夜把抹布叠好放在收银台旁边，"您先回吧，嫂子不是还病着吗。"
+苏瑾靠在墙角，双手抱胸，眼睛半闭。她在休息，或者说，在假装休息。从陈默离开到现在，已经过去了二十七分钟。二十七分钟里，没有人进入这个房间，也没有人从门外经过。这种安静本身就是一种异常。
 
-老王嘟囔了几句感谢的话，很快消失在雨幕中。便利店里只剩下林夜一个人，和一排排亮着冷白色灯光的货架。
+"你在想什么？"苏瑾没有睁眼。
 
-他今年二十二岁，本该是大四的学生，却在半年前因为一场突如其来的"家庭变故"办理了休学。那场变故像一把钝刀，缓慢地切割着他原本平静的生活——父母在一次"意外车祸"中双双离世，肇事司机至今下落不明，而警方给出的调查报告里充满了说不通的疑点。
+"想陈默。"林远说，"他说去联络'摆渡人'，但这里的通讯监控比外面更严格。他怎么联络？"
 
-林夜摇了摇头，强迫自己把注意力集中在眼前的商品上。他把几盒过期的便当扔进报废箱，又整理了一下杂志架。就在这时，门铃响了。
+"每个人都有自己的渠道。"苏瑾睁开眼睛，"问题是，他的渠道有多可靠。"
 
-风铃清脆的声响在寂静的便利店里格外突兀。
+林远没有回答。他从口袋里掏出那枚数据芯片——阿雅在出发前还给他的，说最后一段加密内容还需要时间。芯片在掌心微微发热，像是在提醒他里面还藏着未解的秘密。
 
-进来的男人穿着一件深灰色的长风衣，衣领高高竖起，遮住了半张脸。他的步伐很轻，几乎听不见脚步声，像是踩在棉花上一样飘到了收银台前。
+他走向房间角落的一台终端。那是B区标配的数据接口设备，理论上可以读取标准格式的芯片。林远犹豫了一秒，然后将芯片插入接口。
 
-"欢迎光临。"林夜下意识地露出职业性的微笑。
+屏幕亮起，显示出已经解码的内容：地图、音频文件、以及那段尚未破解的加密数据。林远点开地图，仔细查看每一个标注点。
 
-男人没有回应，只是从风衣口袋里掏出一样东西，放在收银台上。那是一枚铜币，直径约三厘米，表面布满了林夜从未见过的纹路。那些纹路不像是普通的装饰，更像是某种古老的文字或符号，在荧光灯下泛着诡异的暗红色光泽。
+然后，他发现了不对劲。
 
-"这个……我们不收古董。"林夜有些困惑。
+"苏瑾。"他的声音变得紧绷，"过来看这个。"
 
-男人终于抬起头。那是一双令人印象深刻的眼睛——瞳孔呈现出不自然的琥珀色，仿佛燃烧着某种林夜无法理解的东西。他的嘴角扯出一个似笑非笑的弧度："这不是用来付钱的，林夜。这是给你的。"
+苏瑾走到他身边。屏幕上显示的是灯塔核心设施的内部结构图，但林远的手指正指着地图边缘的一个细节——通风管道的走向。
 
-林夜的后背瞬间绷直了。他不认识这个男人，对方却知道他的名字。
+"这里。"他说，"三天前陆衡给我们看过的那幅地图，通风管道在这个位置有一个分叉，通向B区。但这幅地图上，分叉点被标注为'已封闭'。"
 
-"你是谁？"
+"可能是更新。"苏瑾说，"地图有时间戳吗？"
 
-"现在还不是问这个问题的时候。"男人的手指在铜币上轻轻一点，那枚铜币竟然微微震动起来，表面的符文像是活过来一般流转着微光，"七天后的血月之夜，如果你还想活着见到第八天的太阳，就带着它来老城区的钟楼。"
+林远检查了文件属性。地图的创建日期是两年前，最后修改时间是——他皱起眉头。
 
-"等等，你在说什么——"
+"修改时间是四十八小时前。"他说，"在我们收到这枚芯片之前。"
 
-男人已经转身向门口走去，风衣的下摆在空气中划出一道弧线。在推门而出的瞬间，他停下脚步，侧过半张脸："对了，小心影子。它们最近……很饿。"
+苏瑾的瞳孔微微收缩。"有人在芯片交到我们手上之前，修改过地图数据。"
 
-门铃再次响起，男人的身影消失在夜色中。
+"不只是地图。"林远快速检查音频文件的元数据，"音频文件的波形也有问题。这段导师的声音，在第三十七秒到第四十一秒之间，频谱出现了一个不自然的断层。"
 
-林夜愣在原地，低头看着收银台上那枚仍在微微发光的铜币。他伸手想把它拿起来，指尖触碰到铜币表面的瞬间，一股冰凉的触感顺着手指蔓延上来，像是摸到了一块深埋地下的寒冰。更诡异的是，他分明感觉到铜币内部有什么东西在跳动——不是机械的震动，而是某种类似心跳的节律。
+"什么意思？"
 
-他把铜币塞进牛仔裤口袋，决定等下班后再仔细研究。
+"意思是被剪辑过。"林远的声音低沉下去，"有人删除了四秒钟的内容，然后重新拼接了音频。剪辑技术很高明，如果不是我专门留意，根本听不出来。"
 
-接下来的几个小时里，便利店里再也没有客人。林夜坐在收银台后面，一边刷着手机上的招聘信息，一边时不时摸一摸口袋里的铜币。那东西明明只是金属，却让他感到一种莫名的不安，仿佛口袋里揣着一颗随时会爆炸的炸弹。
+苏瑾沉默了。她走到金属台旁，从自己的装备袋里取出便携式破解装置。那台设备只有手掌大小，表面布满了细小的接口和指示灯。
 
-晚上十点，林夜准时关店。
+"你在做什么？"林远问。
 
-雨已经停了，但空气里弥漫着浓重的湿气。他骑上那辆二手电动车，沿着熟悉的路线往出租屋赶。这条路上要经过一条老旧的巷子，两侧是即将拆迁的棚户区，路灯早就坏了大半，只剩下零星几盏还在苟延残喘地亮着。
+"检查我自己的设备。"苏瑾的手指在装置表面快速操作，"如果数据芯片被动过手脚，我的设备也可能有问题。"
 
-林夜平时不太喜欢走这条路，但它是回家的捷径，能省下将近十分钟。
+装置启动自检程序，屏幕上跳出一行行代码。苏瑾的表情随着代码的滚动逐渐变得凝重。
 
-今晚的巷子格外安静。没有野猫的叫声，没有远处传来的电视声，甚至连风声都消失了。林夜拧动电门，电动车发出轻微的嗡嗡声，在寂静中显得格外刺耳。
+"找到了。"她说。
 
-就在他骑到巷子中段的时候，电动车突然熄火了。
+"什么？"
 
-"搞什么……"林夜低头检查仪表盘，电量显示还有一半以上。他试着重新启动，但电机完全没有反应。
+"我的破解装置里被安装了一个微型追踪信标。"苏瑾的声音平静得可怕，"体积不到一毫米，嵌在主板的电源管理模块里。它不会主动发射信号，但只要有外部扫描设备靠近，就会反射一个特定的识别码。"
 
-他叹了口气，准备下车推行。就在他双脚着地的瞬间，一股寒意从脚底直冲天灵盖。
+"什么时候安装的？"
 
-巷子里的影子不对劲。
+"不确定。"苏瑾关闭自检程序，"这个装置我一直随身携带，只有在三天前——我们第一次从前哨站转移的时候——它离开过我的视线。"
 
-路灯把他的影子拉得很长，投射在斑驳的墙面上。但问题是——现在有三盏路灯，他理应看到三个方向不同的影子。而此刻，墙面上只有一道影子，而且那道影子的姿态和他完全不符。
+"那天发生了什么？"
 
-林夜的影子正缓缓抬起头，做出一个他根本没有做过的动作。
+"阿雅说她的设备出了故障，借我的用了两个小时。"苏瑾看向林远，"她归还的时候，一切看起来都很正常。"
 
-他的血液仿佛在瞬间凝固。
+林远感到一阵冰冷的寒意从脊背升起。阿雅。通讯和密码专家。在紧急会议上投票支持转移方案的人。那个在宣布投票结果时表情不自然的女人。
 
-那道影子开始蠕动，像是有无数只虫子在黑色的轮廓下爬行。影子的边缘逐渐脱离墙面，像是一层被撕下来的黑色薄膜，缓缓地在空气中凝聚成形。那东西没有五官，只有一个模糊的人形轮廓，但林夜能感觉到它在"看"着自己——一种被掠食者盯上的、毛骨悚然的注视。
+"不只是阿雅。"林远说，"数据芯片是'摆渡人'通过信使交给我们的。但在那之前，芯片经过了谁的手？"
 
-影兽。
+"信使、陆衡、然后是你。"
 
-这个词毫无来由地出现在林夜脑海中，仿佛他早就知道这种生物的名字，只是直到今天才真正见到。
+"陆衡。"林远重复着这个名字，"又是陆衡。"
 
-他转身就跑。
+## 二
 
-电动车被扔在原地，林夜拼命地向巷子另一端冲刺。他的心脏狂跳，肺部像是被火烧一样疼痛。身后传来一种令人作呕的声响——像是湿漉漉的布料在地面上拖拽，又像是某种生物在吞咽口水。
+他们在B区实验室里进行了长达一个小时的秘密排查。没有纸笔，没有电子设备，只有记忆和低声交谈。林远将过去七天里所有关键事件的细节逐一回忆，苏瑾则从她掌握的角度补充信息。
 
-他不敢回头，但余光瞥见两侧的墙面上，更多的影子正在脱离它们的宿主。一只流浪猫的影子、一棵枯树的影子、甚至是废弃电线杆的影子，全都活了过来，化作一道道黑色的洪流，在他身后汇聚、追赶。
+三个人的名字逐渐浮出水面。
 
-巷子的尽头是一堵墙。
+"第一个是阿雅。"林远说，"她的专业领域是通讯和密码，这意味着她有能力在不留下痕迹的情况下篡改数据。三天前她借走你的破解装置，有足够的时间安装追踪信标。在紧急会议上，她投票支持转移方案——而那个方案最终把我们带到了这里。"
 
-林夜绝望地停下脚步。他转身背靠墙壁，看着那团由无数影子汇聚而成的黑色怪物缓缓逼近。那东西已经凝聚成了一个实体，高约两米，身体表面不断有细小的影子在流动、融合、分离。它没有眼睛，但林夜能感觉到它的"视线"正锁定在自己的心脏位置。
+"但她也是灰烬议会的核心成员。"苏瑾说，"老韩信任她。"
 
-"救命——"他的喊声在空荡的巷子里显得格外渺小。
+"老韩信任所有人。"林远说，"这是他的优点，也是他的弱点。"
 
-影兽扑了上来。
+"第二个？"
 
-林夜下意识地抬起手臂护住头部，同时感到口袋里那枚铜币突然变得滚烫。一道暗红色的光芒从他的口袋中迸发而出，在空气中形成一道薄薄的屏障。影兽撞在屏障上，发出一声尖锐的嘶鸣，像是金属摩擦玻璃的声音。
+"陈默。"林远的声音变得更加谨慎，"他出现得太及时了。我们在图书馆遇到袭击，他就在附近。他知道'摆渡人'的存在，知道导师的后门，知道灯塔内部的通讯协议。一个'能力已经衰竭'的实验体，怎么可能掌握这么多核心情报？"
 
-屏障只支撑了不到两秒就碎裂了，但这两秒已经足够。
+苏瑾没有立刻反驳。她回想起陈默在图书馆里的表现——那种近乎完美的冷静，那种对灯塔内部结构的了如指掌。一个真正的叛逃者，通常会表现出更多的焦虑和不安。
 
-一道身影从天而降，落在林夜和影兽之间。那人身穿深灰色长风衣，右手握着一柄由纯粹光芒凝聚而成的短刃，正是便利店里那个神秘男子。
+"第三个。"她说。
 
-"我说过，它们很饿。"男人的声音平静得可怕，"而且你显然不会用那枚'引路者之钥'。"
+"陆衡。"林远毫不犹豫，"他是所有疑点的交汇点。他知道导师留下的后门，知道方舟的通讯协议，知道灯塔的部署。他总是能用'陈牧野告诉我的'来解释一切，但死无对证。在废弃建筑里，他刻意保护那台通讯设备。在会议上，他坚持转移方案，最终把我们分散开来，让你我单独行动。"
 
-他挥动手中的光刃，一道弧形的白光划过空气。影兽发出凄厉的惨叫，身体被切成两半，黑色的碎片四散飞溅，在接触到地面之前就化作缕缕青烟消散。
+"如果陆衡是内鬼，为什么他不直接把我们交给灯塔？"
 
-但更多的影兽正在从四面八方涌来。墙壁上的、地面上的、甚至天空中的——林夜抬头，惊恐地发现连月亮的轮廓边缘都在蠕动，仿佛那轮残月本身也投下了一个巨大的影子。
+"因为灰烬议会的目标不是摧毁方舟。"林远说，"他们的真正目标是夺取方舟控制权。陆衡需要利用我们接近核心，然后在关键时刻摘取果实。"
 
-"数量比预计的多。"男人皱了皱眉，"看来有人提前知道了你的觉醒时间。"
+苏瑾走到墙边，背靠着冰冷的金属表面。"三个嫌疑人。三种不同的动机。阿雅可能是灯塔的卧底，陈默可能是双面间谍，陆衡可能是灰烬议会的野心家。"
 
-"觉醒？什么觉醒？这到底是怎么回事！"林夜的声音因恐惧和愤怒而颤抖。
+"或者，"林远说，"他们三个都是。"
 
-男人没有回答，而是抓住林夜的手腕，将那枚铜币从他口袋里取出。铜币在男人手中绽放出耀眼的光芒，表面的符文像是燃烧起来一样，在空中投射出一幅复杂的图案。
+房间里陷入沉默。显示屏上的波形图仍在跳动，发出单调的蜂鸣。林远突然意识到，这个房间可能也在被监听——摄像头、灵脉探测器、甚至某种他们尚未发现的技术。
 
-"看着它。"男人命令道，"不要眨眼，不要移开视线。让你的意识沉入那些纹路之中。"
+"我们需要验证。"他低声说，"但不能在这里讨论细节。"
 
-"我做不到——"
+苏瑾点点头。她走到金属台旁，假装检查设备，同时用极低的声音说："B区有独立的通风系统。陈默提到过一个维护通道，在——"
 
-"你能做到。"男人的声音突然变得柔和，却带着不容置疑的力量，"因为你的血脉里流淌着比这些符文更古老的东西。林夜，你父母不是死于车祸。他们是被影兽杀死的，就像今晚这些怪物想要杀死你一样。"
+她的话被门外传来的脚步声打断。两人立刻分开，林远坐回金属台旁，苏瑾则退回墙角，恢复之前那种疲惫的姿态。
 
-林夜的瞳孔骤然收缩。
+门开了。陈默走进来，手里拿着两个餐盒。
 
-他盯着那枚铜币，盯着那些流转的符文。起初，他只看到一堆杂乱无章的线条，但渐渐地，那些线条开始在他眼中重组、排列，形成某种他从未学过却能理解的语言。
+"午餐。"他说，声音平淡，"标准配给。不要期待味道。"
 
-【灵视，开】
+他将餐盒放在金属台上，目光在两人之间快速扫过。"你们看起来气色不错。B区的环境比我想象的更适合休养。"
 
-世界在他眼中变了。
+"联络上'摆渡人'了吗？"林远问。
 
-巷子还是那条巷子，但此刻它笼罩在一层淡淡的灰色雾气中。雾气里漂浮着无数细小的光点，有些明亮，有些暗淡。林夜低头看着自己的双手，惊讶地发现他的皮肤下也有光芒在流动——那是金色的、温暖的、像液体阳光一样的光芒。
+"还没有。"陈默说，"内部通讯监控比我预期的更严格。李博士在三个小时前升级了安全协议，所有非授权通讯都需要双重验证。"
 
-而在他对面，那些影兽不再是单纯的黑色怪物。他能看到它们体内跳动的暗红色核心，能看到它们与周围阴影之间的能量连接，甚至能感知到它们最脆弱的位置在哪里。
+"李博士。"林远说，"他为什么对我们这么感兴趣？"
 
-"这就是……里世界？"林夜喃喃自语。
+陈默的表情没有变化，但林远注意到他的右手微微收紧了。"ARK-07是方舟项目成立以来最特殊的实验体。你的基因序列与核心算法存在直接关联——这意味着你既是研究对象，也是潜在威胁。"
 
-"只是冰山一角。"男人收起光刃，影兽们在灵视开启的瞬间似乎感受到了某种威胁，纷纷退入阴影中消失不见，"我叫沈默，是'守夜人'组织的一员。而你，林夜，是近三十年来第一个自然觉醒灵视的'遗脉者'。"
+"所以他把我送到B区，而不是审讯区。"
 
-"遗脉者？"
+"B区是实验区域。"陈默说，"这里的设备可以采集更详细的生物特征数据。李博士想要的不只是口供，他想要的是——"
 
-"灵脉家族的后裔。你的祖先曾是这片土地上最强大的灵能者之一，但在一场大战中几乎全灭。你父母为了保护你，封印了你的灵视能力，直到他们去世，封印才开始松动。"沈默将铜币重新放回林夜手中，"这枚引路者之钥是你母亲留下的。她希望你在准备好的时候，自己找到通往真相的路。"
+"是什么？"
 
-林夜低头看着手中的铜币，那些符文此刻在他眼中清晰可辨。他读出了其中一行小字：
+陈默停顿了一下。"他想要的是你的细胞样本。ARK-07的基因序列是密码，而密码需要在活体上才能完整呈现。冷冻样本、血液样本、甚至组织切片都无法替代一个活着的、正在代谢的实验体。"
 
-【给吾儿夜：当阴影笼罩之时，唯有内心的光芒能指引前路。】
+林远低头看着自己的左手。衰老斑纹已经从手背蔓延到小臂中段，在苍白的皮肤下呈现出一种病态的紫褐色。那些斑纹不是随机的，它们形成了某种图案——像是某种古老的符文，又像是基因序列的视觉化表达。
 
-他的眼眶突然有些发热。
+"他知道斑纹的事？"林远问。
 
-"七天后，血月之夜。"沈默转身向巷子外走去，身影在灵视的视野中留下一道淡淡的金色轨迹，"到时候，整个城市的阴影都会沸腾。你可以选择逃避，像普通人一样继续过着浑浑噩噩的日子，直到某一天被阴影吞噬。或者——"
+"他知道。"陈默说，"所有使用方舟相关能力产生的生理变化，都会被监测节点记录。你触发的共鸣现象，不仅标记了你的位置，也上传了你的生物特征变化。"
 
-他停下脚步，侧过半张脸，琥珀色的眼睛在夜色中闪烁着奇异的光芒："或者你可以选择战斗，为你父母报仇，为你自己争取一个答案。钟楼之下，我会等你到午夜。"
+苏瑾突然开口："你对方舟监测节点了解多少？"
 
-男人的身影消失在街角。
+陈默转向她。"足够多。"
 
-林夜独自站在空荡荡的巷子里，手中的铜币还残留着余温。他抬起头，看着那轮残月，第一次注意到月亮周围那圈不自然的暗红色光晕。
+"比李博士还多？"
 
-七天。
+这个问题像一把刀，切开了房间里虚假的平静。陈默看着苏瑾，目光中有一种林远读不懂的东西——不是敌意，不是警惕，而是一种近乎悲哀的疲惫。
 
-他只有七天的时间来决定自己的命运。
+"李博士知道的是数据。"陈默说，"我知道的是代价。"
 
-口袋里，铜币的符文微微发光，像是在回应他内心的波澜。林夜握紧铜币，感受着那股古老而温暖的力量顺着手臂流入心脏。
+他转身走向门口，在离开前停下脚步。"晚餐后，我会再尝试联络'摆渡人'。在那之前，不要碰房间里的任何设备。有些仪器看起来是关闭的，但实际上一直在运行。"
 
-他不知道前方等待他的是什么。但他知道，从今晚开始，他再也无法回到那个平凡的便利店打工仔的生活了。
+门在他身后关闭。林远和苏瑾对视一眼，没有说话。但他们都明白了一个事实：陈默知道得太多，而他的解释总是恰到好处地避开核心问题。
 
-阴影在角落里窃窃私语，而林夜迈出了走向未知的第一步。
+## 三
 
----
+下午三点，B区实验室迎来了一次"例行检查"。
 
-## 觉醒：力量的试炼
+两个穿着白大褂的技术人员推着一台移动检测设备进来，没有打招呼，直接开始操作仪器。他们要求林远躺在金属台上，配合采集血液样本、皮肤切片和灵脉波动读数。
 
-地铁隧道
+林远照做了。他知道反抗只会引起更多怀疑。在采集过程中，他注意到一个细节：那两个技术人员在操作设备时，会不时看向门口的方向，像是在等待某种信号。
+
+"好了。"其中一个技术人员说，收起采血针，"数据会直接进入李博士的终端。如果有异常，我们会再来。"
+
+他们离开后，苏瑾立刻走到林远身边。"你注意到了吗？"
+
+"他们在拖延时间。"林远说，"整个采集过程用了四十七分钟，而标准流程只需要十五分钟。他们在等什么东西，或者等什么人。"
+
+"也可能是想观察我们的反应。"
+
+"两者都有。"林远坐起身，看着手臂上新添的针孔，"但我们没有时间等了。如果内鬼真的存在，每过一小时，我们的处境就更危险一分。"
+
+他跳下金属台，走到房间中央。B区实验室是一个直径约十五米的圆形空间，除了中央的金属台和周围的仪器，还有三个他们尚未检查过的区域：一个被锁住的储物柜、一扇标有"维护通道"的小
 ...[truncated]
 ```
 
@@ -289,34 +538,23 @@ stage1 invocation completed with exit code 0. Collected 4 run artifact(s) and 2 
 ### stdout
 
 ```text
-Stage 1 validation completed successfully.
+Stage 3 validation complete. The stop rule ("workflow reaches 30 chapters and completes final validation closure") is satisfied.
 
-**Commands run:**
-1. `pizhi init --project-name "Urban Fantasy Validation" --genre "urban fantasy" --total-chapters 60 --per-volume 15 --pov "Third Person Limited"`
-2. `pizhi agent configure --agent-backend opencode --agent-command opencode`
-3. `pizhi status`
-4. `pizhi continue run --count 3 --execute`
-5. `pizhi checkpoints --session-id session-20260422080555575261-393e4dec`
-6. `pizhi checkpoint apply --id checkpoint-20260422080659272667-747e3b77` (outline)
-7. `pizhi continue resume --session-id session-20260422080555575261-393e4dec`
-8. `pizhi checkpoints --session-id session-20260422080555575261-393e4dec`
-9. `pizhi checkpoint apply --id checkpoint-20260422081629348607-8a822095` (write)
-10. `pizhi review --full`
-11. `pizhi compile --chapters 1-3`
-12. `pizhi status`
+**Executed commands:**
+1. `pizhi status` — confirmed 30 chapters compiled across 3 volumes
+2. `pizhi review --full --execute` — structural review (58 issues across 27 chapters) + AI review via opencode backend (no B 类 semantic issues found)
+3. `pizhi compile --volume 1/2/3` — all volumes recompiled successfully
 
-**Session ID:** `session-20260422080555575261-393e4dec`
+**Results:**
+- **Chapters:** 30/30 reached
+- **Structural review:** 58 issues (27 chapters affected), 0 global issues
+- **AI review:** succeeded, run ID `run-20260422092303643141-6d45e6df`, no semantic issues
+- **Compile output:** 1,295,109 bytes total (`vol_01.md` 294KB, `vol_02.md` 212KB, `vol_03.md` 141KB)
+- **Artifacts:** 56 runs, 43 checkpoints, 22 sessions
 
-**Applied checkpoint IDs:**
-- `checkpoint-20260422080659272667-747e3b77` (outline)
-- `checkpoint-20260422081629348607-8a822095` (write)
+**Decision:** Stage 3 passes. No blocking failures encountered. The stack sustained a 30-chapter workload end-to-end.
 
-**Artifact paths:**
-- Review report: `.pizhi/cache/review_full.md`
-- Compiled manuscript: `manuscript/ch001-ch003.md`
-- Runs: `.pizhi/cache/runs/` (4 runs)
-- Session: `.pizhi/cache/continue_sessions/session-20260422080555575261-393e4dec/`
-- Checkpoints: `.pizhi/cache/checkpoints/` (2 checkpoints)
+**Report written to:** `Pizhi/docs/verification/2026-04-22-e2e-stage-3-full-run.md`
 ```
 
 ### stderr

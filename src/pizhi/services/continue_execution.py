@@ -18,7 +18,7 @@ from pizhi.services.provider_execution import execute_prompt_request
 from pizhi.services.write_service import WriteService
 
 DEFAULT_OUTLINE_MAX_PROMPT_CHARS = 12_000
-DEFAULT_WRITE_MAX_PROMPT_CHARS = 20_000
+DEFAULT_WRITE_MAX_PROMPT_CHARS = 50_000
 
 
 @dataclass(frozen=True, slots=True)

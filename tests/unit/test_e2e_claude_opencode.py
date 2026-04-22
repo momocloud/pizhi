@@ -161,6 +161,20 @@ def test_render_claude_stage_prompt_stops_after_first_target_write_checkpoint():
     assert "Treat any failed `pizhi checkpoint apply --id <checkpoint_id>` as a blocking failure." in prompt
 
 
+def test_render_claude_stage_prompt_describes_batched_continue_flow_for_stage2():
+    prompt = render_claude_stage_prompt(
+        stage_slug="stage2",
+        project_root="C:/tmp/project",
+        repo_root="C:/repo/Pizhi",
+        target_chapters=10,
+        genre="urban fantasy",
+    )
+    assert "Continue sessions may emit checkpoints in smaller chapter batches instead of the full target range." in prompt
+    assert "Do not treat the first `1-3` batch as stage completion for this stage." in prompt
+    assert "If the highest applied written chapter is still below `10`, run `pizhi continue resume --session-id <session_id>` again to generate the next batch." in prompt
+    assert "Loop until chapters `1-10` all have applied write checkpoints." in prompt
+
+
 def test_collect_stage_artifacts_indexes_buckets_with_stable_absolute_paths(tmp_path, monkeypatch):
     project_root = tmp_path / "project"
     cache_root = project_root / ".pizhi" / "cache"
