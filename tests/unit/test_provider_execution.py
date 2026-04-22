@@ -281,6 +281,52 @@ def test_execute_prompt_request_persists_normalize_failed_when_provider_returns_
     assert loaded.error_path.read_text(encoding="utf-8").strip() == "provider response did not contain text content"
 
 
+def test_execute_prompt_request_persists_normalize_failed_when_write_candidate_is_invalid_yaml(
+    initialized_project, monkeypatch
+):
+    request = WriteService(initialized_project).build_prompt_request(1)
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: StubAdapter(
+            """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved: []
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced:
+    - id: F001
+      desc: "七日后，青石镇灭"的血字预言
+      planned_payoff: 伏笔
+      priority: high
+      related_characters: []
+  referenced: []
+  resolved: []
+---
+正文
+"""
+        ),
+    )
+
+    chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_dir / "outline.md").write_text(
+        "# 第001章 雨夜访客\n\n- 沈轩在码头发现异常。\n",
+        encoding="utf-8",
+    )
+
+    result = execute_prompt_request(initialized_project, request, target="ch001")
+    loaded = RunStore(initialized_project / ".pizhi" / "cache" / "runs").load(result.run_id)
+
+    assert result.status == "normalize_failed"
+    assert loaded.status == "normalize_failed"
+    assert "write candidate failed validation" in loaded.error_path.read_text(encoding="utf-8")
+
+
 def test_write_service_apply_response_returns_maintenance_result(initialized_project, monkeypatch):
     service = WriteService(initialized_project)
     chapter_result = object()

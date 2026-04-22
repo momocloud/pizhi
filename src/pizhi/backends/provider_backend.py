@@ -15,6 +15,7 @@ from pizhi.core.config import ProviderSection
 from pizhi.core.config import load_config
 from pizhi.core.paths import project_paths
 from pizhi.services.run_store import RunStore
+from pizhi.services.write_candidate_validation import validate_write_candidate
 
 
 class OpenAICompatibleAdapter:
@@ -104,6 +105,28 @@ class ProviderExecutionBackend:
                 status="normalize_failed",
                 record=record,
             )
+
+        if request.prompt_request.command_name == "write":
+            try:
+                validate_write_candidate(normalized_text)
+            except ValueError as exc:
+                record = store.write_failure(
+                    command=request.prompt_request.command_name,
+                    target=request.target,
+                    prompt_text=request.prompt_request.prompt_text,
+                    raw_payload=response.raw_payload,
+                    normalized_text=normalized_text,
+                    error_text=str(exc),
+                    status="normalize_failed",
+                    metadata=metadata,
+                    referenced_files=request.prompt_request.referenced_files,
+                )
+                return ExecutionResult(
+                    run_id=record.run_id,
+                    run_dir=record.run_dir,
+                    status="normalize_failed",
+                    record=record,
+                )
 
         record = store.write_success(
             command=request.prompt_request.command_name,

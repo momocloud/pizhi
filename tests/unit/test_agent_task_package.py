@@ -74,3 +74,5 @@ def test_render_opencode_task_package_adds_write_contract_guards(tmp_path):
     assert "If the task is a `write` step, keep the exact chapter response contract intact." in agent_text
     assert "Never replace the structured chapter response with free-form prose." in agent_text
     assert "Do not collapse `timeline_events` into prose bullets or `foreshadowing` into a flat list." in agent_text
+    assert "If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the frontmatter remains valid YAML." in task_text
+    assert "If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the frontmatter remains valid YAML." in agent_text

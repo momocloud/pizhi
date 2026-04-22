@@ -114,6 +114,8 @@ def _render_chapter_response_contract() -> str:
         "`timeline_events` must be a YAML list of objects with `at`, `event`, `is_flashback`, and "
         "`is_major_turning_point`.\n"
         "`foreshadowing` must be a YAML object with `introduced`, `referenced`, and `resolved` lists.\n"
+        "If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the "
+        "frontmatter remains valid YAML.\n"
         "`introduced` entries must be objects containing `id`, `desc`, `planned_payoff`, `priority`, and "
         "`related_characters`.\n"
         "`referenced` and `resolved` entries must be objects containing `id`.\n"

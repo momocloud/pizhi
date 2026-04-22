@@ -12,6 +12,7 @@ from pizhi.core.paths import project_paths
 from pizhi.services.agent_task_package import AGENT_NAME
 from pizhi.services.agent_task_package import render_opencode_task_package
 from pizhi.services.run_store import RunStore
+from pizhi.services.write_candidate_validation import validate_write_candidate
 
 
 class OpencodeExecutionBackend:
@@ -120,6 +121,30 @@ class OpencodeExecutionBackend:
                     extra_files=extra_files,
                 )
                 return ExecutionResult(run_id=record.run_id, run_dir=record.run_dir, status="normalize_failed", record=record)
+
+            if request.prompt_request.command_name == "write":
+                try:
+                    validate_write_candidate(output_text)
+                except ValueError as exc:
+                    record = store.write_failure(
+                        run_id=run_id,
+                        command=request.prompt_request.command_name,
+                        target=request.target,
+                        prompt_text=request.prompt_request.prompt_text,
+                        raw_payload=raw_payload,
+                        normalized_text=output_text,
+                        error_text=str(exc),
+                        status="normalize_failed",
+                        metadata=metadata,
+                        referenced_files=request.prompt_request.referenced_files,
+                        extra_files=extra_files,
+                    )
+                    return ExecutionResult(
+                        run_id=record.run_id,
+                        run_dir=record.run_dir,
+                        status="normalize_failed",
+                        record=record,
+                    )
 
             record = store.write_success(
                 run_id=run_id,
