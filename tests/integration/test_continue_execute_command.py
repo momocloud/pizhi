@@ -203,6 +203,70 @@ def test_continue_resume_returns_error_and_blocks_session_when_write_prompt_exce
     assert checkpoint.status == "failed"
 
 
+def test_continue_resume_reduces_previous_chapter_window_when_write_prompt_exceeds_budget(
+    initialized_project, monkeypatch, capsys
+):
+    monkeypatch.chdir(initialized_project)
+    _configure_provider(initialized_project)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setattr(
+        "pizhi.services.provider_execution.build_provider_adapter",
+        lambda *_: RoutedAdapter(
+            outline_text="",
+            chapter_responses={
+                4: CHAPTER_THREE_RESPONSE.replace("第三章 暗巷回声", "第四章 预算收缩"),
+            },
+        ),
+    )
+
+    paths = project_paths(initialized_project)
+    (paths.global_dir / "synopsis.md").write_text("# Synopsis\n\n城市异变升级。\n", encoding="utf-8", newline="\n")
+    (paths.global_dir / "worldview.md").write_text("# Worldview\n\n灵潮开始侵蚀旧城。\n", encoding="utf-8", newline="\n")
+    (paths.global_dir / "rules.md").write_text("# Rules\n\n- 城市夜间灵压会提高。\n", encoding="utf-8", newline="\n")
+    (paths.global_dir / "foreshadowing.md").write_text("# Foreshadowing\n\n- none\n", encoding="utf-8", newline="\n")
+
+    chapter_two_dir = paths.chapter_dir(2)
+    chapter_two_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_two_dir / "text.md").write_text("第二章正文" + ("乙" * 35000), encoding="utf-8", newline="\n")
+
+    chapter_three_dir = paths.chapter_dir(3)
+    chapter_three_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_three_dir / "text.md").write_text("第三章正文" + ("甲" * 25000), encoding="utf-8", newline="\n")
+    (chapter_three_dir / "characters.md").write_text("# Characters\n\n- 沈轩\n", encoding="utf-8", newline="\n")
+    (chapter_three_dir / "relationships.md").write_text("# Relationships\n\n- 沈轩/顾临\n", encoding="utf-8", newline="\n")
+
+    chapter_four_dir = paths.chapter_dir(4)
+    chapter_four_dir.mkdir(parents=True, exist_ok=True)
+    (chapter_four_dir / "outline.md").write_text("# 第004章 预算收缩\n\n- 进入第四章。\n", encoding="utf-8", newline="\n")
+
+    session = ContinueSessionStore(paths.continue_sessions_dir).create(
+        count=10,
+        direction="",
+        start_chapter=1,
+        target_end_chapter=10,
+        current_stage="outline",
+        current_range=(4, 4),
+        last_checkpoint_id="checkpoint-prior",
+        status="ready_to_resume",
+    )
+    capsys.readouterr()
+
+    result = main(["continue", "resume", "--session-id", session.session_id])
+
+    captured = capsys.readouterr()
+    resumed_session = ContinueSessionStore(paths.continue_sessions_dir).load(session.session_id)
+    checkpoint = _latest_checkpoint(initialized_project)
+
+    assert result == 0
+    assert "error:" not in captured.err
+    assert resumed_session.current_stage == "write"
+    assert resumed_session.status == "waiting_apply"
+    assert checkpoint.stage == "write"
+    assert checkpoint.status == "generated"
+    assert checkpoint.chapter_range == (4, 4)
+    assert len(checkpoint.run_ids) == 1
+
+
 def test_legacy_continue_prompt_only_flow_still_works(initialized_project, monkeypatch, fixture_text, capsys):
     monkeypatch.chdir(initialized_project)
     outline_response = initialized_project / "outline_expand_response.md"

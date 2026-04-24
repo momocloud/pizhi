@@ -17,6 +17,8 @@ Stage success conditions:
 
 Rules:
 - The repo/playbook are read-only. Only modify the temp project at `${project_root}`.
+- The current working directory may be empty before `pizhi init`; this is expected.
+- Do not ask for additional context because this prompt contains the validation context.
 - Do not directly edit `.pizhi/`, `manuscript/`, chapter source files, or `meta.json`. All project-state changes must go through `pizhi` CLI commands.
 - Do not stop after reading files, after `pizhi init`, or after `pizhi status`.
 - Do not reply with a plan first. Execute the commands.

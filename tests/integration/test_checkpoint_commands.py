@@ -13,6 +13,7 @@ from pizhi.services.maintenance import MaintenanceFinding
 from pizhi.services.maintenance import MaintenanceResult
 from pizhi.services.checkpoint_store import CheckpointStore
 from pizhi.services.continue_session_store import ContinueSessionStore
+from pizhi.services.write_candidate_validation import validate_write_candidate
 
 
 CHAPTER_RESPONSES = {
@@ -31,6 +32,11 @@ timeline_events:
 foreshadowing:
   introduced:
     - id: F001
+      desc: "雨夜命案背后的见证者"
+      planned_payoff: "ch003"
+      priority: high
+      related_characters:
+        - 沈轩
   referenced: []
   resolved: []
 ---
@@ -169,6 +175,11 @@ foreshadowing:
 | 沈轩 → 顾临 | 试探 | 对抗 + 利用 | 顾临逼问血衣来源 |
 """,
 }
+
+
+def test_checkpoint_write_response_fixtures_follow_current_write_contract():
+    for chapter_number, response in sorted(CHAPTER_RESPONSES.items()):
+        validate_write_candidate(response)
 
 
 @dataclass

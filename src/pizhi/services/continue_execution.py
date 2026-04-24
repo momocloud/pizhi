@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from pizhi.core.config import load_config
 from pizhi.core.paths import project_paths
 from pizhi.services.checkpoint_store import CheckpointRecord
 from pizhi.services.checkpoint_store import CheckpointStore
@@ -134,13 +135,8 @@ def _generate_write_result(project_root: Path, session: ContinueSessionRecord) -
     run_ids: list[str] = []
 
     for chapter_number in range(session.current_range[0], session.current_range[1] + 1):
-        request = write_service.build_prompt_request(chapter_number)
         try:
-            ensure_write_prompt_within_budget(
-                chapter_number=chapter_number,
-                prompt_text=request.prompt_text,
-                max_prompt_chars=DEFAULT_WRITE_MAX_PROMPT_CHARS,
-            )
+            request = _build_budgeted_write_request(project_root, write_service, chapter_number)
         except PromptBudgetError as exc:
             return _raise_failed_checkpoint(
                 project_root,
@@ -242,3 +238,24 @@ def _format_range_target(chapter_range: tuple[int, int]) -> str:
     if start == end:
         return f"ch{start:03d}"
     return f"ch{start:03d}-ch{end:03d}"
+
+
+def _build_budgeted_write_request(project_root: Path, write_service: WriteService, chapter_number: int):
+    config = load_config(project_paths(project_root).config_file)
+    max_prev_chapters = max(0, min(config.generation.context_window.prev_chapters, 2))
+    last_error: PromptBudgetError | None = None
+
+    for prev_chapters in range(max_prev_chapters, -1, -1):
+        request = write_service.build_prompt_request(chapter_number, prev_chapters=prev_chapters)
+        try:
+            ensure_write_prompt_within_budget(
+                chapter_number=chapter_number,
+                prompt_text=request.prompt_text,
+                max_prompt_chars=DEFAULT_WRITE_MAX_PROMPT_CHARS,
+            )
+            return request
+        except PromptBudgetError as exc:
+            last_error = exc
+
+    assert last_error is not None
+    raise last_error

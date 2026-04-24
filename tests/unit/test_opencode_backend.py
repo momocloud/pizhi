@@ -189,6 +189,223 @@ foreshadowing:
     assert "write candidate failed validation" in record.error_path.read_text(encoding="utf-8")
 
 
+def test_opencode_backend_repairs_invalid_write_candidate_once_before_success(tmp_path, monkeypatch):
+    backend = OpencodeExecutionBackend()
+    request = _execution_request(tmp_path)
+    calls: list[list[str]] = []
+
+    invalid_output = """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved:
+  沈轩
+  - 青石
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+正文
+
+---
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+    repaired_output = """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved:
+  - 沈轩
+  - 青石
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+正文
+
+---
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        calls.append(command)
+        if len(calls) == 1:
+            Path(cwd, "agent_output.md").write_text(invalid_output, encoding="utf-8")
+        else:
+            Path(cwd, "repair_output.md").write_text(repaired_output, encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = backend.execute(request, backend_config=_backend_config())
+    record = RunStore(tmp_path / ".pizhi" / "cache" / "runs").load(result.run_id)
+
+    assert result.status == "succeeded"
+    assert len(calls) == 2
+    assert record.run_dir.joinpath("repair_task.md").exists()
+    assert record.run_dir.joinpath("repair_output.md").exists()
+
+
+def test_opencode_backend_repair_task_explains_changed_flags_need_markdown_sections(tmp_path, monkeypatch):
+    backend = OpencodeExecutionBackend()
+    request = _execution_request(tmp_path)
+    calls: list[list[str]] = []
+
+    invalid_output = """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved:
+  - 沈轩
+worldview_changed: true
+synopsis_changed: true
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+正文
+
+---
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+    repaired_output = """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved:
+  - 沈轩
+worldview_changed: true
+synopsis_changed: true
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+正文
+
+---
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+
+## worldview_patch
+
+- 新增世界观规则。
+
+## synopsis_new
+
+# Synopsis
+
+沈轩发现青石镇隐藏着新的规则。
+"""
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        calls.append(command)
+        if len(calls) == 1:
+            Path(cwd, "agent_output.md").write_text(invalid_output, encoding="utf-8")
+        else:
+            repair_task = Path(cwd, "repair_task.md").read_text(encoding="utf-8")
+            assert "Do not put `worldview_patch` or `synopsis_new` in YAML frontmatter." in repair_task
+            assert "When `worldview_changed: true`, add a Markdown section named `## worldview_patch`" in repair_task
+            assert "When `synopsis_changed: true`, add a Markdown section named `## synopsis_new`" in repair_task
+            Path(cwd, "repair_output.md").write_text(repaired_output, encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = backend.execute(request, backend_config=_backend_config())
+    record = RunStore(tmp_path / ".pizhi" / "cache" / "runs").load(result.run_id)
+
+    assert result.status == "succeeded"
+    assert len(calls) == 2
+    assert record.run_dir.joinpath("repair_task.md").exists()
+
+
+def test_opencode_backend_keeps_normalize_failed_when_repair_output_is_still_invalid(tmp_path, monkeypatch):
+    backend = OpencodeExecutionBackend()
+    request = _execution_request(tmp_path)
+    calls: list[list[str]] = []
+
+    invalid_output = """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved:
+  沈轩
+  - 青石
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+正文
+
+---
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+
+    def fake_run(command, *, cwd, capture_output, text, encoding):
+        calls.append(command)
+        if len(calls) == 1:
+            Path(cwd, "agent_output.md").write_text(invalid_output, encoding="utf-8")
+        else:
+            Path(cwd, "repair_output.md").write_text(invalid_output, encoding="utf-8")
+        return CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)
+
+    result = backend.execute(request, backend_config=_backend_config())
+    record = RunStore(tmp_path / ".pizhi" / "cache" / "runs").load(result.run_id)
+
+    assert result.status == "normalize_failed"
+    assert len(calls) == 2
+    assert record.run_dir.joinpath("repair_task.md").exists()
+    assert record.run_dir.joinpath("repair_output.md").exists()
+    assert "write candidate failed validation" in record.error_path.read_text(encoding="utf-8")
+
+
 def test_opencode_backend_rejects_non_opencode_backend_override(tmp_path):
     backend = OpencodeExecutionBackend()
     request = _execution_request(tmp_path)

@@ -5,11 +5,13 @@ from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 from string import Template
 import subprocess
+import tempfile
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +35,22 @@ class StageExecutionResult:
     report_path: Path | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ClaudeStageStep:
+    prompt: str
+    prompt_kind: str
+    batch_range: tuple[int, int] | None
+    allowed_max_chapter: int
+    allowed_command_fragments: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ProcessEntry:
+    process_id: int
+    parent_process_id: int
+    commandline: str
+
+
 _STAGE_CONFIGS = {
     "stage1": {
         "target_chapters": 3,
@@ -50,6 +68,9 @@ _STAGE_CONFIGS = {
 
 _CLAUDE_STAGE_PROMPT_TEMPLATE_PATH = Path(__file__).with_name("templates") / "claude_stage_prompt.md"
 _ADVANCED_CHAPTER_STATUSES = {"outlined", "drafted", "reviewed", "compiled"}
+_DRAFTED_CHAPTER_STATUSES = {"drafted", "reviewed", "compiled"}
+_WATCHDOG_INTERVAL_SECONDS = 15 * 60
+_WATCHDOG_FAILURE_RETURNCODE = 124
 
 
 def build_validation_root_name(timestamp: str) -> str:
@@ -135,43 +156,75 @@ def invoke_claude_stage(
 ) -> StageExecutionResult:
     root = Path(project_root).resolve()
     repo_root_path = Path(repo_root).resolve()
-    playbook_root = repo_root_path / "agents" / "pizhi"
+    playbook_root = (root.parent / "overlay_playbook").resolve()
     stage_config = build_stage_config(stage_slug, report_date=_current_report_date())
     claude_command = _resolve_cli_command("claude")
-    prompt = _build_claude_execution_prompt(
-        render_claude_stage_prompt(
+    commands = [] if command_log is None else list(command_log)
+    steps = _build_claude_stage_steps(
         stage_slug=stage_slug,
         project_root=root,
         repo_root=repo_root_path,
         playbook_root=playbook_root,
         target_chapters=stage_config.target_chapters,
         genre=genre,
+    )
+    completed_runs: list[subprocess.CompletedProcess[str]] = []
+    for step in steps:
+        preflight_issues = build_single_flight_issues(repo_root=repo_root_path, project_root=root)
+        if preflight_issues:
+            completed_runs.append(
+                subprocess.CompletedProcess(
+                    args=["preflight"],
+                    returncode=1,
+                    stdout="",
+                    stderr=f"PREFLIGHT: {'; '.join(preflight_issues)}",
+                )
+            )
+            break
+        _build_stage_overlay_playbook(
+            stage_slug=stage_slug,
+            project_root=root,
+            repo_root=repo_root_path,
+            target_chapters=stage_config.target_chapters,
+            genre=genre,
+            step=step,
         )
-    )
-    commands = [] if command_log is None else list(command_log)
-    commands.append("claude --permission-mode bypassPermissions --add-dir <repo_root>/agents/pizhi -p <rendered prompt>")
-    completed = subprocess.run(
-        [
-            claude_command,
-            "--permission-mode",
-            "bypassPermissions",
-            "--add-dir",
-            str(playbook_root),
-            "-p",
-            prompt,
-        ],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-        cwd=root,
-    )
+        commands.append(f"claude --permission-mode bypassPermissions --add-dir {playbook_root} -p <rendered prompt>")
+        completed = _run_claude_stage_step(
+            claude_command=claude_command,
+            playbook_root=playbook_root,
+            project_root=root,
+            stage_slug=stage_slug,
+            step=step,
+        )
+        completed_runs.append(completed)
+        if completed.returncode == 0:
+            postflight_issues = build_stage_step_state_issues(
+                project_root=root,
+                stage_slug=stage_slug,
+                step=step,
+            )
+            if postflight_issues:
+                completed_runs[-1] = subprocess.CompletedProcess(
+                    args=completed.args,
+                    returncode=1,
+                    stdout=completed.stdout,
+                    stderr="\n".join(
+                        part
+                        for part in [completed.stderr, f"POSTFLIGHT: {'; '.join(postflight_issues)}"]
+                        if part
+                    ),
+                )
+                break
+        if completed.returncode != 0:
+            break
+
+    final_completed = completed_runs[-1]
     artifact_index = collect_stage_artifacts(root)
     pizhi_outputs = collect_host_pizhi_outputs(root, artifact_index=artifact_index)
     effective_returncode, outcome_summary = evaluate_stage_outcome(
         stage_slug=stage_slug,
-        returncode=completed.returncode,
+        returncode=final_completed.returncode,
         artifact_index=artifact_index,
         project_root=root,
     )
@@ -182,8 +235,16 @@ def invoke_claude_stage(
         pizhi_outputs=pizhi_outputs,
         artifact_index=artifact_index,
         outcome_summary=outcome_summary,
-        claude_stdout=(completed.stdout or "").strip(),
-        claude_stderr=(completed.stderr or "").strip(),
+        claude_stdout="\n\n".join(
+            output
+            for output in ((completed.stdout or "").strip() for completed in completed_runs)
+            if output
+        ),
+        claude_stderr="\n\n".join(
+            output
+            for output in ((completed.stderr or "").strip() for completed in completed_runs)
+            if output
+        ),
         returncode=effective_returncode,
     )
 
@@ -371,33 +432,582 @@ def _render_stage_workflow(target_chapters: int, *, genre: str) -> str:
             f'"Urban Fantasy Validation" --genre "{genre}" --total-chapters 60 --per-volume 15 '
             '--pov "Third Person Limited"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.\n'
             "2. Run `pizhi status`.\n"
-            f"3. Run `pizhi continue run --count {target_chapters} --execute`.\n"
-            "4. Capture the returned `session_id`.\n"
-            f"5. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `1-{target_chapters}` with `pizhi checkpoint apply --id <checkpoint_id>`.\n"
-            "6. Run `pizhi continue resume --session-id <session_id>`.\n"
-            f"7. Run `pizhi checkpoints --session-id <session_id>` again and apply the generated write checkpoint for chapters `1-{target_chapters}`.\n"
-            "8. If the session is `ready_to_resume` or `completed`, run `pizhi review --full`.\n"
-            f"9. Run `pizhi compile --chapters 1-{target_chapters}`.\n"
-            "10. Run `pizhi status` again and stop.\n"
+            "3. Run `pizhi brainstorm --execute`.\n"
+            "4. Capture the returned `run_id`.\n"
+            "5. Run `pizhi apply --run-id <run_id>`.\n"
+            f"6. Run `pizhi continue run --count {target_chapters} --execute`.\n"
+            "7. Capture the returned `session_id`.\n"
+            f"8. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `1-{target_chapters}` with `pizhi checkpoint apply --id <checkpoint_id>`.\n"
+            "9. Run `pizhi continue resume --session-id <session_id>`.\n"
+            f"10. Run `pizhi checkpoints --session-id <session_id>` again and apply the generated write checkpoint for chapters `1-{target_chapters}`.\n"
+            "11. If the session is `ready_to_resume` or `completed`, run `pizhi review --full`.\n"
+            f"12. Run `pizhi compile --chapters 1-{target_chapters}`.\n"
+            "13. Run `pizhi status` again and stop.\n"
         )
 
-    return (
+    lines = [
         "1. If `.pizhi/config.yaml` is missing, run `pizhi init --project-name "
         f'"Urban Fantasy Validation" --genre "{genre}" --total-chapters 60 --per-volume 15 '
-        '--pov "Third Person Limited"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.\n'
-        "2. Run `pizhi status`.\n"
-        f"3. Run `pizhi continue run --count {target_chapters} --execute`.\n"
-        "4. Capture the returned `session_id`.\n"
-        f"5. Loop until chapters `1-{target_chapters}` all have applied write checkpoints.\n"
-        "6. In each loop iteration, run `pizhi checkpoints --session-id <session_id>` and inspect the next generated checkpoint for the next unfinished chapter range.\n"
-        "7. If the next generated checkpoint is an outline checkpoint, apply it with `pizhi checkpoint apply --id <checkpoint_id>` and then run `pizhi continue resume --session-id <session_id>` to generate the paired write checkpoint for the same range.\n"
-        "8. If the next generated checkpoint is a write checkpoint, apply it with `pizhi checkpoint apply --id <checkpoint_id>`.\n"
-        f"9. After applying a write checkpoint, if the highest applied written chapter is still below `{target_chapters}`, run `pizhi continue resume --session-id <session_id>` again to generate the next batch.\n"
-        f"10. Do not apply or generate checkpoints beyond chapters `1-{target_chapters}`. Stop the continue loop as soon as chapters `1-{target_chapters}` all have applied write checkpoints.\n"
-        "11. Run `pizhi review --full`.\n"
-        f"12. Run `pizhi compile --chapters 1-{target_chapters}`.\n"
-        "13. Run `pizhi status` again and stop.\n"
+        '--pov "Third Person Limited"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.',
+        "2. Run `pizhi status`.",
+        "3. Run `pizhi brainstorm --execute`.",
+        "4. Capture the returned `run_id`.",
+        "5. Run `pizhi apply --run-id <run_id>`.",
+        f"6. Run `pizhi continue run --count {target_chapters} --execute`.",
+        "7. Capture the returned `session_id`.",
+    ]
+    step_number = 8
+    batch_ranges = _stage_batch_ranges(target_chapters)
+    for index, (start, end) in enumerate(batch_ranges):
+        lines.append(
+            f"{step_number}. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`."
+        )
+        step_number += 1
+        lines.append(
+            f"{step_number}. Run `pizhi continue resume --session-id <session_id>` to generate the write checkpoint for chapters `{start}-{end}`."
+        )
+        step_number += 1
+        lines.append(
+            f"{step_number}. Run `pizhi checkpoints --session-id <session_id>` again and apply the write checkpoint for chapters `{start}-{end}`."
+        )
+        step_number += 1
+        if index < len(batch_ranges) - 1:
+            lines.append(
+                f"{step_number}. Run `pizhi continue resume --session-id <session_id>` again to generate the next outline checkpoint batch."
+            )
+            step_number += 1
+        else:
+            lines.append(
+                f"{step_number}. After you apply the write checkpoint for chapters `{start}-{end}`, stop the continue loop."
+            )
+            step_number += 1
+
+    lines.extend(
+        [
+            f"{step_number}. Run `pizhi review --full`.",
+            f"{step_number + 1}. Run `pizhi compile --chapters 1-{target_chapters}`.",
+            f"{step_number + 2}. Run `pizhi status` again and stop.",
+        ]
     )
+    return "\n".join(lines) + "\n"
+
+
+def _stage_batch_ranges(target_chapters: int, batch_size: int = 3) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    start = 1
+    while start <= target_chapters:
+        end = min(target_chapters, start + batch_size - 1)
+        ranges.append((start, end))
+        start = end + 1
+    return ranges
+
+
+def _build_claude_stage_prompts(
+    *,
+    stage_slug: str,
+    project_root: str | Path,
+    repo_root: str | Path,
+    playbook_root: str | Path,
+    target_chapters: int,
+    genre: str,
+) -> list[str]:
+    return [
+        step.prompt
+        for step in _build_claude_stage_steps(
+            stage_slug=stage_slug,
+            project_root=project_root,
+            repo_root=repo_root,
+            playbook_root=playbook_root,
+            target_chapters=target_chapters,
+            genre=genre,
+        )
+    ]
+
+
+def _build_claude_stage_steps(
+    *,
+    stage_slug: str,
+    project_root: str | Path,
+    repo_root: str | Path,
+    playbook_root: str | Path,
+    target_chapters: int,
+    genre: str,
+) -> list[ClaudeStageStep]:
+    if target_chapters <= 3:
+        return [
+            ClaudeStageStep(
+                prompt=_build_claude_execution_prompt(
+                    render_claude_stage_prompt(
+                        stage_slug=stage_slug,
+                        project_root=project_root,
+                        repo_root=repo_root,
+                        playbook_root=playbook_root,
+                        target_chapters=target_chapters,
+                        genre=genre,
+                    )
+                ),
+                prompt_kind="single",
+                batch_range=(1, target_chapters),
+                allowed_max_chapter=target_chapters,
+                allowed_command_fragments=_build_allowed_command_fragments(
+                    prompt_kind="single",
+                    target_chapters=target_chapters,
+                ),
+            )
+        ]
+
+    batch_ranges = _stage_batch_ranges(target_chapters)
+    steps = [
+        ClaudeStageStep(
+            prompt=_build_claude_execution_prompt(
+                _render_batched_claude_stage_prompt(
+                    stage_slug=stage_slug,
+                    project_root=project_root,
+                    repo_root=repo_root,
+                    playbook_root=playbook_root,
+                    target_chapters=target_chapters,
+                    genre=genre,
+                    batch_range=batch_ranges[0],
+                    prompt_kind="initial",
+                )
+            ),
+            prompt_kind="initial",
+            batch_range=batch_ranges[0],
+            allowed_max_chapter=batch_ranges[0][1],
+            allowed_command_fragments=_build_allowed_command_fragments(
+                prompt_kind="initial",
+                target_chapters=target_chapters,
+            ),
+        )
+    ]
+    for batch_range in batch_ranges[1:]:
+        steps.append(
+            ClaudeStageStep(
+                prompt=_build_claude_execution_prompt(
+                    _render_batched_claude_stage_prompt(
+                        stage_slug=stage_slug,
+                        project_root=project_root,
+                        repo_root=repo_root,
+                        playbook_root=playbook_root,
+                        target_chapters=target_chapters,
+                        genre=genre,
+                        batch_range=batch_range,
+                        prompt_kind="resume",
+                    )
+                ),
+                prompt_kind="resume",
+                batch_range=batch_range,
+                allowed_max_chapter=batch_range[1],
+                allowed_command_fragments=_build_allowed_command_fragments(
+                    prompt_kind="resume",
+                    target_chapters=target_chapters,
+                ),
+            )
+        )
+    steps.append(
+        ClaudeStageStep(
+            prompt=_build_claude_execution_prompt(
+                _render_batched_claude_stage_prompt(
+                    stage_slug=stage_slug,
+                    project_root=project_root,
+                    repo_root=repo_root,
+                    playbook_root=playbook_root,
+                    target_chapters=target_chapters,
+                    genre=genre,
+                    batch_range=batch_ranges[-1],
+                    prompt_kind="finalization",
+                )
+            ),
+            prompt_kind="finalization",
+            batch_range=batch_ranges[-1],
+            allowed_max_chapter=target_chapters,
+            allowed_command_fragments=_build_allowed_command_fragments(
+                prompt_kind="finalization",
+                target_chapters=target_chapters,
+            ),
+        )
+    )
+    return steps
+
+
+def _build_stage_overlay_playbook(
+    *,
+    stage_slug: str,
+    project_root: str | Path,
+    repo_root: str | Path,
+    target_chapters: int,
+    genre: str,
+    step: ClaudeStageStep,
+) -> Path:
+    root = Path(project_root).resolve()
+    repo_root_path = Path(repo_root).resolve()
+    overlay_root = root.parent / "overlay_playbook"
+    resources_root = overlay_root / "resources"
+    resources_root.mkdir(parents=True, exist_ok=True)
+
+    batch_range = step.batch_range or (1, target_chapters)
+    start, end = batch_range
+    agents_lines = [
+        "# Pizhi E2E Stage Playbook",
+        "",
+        "Stage prompt is the only authority for this validation step.",
+        "",
+        "Read only these local resources before running commands:",
+        "",
+        "- `resources/stage.md`",
+        "- `resources/allowed-commands.md`",
+        "",
+        "Do not read or apply the general `agents/pizhi/resources/workflow.md` or `agents/pizhi/resources/examples.md` files.",
+        "Do not infer alternative counts, project names, total chapter counts, or chapter ranges from examples.",
+        "Run only the commands listed for this exact step, in order, and stop when the step says to stop.",
+        "",
+    ]
+    stage_lines = [
+        "# Stage Context",
+        "",
+        f"Stage: `{stage_slug}`",
+        f"Step kind: `{step.prompt_kind}`",
+        f"Project root: `{root.as_posix()}`",
+        f"Repository root: `{repo_root_path.as_posix()}`",
+        f"Target chapters: `{target_chapters}`",
+        f"Genre: `{genre}`",
+        f"Batch range: `{start}-{end}`",
+        f"Allowed max chapter during this step: `ch{step.allowed_max_chapter:03d}`",
+        "",
+        "Use the command sequence in `allowed-commands.md` as the only valid workflow for this step.",
+        "If any command fails, report the failure and stop the step.",
+        "",
+    ]
+    commands_lines = [
+        "# Allowed Commands",
+        "",
+        "Run only commands matching this step. Do not substitute a different count or chapter range.",
+        "",
+        *_render_overlay_allowed_commands(
+            prompt_kind=step.prompt_kind,
+            target_chapters=target_chapters,
+            batch_range=batch_range,
+            genre=genre,
+        ),
+        "",
+    ]
+
+    (overlay_root / "AGENTS.md").write_text("\n".join(agents_lines), encoding="utf-8")
+    (resources_root / "stage.md").write_text("\n".join(stage_lines), encoding="utf-8")
+    (resources_root / "allowed-commands.md").write_text("\n".join(commands_lines), encoding="utf-8")
+    return overlay_root
+
+
+def _render_overlay_allowed_commands(
+    *,
+    prompt_kind: str,
+    target_chapters: int,
+    batch_range: tuple[int, int],
+    genre: str,
+) -> list[str]:
+    start, end = batch_range
+    if prompt_kind in {"single", "initial"}:
+        commands = [
+            f'1. `pizhi init --project-name "Urban Fantasy Validation" --genre "{genre}" --total-chapters 60 --per-volume 15 --pov "Third Person Limited"`',
+            "2. `pizhi agent configure --agent-backend opencode --agent-command opencode`",
+            "3. `pizhi status`",
+            "4. `pizhi brainstorm --execute`",
+            "5. `pizhi apply --run-id <run_id>`",
+            f"6. `pizhi continue run --count {target_chapters} --execute`",
+            "7. `pizhi checkpoints --session-id <session_id>`",
+            f"8. Apply the outline checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+            "9. `pizhi continue resume --session-id <session_id>`",
+            f"10. Apply the write checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+        ]
+        if prompt_kind == "single":
+            commands.extend(
+                [
+                    "11. `pizhi review --full`",
+                    f"12. `pizhi compile --chapters 1-{target_chapters}`",
+                ]
+            )
+        return commands
+    if prompt_kind == "resume":
+        return [
+            "1. `pizhi status`",
+            "2. `pizhi continue resume --session-id <session_id>`",
+            "3. `pizhi checkpoints --session-id <session_id>`",
+            f"4. apply the outline checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+            "5. Do not stop after applying the outline checkpoint.",
+            f"6. Run `pizhi continue resume --session-id <session_id>` again to generate the write checkpoint for chapters `{start}-{end}`.",
+            "7. `pizhi checkpoints --session-id <session_id>`",
+            f"8. apply the write checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+            "9. Stop this step after applying the write checkpoint.",
+        ]
+    if prompt_kind == "finalization":
+        return [
+            "1. `pizhi review --full`",
+            f"2. `pizhi compile --chapters 1-{target_chapters}`",
+            "3. `pizhi status`",
+        ]
+    raise ValueError(f"unknown prompt kind: {prompt_kind}")
+
+
+def _build_allowed_command_fragments(
+    *,
+    prompt_kind: str,
+    target_chapters: int,
+) -> tuple[str, ...]:
+    fragments: list[str] = [r"status"]
+    if prompt_kind in {"single", "initial"}:
+        fragments.extend(
+            [
+                r"init\s+--project-name\s+(?:\"[^\"]+\"|\S+)\s+--genre\s+(?:\"[^\"]+\"|\S+)\s+--total-chapters\s+60\s+--per-volume\s+15\s+--pov\s+(?:\"[^\"]+\"|\S+)",
+                r"agent\s+configure\s+--agent-backend\s+opencode\s+--agent-command\s+opencode",
+                r"brainstorm\s+--execute",
+                r"apply\s+--run-id\s+\S+",
+                fr"continue\s+run\s+--count\s+{target_chapters}\s+--execute",
+                r"checkpoints\s+--session-id\s+\S+",
+                r"checkpoint\s+apply\s+--id\s+\S+",
+                r"continue\s+resume\s+--session-id\s+\S+",
+            ]
+        )
+    elif prompt_kind == "resume":
+        fragments.extend(
+            [
+                r"continue\s+resume\s+--session-id\s+\S+",
+                r"checkpoints\s+--session-id\s+\S+",
+                r"checkpoint\s+apply\s+--id\s+\S+",
+            ]
+        )
+    elif prompt_kind == "finalization":
+        fragments.extend(
+            [
+                r"review\s+--full",
+                fr"compile\s+--chapters\s+1-{target_chapters}",
+            ]
+        )
+    else:
+        raise ValueError(f"unknown prompt kind: {prompt_kind}")
+
+    if prompt_kind == "single":
+        fragments.extend(
+            [
+                r"review\s+--full",
+                fr"compile\s+--chapters\s+1-{target_chapters}",
+            ]
+        )
+
+    unique_fragments: list[str] = []
+    for fragment in fragments:
+        if fragment not in unique_fragments:
+            unique_fragments.append(fragment)
+    return tuple(unique_fragments)
+
+
+def _run_claude_stage_step(
+    *,
+    claude_command: str,
+    playbook_root: Path,
+    project_root: Path,
+    stage_slug: str,
+    step: ClaudeStageStep,
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        claude_command,
+        "--permission-mode",
+        "bypassPermissions",
+        "--add-dir",
+            str(playbook_root),
+            "-p",
+            step.prompt,
+        ]
+    _write_project_stage_anchor(project_root=project_root, step=step)
+    popen_cls = getattr(subprocess, "Popen", None)
+    if popen_cls is None:
+        return subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            cwd=project_root,
+        )
+
+    with tempfile.TemporaryDirectory(
+        prefix="pizhi-claude-stage-step-",
+        ignore_cleanup_errors=True,
+    ) as capture_dir:
+        stdout_path = Path(capture_dir) / "stdout.txt"
+        stderr_path = Path(capture_dir) / "stderr.txt"
+        with stdout_path.open("w", encoding="utf-8", errors="replace") as stdout_handle, stderr_path.open(
+            "w",
+            encoding="utf-8",
+            errors="replace",
+        ) as stderr_handle:
+            process = popen_cls(
+                command,
+                stdout=stdout_handle,
+                stderr=stderr_handle,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                cwd=project_root,
+            )
+            while True:
+                try:
+                    returncode = process.wait(timeout=_WATCHDOG_INTERVAL_SECONDS)
+                    stdout_handle.flush()
+                    stderr_handle.flush()
+                    return subprocess.CompletedProcess(
+                        args=command,
+                        returncode=0 if returncode is None else returncode,
+                        stdout=stdout_path.read_text(encoding="utf-8", errors="replace"),
+                        stderr=stderr_path.read_text(encoding="utf-8", errors="replace"),
+                    )
+                except subprocess.TimeoutExpired:
+                    issues = build_stage_watchdog_issues(
+                        project_root=project_root,
+                        stage_slug=stage_slug,
+                        step=step,
+                        root_pid=getattr(process, "pid", None),
+                    )
+                    if not issues:
+                        continue
+                    try:
+                        process.kill()
+                    except OSError:
+                        pass
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
+                    stdout_handle.flush()
+                    stderr_handle.flush()
+                    watchdog_message = f"WATCHDOG: {'; '.join(issues)}"
+                    combined_stderr = "\n".join(
+                        part
+                        for part in [
+                            stderr_path.read_text(encoding="utf-8", errors="replace"),
+                            watchdog_message,
+                        ]
+                        if part
+                    )
+                    return subprocess.CompletedProcess(
+                        args=command,
+                        returncode=_WATCHDOG_FAILURE_RETURNCODE,
+                        stdout=stdout_path.read_text(encoding="utf-8", errors="replace"),
+                        stderr=combined_stderr,
+                    )
+
+
+def _write_project_stage_anchor(*, project_root: Path, step: ClaudeStageStep) -> None:
+    project_root.mkdir(parents=True, exist_ok=True)
+    (project_root / "AGENTS.md").write_text(
+        "\n".join(
+            [
+                "# Pizhi Validation Task",
+                "",
+                "This directory is a temporary Pizhi validation project.",
+                "The project may be empty before `pizhi init`; this is expected.",
+                "Do not ask for additional context. Follow `STAGE_TASK.md` exactly.",
+                "Only mutate Pizhi project state by running the `pizhi` CLI commands specified in `STAGE_TASK.md`.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    (project_root / "STAGE_TASK.md").write_text(step.prompt, encoding="utf-8", newline="\n")
+
+
+def _render_batched_claude_stage_prompt(
+    *,
+    stage_slug: str,
+    project_root: str | Path,
+    repo_root: str | Path,
+    playbook_root: str | Path,
+    target_chapters: int,
+    genre: str,
+    batch_range: tuple[int, int],
+    prompt_kind: str,
+) -> str:
+    project_root_path = Path(project_root)
+    repo_root_path = Path(repo_root)
+    playbook_root_path = Path(playbook_root)
+    start, end = batch_range
+    lines = [
+        "# Claude Stage Prompt",
+        "",
+        "Execute this validation stage now in the current working directory.",
+        f"Stage: `{stage_slug}`",
+        f"Project root: `{project_root_path.as_posix()}`",
+        f"Repository root: `{repo_root_path.as_posix()}`",
+        f"Playbook root: `{playbook_root_path.as_posix()}`",
+        f"Target chapters: `{target_chapters}`",
+        f"Genre: `{genre}`",
+        "",
+        "Rules:",
+        "- The repo/playbook are read-only. Only modify the temp project.",
+        "- The current working directory may be empty before `pizhi init`; this is expected.",
+        "- Do not ask for additional context because this prompt contains the validation context.",
+        "- Do not edit project files directly; use `pizhi` commands only.",
+        "- Execute only the exact `pizhi` commands listed below, in order.",
+        "- Do not run any other `pizhi` commands.",
+        "",
+    ]
+    if prompt_kind == "initial":
+        lines.append("- Forbidden examples: `pizhi write --chapter ...`, `pizhi outline expand`, and any direct command not listed for this step.")
+        lines.append("")
+    else:
+        lines.append("- Forbidden examples: `pizhi write --chapter ...`, `pizhi brainstorm`, `pizhi outline expand`, and any direct command not listed for this step.")
+        lines.append("")
+    if prompt_kind == "initial":
+        lines.extend(
+            [
+                f"- During this step, do not advance chapters beyond `{start}-{end}`.",
+                "",
+                "Workflow:",
+                f"1. If `.pizhi/config.yaml` is missing, run `pizhi init --project-name \"Urban Fantasy Validation\" --genre \"{genre}\" --total-chapters 60 --per-volume 15 --pov \"Third Person Limited\"` and then `pizhi agent configure --agent-backend opencode --agent-command opencode`.",
+                "2. Run `pizhi status`.",
+                "3. Run `pizhi brainstorm --execute`.",
+                "4. Capture the returned `run_id`.",
+                "5. Run `pizhi apply --run-id <run_id>`.",
+                f"6. Run `pizhi continue run --count {target_chapters} --execute`.",
+                "7. Capture the returned `session_id`.",
+                f"8. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+                f"9. Run `pizhi continue resume --session-id <session_id>`.",
+                f"10. Run `pizhi checkpoints --session-id <session_id>` again and apply the write checkpoint for chapters `{start}-{end}`.",
+            ]
+        )
+    elif prompt_kind == "resume":
+        lines.extend(
+            [
+                f"- During this step, do not advance chapters beyond `{start}-{end}`.",
+                "- Resolve `<session_id>` from `pizhi status` or the latest `.pizhi/cache/continue_sessions/*/manifest.json`.",
+                "- Never run a command with the literal `<session_id>` placeholder.",
+                "- Do not stop after applying the outline checkpoint; the step is incomplete until the write checkpoint is applied.",
+                "- Do not run `pizhi review`, do not analyze quality, and do not ask whether to apply fixes in this step.",
+                "",
+                "Workflow:",
+                "1. Run `pizhi status`.",
+                "2. Run `pizhi continue resume --session-id <session_id>`.",
+                f"3. Run `pizhi checkpoints --session-id <session_id>` and apply the outline checkpoint for chapters `{start}-{end}` with `pizhi checkpoint apply --id <checkpoint_id>`.",
+                "4. Run `pizhi continue resume --session-id <session_id>` again.",
+                f"5. Run `pizhi checkpoints --session-id <session_id>` again and apply the write checkpoint for chapters `{start}-{end}`.",
+            ]
+        )
+    elif prompt_kind == "finalization":
+        lines.extend(
+            [
+                "- Finalization is read-only with respect to continue sessions. Do not generate new checkpoints in this step.",
+                "",
+                "Workflow:",
+                "1. Run `pizhi status`.",
+                "2. Run `pizhi review --full`.",
+                f"3. Run `pizhi compile --chapters 1-{target_chapters}`.",
+                "4. Run `pizhi status` again and stop.",
+            ]
+        )
+    else:
+        raise ValueError(f"unknown prompt kind: {prompt_kind}")
+    return "\n".join(lines) + "\n"
 
 
 def _build_claude_execution_prompt(prompt: str) -> str:
@@ -468,8 +1078,336 @@ def _summarize_stage_outcome(
         return (
             f"{stage_slug} invocation completed with exit code 0. "
             f"Collected {run_count} run artifact(s) and {checkpoint_count} checkpoint artifact(s)."
-        )
+    )
     return f"{stage_slug} invocation failed with exit code {returncode}."
+
+
+def build_stage_watchdog_issues(
+    *,
+    project_root: str | Path,
+    stage_slug: str,
+    step: ClaudeStageStep,
+    root_pid: int | None = None,
+) -> list[str]:
+    root = Path(project_root)
+    issues: list[str] = []
+    issues.extend(
+        _load_blocked_session_issues(
+            root,
+            target_end_chapter=int(_stage_config(stage_slug)["target_chapters"]),
+        )
+    )
+    records, chapter_index_error = _load_chapter_index_records(root)
+    if chapter_index_error is not None:
+        issues.append(f"chapter index watchdog check failed: {chapter_index_error}")
+    elif records is not None:
+        issues.extend(_validate_watchdog_no_overshoot(records, step.allowed_max_chapter))
+
+    process_entries = (
+        _list_running_process_entries(root_pid=root_pid)
+        if root_pid is not None
+        else _list_running_process_entries()
+    )
+    if root_pid is not None and _watchdog_process_tree_is_stalled(process_entries, root_pid=root_pid):
+        issues.append("step appears stalled: no active child processes remain")
+
+    process_commandlines = (
+        _list_running_process_commandlines(root_pid=root_pid)
+        if root_pid is not None
+        else _list_running_process_commandlines()
+    )
+    for commandline in process_commandlines:
+        for pizhi_command in _extract_running_pizhi_commands(commandline):
+            if _is_allowed_running_pizhi_command(pizhi_command, step.allowed_command_fragments):
+                continue
+            issues.append(f"disallowed running command detected: pizhi {pizhi_command}")
+    return issues
+
+
+def build_stage_step_state_issues(
+    *,
+    project_root: str | Path,
+    stage_slug: str,
+    step: ClaudeStageStep,
+) -> list[str]:
+    root = Path(project_root)
+    issues: list[str] = []
+    issues.extend(
+        _load_blocked_session_issues(
+            root,
+            target_end_chapter=int(_stage_config(stage_slug)["target_chapters"]),
+        )
+    )
+    records, chapter_index_error = _load_chapter_index_records(root)
+    if chapter_index_error is not None:
+        issues.append(f"chapter index postflight check failed: {chapter_index_error}")
+    elif records is None and step.prompt_kind in {"initial", "resume"} and step.batch_range is not None:
+        issues.append("chapter index was not generated for this step")
+    elif records is not None:
+        issues.extend(_validate_watchdog_no_overshoot(records, step.allowed_max_chapter))
+        issues.extend(_validate_step_batch_write_progress(records, step))
+    return issues
+
+
+def build_single_flight_issues(
+    *,
+    repo_root: str | Path,
+    project_root: str | Path,
+) -> list[str]:
+    repo_root_path = Path(repo_root).resolve()
+    project_root_path = Path(project_root).resolve()
+    current_pid = os.getpid()
+    issues: list[str] = []
+    repo_marker = _normalize_process_match_text(repo_root_path.as_posix())
+    project_marker = _normalize_process_match_text(project_root_path.as_posix())
+    playbook_marker = _normalize_process_match_text((repo_root_path / "agents" / "pizhi").as_posix())
+    for entry in _list_running_process_entries():
+        if entry.process_id == current_pid:
+            continue
+        normalized = _normalize_process_match_text(entry.commandline)
+        if not normalized:
+            continue
+        if _is_process_listing_commandline(normalized):
+            continue
+        if "e2e_claude_opencode.py --stage" in normalized:
+            issues.append(f"existing validation harness process detected: pid {entry.process_id}")
+            continue
+        if playbook_marker in normalized and "claude" in normalized:
+            issues.append(f"existing Claude playbook process detected: pid {entry.process_id}")
+            continue
+        if project_marker in normalized and "pizhi" in normalized:
+            issues.append(f"existing project-scoped pizhi process detected: pid {entry.process_id}")
+            continue
+        if repo_marker in normalized and "pizhi-e2e-claude-opencode-" in normalized and ("pizhi" in normalized or "claude" in normalized or "opencode" in normalized):
+            issues.append(f"existing validation temp process detected: pid {entry.process_id}")
+            continue
+        if "pizhi-opencode-" in normalized and "opencode" in normalized:
+            issues.append(f"existing validation opencode process detected: pid {entry.process_id}")
+            continue
+    return issues
+
+
+def _normalize_process_match_text(value: str) -> str:
+    return value.replace("\\", "/").lower()
+
+
+def _is_process_listing_commandline(commandline: str) -> bool:
+    return "get-ciminstance win32_process" in commandline or "get-wmiobject win32_process" in commandline
+
+
+def _load_blocked_session_issues(project_root: Path, *, target_end_chapter: int) -> list[str]:
+    sessions_root = project_root / ".pizhi" / "cache" / "continue_sessions"
+    if not sessions_root.exists():
+        return []
+    matching_sessions: list[tuple[datetime, dict[str, object], Path]] = []
+    for manifest_path in sorted(sessions_root.glob("*/manifest.json")):
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        try:
+            manifest_target = int(payload.get("target_end_chapter"))
+        except (TypeError, ValueError):
+            continue
+        if manifest_target != target_end_chapter:
+            continue
+        matching_sessions.append((_session_manifest_timestamp(payload, manifest_path), payload, manifest_path))
+    if not matching_sessions:
+        return []
+    _updated_at, payload, manifest_path = max(matching_sessions, key=lambda item: item[0])
+    if str(payload.get("status")) != "blocked":
+        return []
+    session_id = str(payload.get("session_id") or manifest_path.parent.name)
+    return [f"session {session_id} is blocked"]
+
+
+def _session_manifest_timestamp(payload: dict[str, object], manifest_path: Path) -> datetime:
+    updated_at = payload.get("updated_at")
+    if isinstance(updated_at, str):
+        normalized = updated_at.replace("Z", "+00:00")
+        try:
+            return datetime.fromisoformat(normalized).replace(tzinfo=None)
+        except ValueError:
+            pass
+    return datetime.fromtimestamp(manifest_path.stat().st_mtime)
+
+
+def _validate_watchdog_no_overshoot(
+    records: list[dict[str, object]],
+    allowed_max_chapter: int,
+) -> list[str]:
+    advanced = [
+        record
+        for record in records
+        if int(record.get("n", 0)) > allowed_max_chapter
+        and str(record.get("status")) in _ADVANCED_CHAPTER_STATUSES
+    ]
+    if not advanced:
+        return []
+    rendered = ", ".join(
+        f"ch{int(record['n']):03d} ({record.get('status', 'unknown')})" for record in advanced
+    )
+    return [f"chapters beyond ch{allowed_max_chapter:03d} advanced unexpectedly: {rendered}"]
+
+
+def _validate_step_batch_write_progress(records: list[dict[str, object]], step: ClaudeStageStep) -> list[str]:
+    if step.prompt_kind not in {"initial", "resume"} or step.batch_range is None:
+        return []
+    start, end = step.batch_range
+    record_map = {int(record["n"]): record for record in records if "n" in record}
+    missing_or_unwritten = [
+        number
+        for number in range(start, end + 1)
+        if str(record_map.get(number, {}).get("status")) not in _DRAFTED_CHAPTER_STATUSES
+    ]
+    if not missing_or_unwritten:
+        return []
+    rendered = ", ".join(f"ch{number:03d}" for number in missing_or_unwritten)
+    return [f"expected drafted chapters for this step are missing: {rendered}"]
+
+
+def _watchdog_process_tree_is_stalled(entries: list[ProcessEntry], *, root_pid: int) -> bool:
+    root_present = False
+    for entry in entries:
+        if entry.process_id == root_pid:
+            root_present = True
+            continue
+        normalized = _normalize_process_match_text(entry.commandline)
+        if not normalized:
+            continue
+        if _is_ignorable_watchdog_descendant(normalized):
+            continue
+        return False
+    return root_present
+
+
+def _is_ignorable_watchdog_descendant(commandline: str) -> bool:
+    return "conhost.exe" in commandline or commandline.startswith("/??/c:/windows/system32/conhost.exe")
+
+
+def _list_running_process_commandlines(root_pid: int | None = None) -> list[str]:
+    return [entry.commandline for entry in _list_running_process_entries(root_pid=root_pid)]
+
+
+def _list_running_process_entries(root_pid: int | None = None) -> list[ProcessEntry]:
+    if os.name == "nt":
+        shell = shutil.which("pwsh") or shutil.which("powershell") or shutil.which("powershell.exe")
+        if shell is None:
+            return []
+        completed = subprocess.run(
+            [
+                shell,
+                "-NoProfile",
+                "-Command",
+                "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine } | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    else:
+        completed = subprocess.run(
+            ["ps", "-eo", "pid=,ppid=,command="],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    if completed.returncode != 0:
+        return []
+    stdout = (completed.stdout or "").strip()
+    if not stdout:
+        return []
+    if os.name == "nt":
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError:
+            return []
+        if isinstance(payload, dict):
+            payload = [payload]
+        if not isinstance(payload, list):
+            return []
+        process_entries = [
+            ProcessEntry(
+                process_id=int(entry.get("ProcessId")),
+                parent_process_id=int(entry.get("ParentProcessId")),
+                commandline=str(entry.get("CommandLine")).strip(),
+            )
+            for entry in payload
+            if isinstance(entry, dict)
+            and str(entry.get("CommandLine", "")).strip()
+            and isinstance(entry.get("ProcessId"), (int, float, str))
+            and isinstance(entry.get("ParentProcessId"), (int, float, str))
+        ]
+        return _filter_process_entries(process_entries, root_pid=root_pid)
+    process_entries: list[ProcessEntry] = []
+    for line in stdout.splitlines():
+        match = re.match(r"^\s*(\d+)\s+(\d+)\s+(.*)$", line)
+        if match is None:
+            continue
+        process_entries.append(
+            ProcessEntry(
+                process_id=int(match.group(1)),
+                parent_process_id=int(match.group(2)),
+                commandline=match.group(3).strip(),
+            )
+        )
+    return _filter_process_entries(process_entries, root_pid=root_pid)
+
+
+def _filter_process_entries(entries: list[ProcessEntry], root_pid: int | None = None) -> list[ProcessEntry]:
+    if root_pid is None:
+        return [entry for entry in entries if entry.commandline]
+    descendant_ids = {root_pid}
+    expanded = True
+    while expanded:
+        expanded = False
+        for entry in entries:
+            if entry.parent_process_id in descendant_ids and entry.process_id not in descendant_ids:
+                descendant_ids.add(entry.process_id)
+                expanded = True
+    return [entry for entry in entries if entry.process_id in descendant_ids and entry.commandline]
+
+
+def _extract_running_pizhi_commands(commandline: str) -> list[str]:
+    normalized = " ".join(commandline.strip().split())
+    if not normalized:
+        return []
+    commands: list[str] = []
+    for match in re.finditer(r"(?i)-m\s+pizhi\s+(?P<tail>.+?)(?=(?:&&|\|\||;)|$)", normalized):
+        tail = match.group("tail").strip()
+        if tail:
+            commands.append(tail)
+    for match in re.finditer(
+        r"(?i)(?:^|[\\/\s\"'])pizhi(?:\.exe)?(?:[\"']|\s)+(?P<tail>.+?)(?=(?:&&|\|\||;)|$)",
+        normalized,
+    ):
+        tail = match.group("tail").strip()
+        if tail:
+            commands.append(tail)
+    unique_commands: list[str] = []
+    for command in commands:
+        if command not in unique_commands:
+            unique_commands.append(command)
+    return unique_commands
+
+
+def _is_allowed_running_pizhi_command(command: str, allowed_fragments: tuple[str, ...]) -> bool:
+    normalized_command = _normalize_running_pizhi_command(command)
+    return any(re.fullmatch(pattern, normalized_command) for pattern in allowed_fragments)
+
+
+def _normalize_running_pizhi_command(command: str) -> str:
+    normalized = " ".join(command.strip().split())
+    for _ in range(2):
+        normalized = re.sub(r"\s+<\s+(?:/dev/null|nul)\s*$", "", normalized, flags=re.IGNORECASE).strip()
+        normalized = normalized.rstrip("'\"").strip()
+    return normalized.lower()
 
 
 def evaluate_stage_outcome(
@@ -504,6 +1442,7 @@ def evaluate_stage_outcome(
     else:
         issues.extend(_validate_target_chapters(records, target_chapters))
         issues.extend(_validate_no_overshoot(records, target_chapters))
+    issues.extend(_load_blocked_session_issues(Path(project_root), target_end_chapter=target_chapters))
 
     if issues:
         effective_returncode = returncode if returncode != 0 else 1
