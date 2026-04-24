@@ -34,6 +34,13 @@ def test_readme_links_to_public_docs_and_governance_files(project_root):
     assert "[Security](SECURITY.md)" in readme
 
 
+def test_readme_surfaces_chinese_docs_link_near_top(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+    top_readme = "\n".join(readme.splitlines()[:8])
+
+    assert "[中文文档](docs/zh/README.md)" in top_readme
+
+
 def test_default_public_docs_are_english_with_chinese_archive(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
     getting_started = (project_root / "docs" / "guides" / "getting-started.md").read_text(encoding="utf-8")

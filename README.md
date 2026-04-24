@@ -4,6 +4,8 @@
 
 Pizhi is a file-backed long-form fiction workflow for planning, drafting, review, recovery, and manuscript compilation. It combines deterministic project files with backend-pluggable `--execute` flows, explicit `apply` steps, checkpointed `continue` sessions, structural review, optional AI review, and additive maintenance/report hooks.
 
+Documentation defaults to English. 中文入口: [中文文档](docs/zh/README.md).
+
 ## Execution Stack
 
 The recommended host entry is `Claude Code` plus the repository-shipped skill/playbook.
