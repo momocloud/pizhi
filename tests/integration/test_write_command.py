@@ -574,6 +574,9 @@ def test_write_prompt_includes_full_chapter_response_contract(initialized_projec
     assert "`referenced` and `resolved` entries must be objects containing `id`." in prompt_text
     assert "## characters_snapshot" in prompt_text
     assert "## relationships_snapshot" in prompt_text
+    assert "Do not put `worldview_patch` or `synopsis_new` in YAML frontmatter." in prompt_text
+    assert "When `worldview_changed: true`, add a Markdown section named `## worldview_patch`" in prompt_text
+    assert "When `synopsis_changed: true`, add a Markdown section named `## synopsis_new`" in prompt_text
     assert "Do not wrap the response in code fences." in prompt_text
 
 

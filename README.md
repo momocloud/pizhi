@@ -1,3 +1,5 @@
+![Pizhi project header](docs/assets/pizhi-header.png)
+
 # Pizhi
 
 Pizhi is a file-backed long-form fiction workflow for planning, drafting, review, recovery, and manuscript compilation. It combines deterministic project files with backend-pluggable `--execute` flows, explicit `apply` steps, checkpointed `continue` sessions, structural review, optional AI review, and additive maintenance/report hooks.
@@ -101,6 +103,7 @@ The examples below use `python -m pizhi`, but the installed `pizhi` entry point 
 - [Getting started](docs/guides/getting-started.md)
 - [Recovery guide](docs/guides/recovery.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
+- [Chinese documentation archive](docs/zh/README.md)
 - [Agent playbook](agents/pizhi/AGENTS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)

@@ -32,6 +32,8 @@ def render_agent_task_package(
     target: str,
     backend_name: str,
     run_id: str | None = None,
+    exposed_referenced_files: list[str] | None = None,
+    embedded_context_only: bool = False,
 ) -> AgentTaskPackage:
     run_dir.mkdir(parents=True, exist_ok=True)
     request_path = run_dir / "agent_request.json"
@@ -56,7 +58,7 @@ def render_agent_task_package(
         "command": prompt_request.command_name,
         "target": target,
         "metadata": prompt_request.metadata,
-        "referenced_files": prompt_request.referenced_files,
+        "referenced_files": prompt_request.referenced_files if exposed_referenced_files is None else exposed_referenced_files,
         "bridge_files": bridge_files,
         "output_file": output_path.name,
     }
@@ -66,12 +68,17 @@ def render_agent_task_package(
         newline="\n",
     )
     task_path.write_text(
-        _render_task_markdown(prompt_request, target=target, output_file=output_path.name),
+        _render_task_markdown(
+            prompt_request,
+            target=target,
+            output_file=output_path.name,
+            embedded_context_only=embedded_context_only,
+        ),
         encoding="utf-8",
         newline="\n",
     )
     agent_file_path.write_text(
-        _render_agent_markdown(output_file=output_path.name),
+        _render_agent_markdown(output_file=output_path.name, embedded_context_only=embedded_context_only),
         encoding="utf-8",
         newline="\n",
     )
@@ -99,10 +106,18 @@ def render_opencode_task_package(
         target=target,
         backend_name="opencode",
         run_id=run_id,
+        exposed_referenced_files=[],
+        embedded_context_only=True,
     )
 
 
-def _render_task_markdown(prompt_request: PromptRequest, *, target: str, output_file: str) -> str:
+def _render_task_markdown(
+    prompt_request: PromptRequest,
+    *,
+    target: str,
+    output_file: str,
+    embedded_context_only: bool = False,
+) -> str:
     lines = [
         "# Pizhi Step Task",
         "",
@@ -124,8 +139,17 @@ def _render_task_markdown(prompt_request: PromptRequest, *, target: str, output_
                 "Start the candidate with YAML frontmatter delimited by `---`.",
                 "`timeline_events` must stay a YAML list of objects.",
                 "`foreshadowing` must stay a YAML object with `introduced`, `referenced`, and `resolved` lists.",
+                "If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the frontmatter remains valid YAML.",
                 "The candidate must include `## characters_snapshot` and `## relationships_snapshot`.",
                 "Do not add commentary before or after the candidate.",
+                "",
+            ]
+        )
+    if embedded_context_only:
+        lines.extend(
+            [
+                "All required context is already embedded in the prompt package.",
+                "Do not attempt to read additional project files from outside this workspace.",
                 "",
             ]
         )
@@ -137,26 +161,43 @@ def _render_task_markdown(prompt_request: PromptRequest, *, target: str, output_
             "",
         ]
     )
+    if embedded_context_only and prompt_request.command_name != "write" and prompt_request.referenced_files:
+        lines.extend(_render_embedded_context_sections(prompt_request.referenced_files))
     return "\n".join(lines)
 
 
-def _render_agent_markdown(*, output_file: str) -> str:
-    return "\n".join(
-        [
-            "---",
-            "name: pizhi-step",
-            "description: Temporary one-run Pizhi execution agent.",
-            "---",
-            "You are a temporary Pizhi step execution agent.",
-            "",
-            "Rules:",
-            f"- Read `agent_task.md` and write the final candidate result only to `{output_file}`.",
-            "- `agent_output.md` is the only result handoff file.",
-            "- Do not modify project source-of-truth files, `manuscript/`, or `.pizhi/`.",
-            "- Keep stdout and stderr incidental audit channels only.",
-            "- If the task is a `write` step, keep the exact chapter response contract intact.",
-            "- Never replace the structured chapter response with free-form prose.",
-            "- Do not collapse `timeline_events` into prose bullets or `foreshadowing` into a flat list.",
-            "",
-        ]
-    )
+def _render_agent_markdown(*, output_file: str, embedded_context_only: bool = False) -> str:
+    lines = [
+        "---",
+        "name: pizhi-step",
+        "description: Temporary one-run Pizhi execution agent.",
+        "---",
+        "You are a temporary Pizhi step execution agent.",
+        "",
+        "Rules:",
+        f"- Read `agent_task.md` and write the final candidate result only to `{output_file}`.",
+        "- `agent_output.md` is the only result handoff file.",
+        "- Do not modify project source-of-truth files, `manuscript/`, or `.pizhi/`.",
+        "- Keep stdout and stderr incidental audit channels only.",
+        "- If the task is a `write` step, keep the exact chapter response contract intact.",
+        "- If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the frontmatter remains valid YAML.",
+        "- Never replace the structured chapter response with free-form prose.",
+        "- Do not collapse `timeline_events` into prose bullets or `foreshadowing` into a flat list.",
+    ]
+    if embedded_context_only:
+        lines.append("- Do not attempt to read additional project files from outside this workspace.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _render_embedded_context_sections(referenced_files: list[str]) -> list[str]:
+    lines = ["## Embedded Context", ""]
+    for raw_path in referenced_files:
+        path = Path(raw_path)
+        lines.append(f"### {path.name}")
+        if path.exists():
+            lines.append(path.read_text(encoding="utf-8").strip())
+        else:
+            lines.append(f"(missing: {raw_path})")
+        lines.append("")
+    return lines

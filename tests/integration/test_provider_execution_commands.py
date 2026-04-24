@@ -241,7 +241,30 @@ def test_write_execute_writes_run_id_and_run_artifacts(initialized_project, monk
     _configure_provider(initialized_project)
     monkeypatch.setattr(
         "pizhi.services.provider_execution.build_provider_adapter",
-        lambda *_: StubAdapter("## chapter\n..."),
+        lambda *_: StubAdapter(
+            """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved: []
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+# 第七章
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+        ),
     )
 
     chapter_dir = initialized_project / ".pizhi" / "chapters" / "ch001"
@@ -301,7 +324,33 @@ def test_execute_commands_keep_prompt_only_flow_when_execute_is_omitted(initiali
     [
         (["brainstorm", "--execute"], "none", "brainstorm", "## synopsis\n...\n"),
         (["outline", "expand", "--chapters", "1-2", "--execute"], "none", "outline-expand", "## outline\n...\n"),
-        (["write", "--chapter", "1", "--execute"], "write", "write", "# chapter draft\n"),
+        (
+            ["write", "--chapter", "1", "--execute"],
+            "write",
+            "write",
+            """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved: []
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+# 第七章
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+""",
+        ),
     ],
 )
 def test_execute_commands_write_agent_backend_run_artifacts(

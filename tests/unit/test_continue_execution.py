@@ -299,7 +299,30 @@ def test_resume_continue_execution_moves_applied_outline_to_write_checkpoint(ini
     )
     monkeypatch.setattr(
         "pizhi.services.provider_execution.build_provider_adapter",
-        lambda *_: StubAdapter("# chapter draft"),
+        lambda *_: StubAdapter(
+            """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved: []
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+# 第七章
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+"""
+        ),
     )
 
     result = resume_continue_execution(initialized_project, session.session_id)
@@ -362,7 +385,31 @@ def test_resume_continue_execution_uses_agent_backend_when_configured(initialize
     def fake_run(command, *, cwd, capture_output, text, encoding):
         payload = json.loads(Path(cwd, "agent_request.json").read_text(encoding="utf-8"))
         assert payload["command"] == "write"
-        Path(cwd, "agent_output.md").write_text("# chapter draft\n", encoding="utf-8")
+        Path(cwd, "agent_output.md").write_text(
+            """---
+chapter_title: 第七章
+word_count_estimated: 1200
+characters_involved: []
+worldview_changed: false
+synopsis_changed: false
+timeline_events: []
+foreshadowing:
+  introduced: []
+  referenced: []
+  resolved: []
+---
+# 第七章
+
+## characters_snapshot
+
+- 沈轩
+
+## relationships_snapshot
+
+- 沈轩 -> 青石镇
+""",
+            encoding="utf-8",
+        )
         return CompletedProcess(command, 0, stdout="", stderr="")
 
     monkeypatch.setattr("pizhi.backends.opencode_backend.subprocess.run", fake_run)

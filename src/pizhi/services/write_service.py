@@ -40,8 +40,8 @@ class WriteService:
         self.project_root = project_root
         self.adapter = PromptOnlyAdapter(project_root)
 
-    def build_prompt_request(self, chapter_number: int) -> PromptRequest:
-        context = build_chapter_context(self.project_root, chapter_number)
+    def build_prompt_request(self, chapter_number: int, *, prev_chapters: int | None = None) -> PromptRequest:
+        context = build_chapter_context(self.project_root, chapter_number, prev_chapters=prev_chapters)
         synopsis_coverage = _load_synopsis_coverage_prompt_context(self.project_root)
         return PromptRequest(
             command_name="write",
@@ -114,11 +114,16 @@ def _render_chapter_response_contract() -> str:
         "`timeline_events` must be a YAML list of objects with `at`, `event`, `is_flashback`, and "
         "`is_major_turning_point`.\n"
         "`foreshadowing` must be a YAML object with `introduced`, `referenced`, and `resolved` lists.\n"
+        "If a YAML scalar contains `:` or quotes, render it as a single quoted scalar or block scalar so the "
+        "frontmatter remains valid YAML.\n"
         "`introduced` entries must be objects containing `id`, `desc`, `planned_payoff`, `priority`, and "
         "`related_characters`.\n"
         "`referenced` and `resolved` entries must be objects containing `id`.\n"
         "After the frontmatter, write the narrative body.\n"
         "Then add a horizontal rule `---` followed by `## characters_snapshot` and `## relationships_snapshot`.\n"
+        "Do not put `worldview_patch` or `synopsis_new` in YAML frontmatter.\n"
+        "When `worldview_changed: true`, add a Markdown section named `## worldview_patch` after the narrative body.\n"
+        "When `synopsis_changed: true`, add a Markdown section named `## synopsis_new` after the narrative body.\n"
         "Only include `## worldview_patch` when `worldview_changed: true`.\n"
         "Do not wrap the response in code fences.\n"
         "Do not add commentary before or after the candidate.\n"
