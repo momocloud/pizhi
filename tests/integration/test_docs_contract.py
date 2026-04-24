@@ -25,11 +25,48 @@ def test_readme_runbook_and_recovery_content_contract(project_root):
 def test_readme_links_to_public_docs_and_governance_files(project_root):
     readme = (project_root / "README.md").read_text(encoding="utf-8")
 
+    assert readme.startswith("![Pizhi project header](docs/assets/pizhi-header.png)\n\n# Pizhi")
     assert "[Getting started](docs/guides/getting-started.md)" in readme
     assert "[Recovery guide](docs/guides/recovery.md)" in readme
     assert "[Architecture](docs/architecture/ARCHITECTURE.md)" in readme
+    assert "[Chinese documentation archive](docs/zh/README.md)" in readme
     assert "[Contributing](CONTRIBUTING.md)" in readme
     assert "[Security](SECURITY.md)" in readme
+
+
+def test_default_public_docs_are_english_with_chinese_archive(project_root):
+    readme = (project_root / "README.md").read_text(encoding="utf-8")
+    getting_started = (project_root / "docs" / "guides" / "getting-started.md").read_text(encoding="utf-8")
+    recovery = (project_root / "docs" / "guides" / "recovery.md").read_text(encoding="utf-8")
+    architecture = (project_root / "docs" / "architecture" / "ARCHITECTURE.md").read_text(encoding="utf-8")
+
+    assert "# Pizhi" in readme.splitlines()[:3]
+    assert getting_started.startswith("# Getting Started")
+    assert recovery.startswith("# Recovery Guide")
+    assert architecture.startswith("# Pizhi Architecture")
+    assert "[Chinese documentation archive](docs/zh/README.md)" in readme
+
+
+def test_chinese_documentation_archive_tracks_public_docs(project_root):
+    zh_readme = (project_root / "docs" / "zh" / "README.md").read_text(encoding="utf-8")
+    zh_getting_started = (
+        project_root / "docs" / "zh" / "guides" / "getting-started.md"
+    ).read_text(encoding="utf-8")
+    zh_recovery = (project_root / "docs" / "zh" / "guides" / "recovery.md").read_text(encoding="utf-8")
+    zh_architecture = (
+        project_root / "docs" / "zh" / "architecture" / "ARCHITECTURE.md"
+    ).read_text(encoding="utf-8")
+
+    assert "# Pizhi 中文文档归档" in zh_readme
+    assert "LLM 辅助长篇小说创作工作流" in zh_readme
+    assert "[开始使用](guides/getting-started.md)" in zh_readme
+    assert "[恢复指南](guides/recovery.md)" in zh_readme
+    assert "[架构](architecture/ARCHITECTURE.md)" in zh_readme
+    assert "# 开始使用" in zh_getting_started
+    assert "pizhi continue run --count <n> --execute" in zh_getting_started
+    assert "# 恢复指南" in zh_recovery
+    assert "不要对失败运行使用" in zh_recovery
+    assert "# Pizhi 架构" in zh_architecture
 
 
 def test_readme_documents_host_orchestrator_backend_split(project_root):

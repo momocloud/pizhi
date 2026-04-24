@@ -2,6 +2,11 @@ def test_public_docs_surface_excludes_internal_process_docs(project_root):
     assert (project_root / "docs" / "guides" / "getting-started.md").exists()
     assert (project_root / "docs" / "guides" / "recovery.md").exists()
     assert (project_root / "docs" / "architecture" / "ARCHITECTURE.md").exists()
+    assert (project_root / "docs" / "assets" / "pizhi-header.png").exists()
+    assert (project_root / "docs" / "zh" / "README.md").exists()
+    assert (project_root / "docs" / "zh" / "guides" / "getting-started.md").exists()
+    assert (project_root / "docs" / "zh" / "guides" / "recovery.md").exists()
+    assert (project_root / "docs" / "zh" / "architecture" / "ARCHITECTURE.md").exists()
     assert not (project_root / "docs" / "superpowers").exists()
     assert (project_root / "meta" / "specs").exists()
     assert (project_root / "meta" / "plans").exists()
@@ -45,6 +50,11 @@ def test_repository_contains_expected_open_source_metadata(project_root):
         ".github/ISSUE_TEMPLATE/bug_report.md",
         ".github/ISSUE_TEMPLATE/feature_request.md",
         ".github/pull_request_template.md",
+        "docs/assets/pizhi-header.png",
+        "docs/zh/README.md",
+        "docs/zh/guides/getting-started.md",
+        "docs/zh/guides/recovery.md",
+        "docs/zh/architecture/ARCHITECTURE.md",
         "meta/specs/2026-04-20-pizhi-open-source-repo-organization-design.md",
         "meta/plans/2026-04-15-pizhi-milestone-1-bootstrap.md",
     ]
@@ -89,10 +99,12 @@ def test_code_of_conduct_mentions_private_enforcement_contact(project_root):
 def test_visible_oss_artifacts_have_expected_markers(project_root):
     license_text = (project_root / "LICENSE").read_text(encoding="utf-8")
     changelog = (project_root / "CHANGELOG.md").read_text(encoding="utf-8")
+    header_image = project_root / "docs" / "assets" / "pizhi-header.png"
     bug_template = (project_root / ".github" / "ISSUE_TEMPLATE" / "bug_report.md").read_text(encoding="utf-8")
     feature_template = (project_root / ".github" / "ISSUE_TEMPLATE" / "feature_request.md").read_text(encoding="utf-8")
 
     assert "MIT License" in license_text
+    assert header_image.stat().st_size > 1000
     assert "[Unreleased]" in changelog
     assert "v0.1.1" in changelog
     assert "## v0.1.0" in changelog
