@@ -14,14 +14,14 @@ pizhi status
 
 ```bash
 uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
-uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help
 uv tool install git+https://github.com/momocloud/pizhi.git
-uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2
 ```
 
 `uvx` runs the CLI once without installing a reusable `pizhi` executable.
 
-Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.1` for stable pinned installs.
+Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.2` for stable pinned installs.
 
 ## Provider Run And Apply
 
@@ -56,5 +56,5 @@ pizhi compile --volume 1
 ## Stable Git Install Example
 
 ```bash
-uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help
 ```

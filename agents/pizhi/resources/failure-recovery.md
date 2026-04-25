@@ -55,4 +55,4 @@ Use checkpoint apply --id <checkpoint_id> only after reviewing the available che
 
 ## Stable Git Install Path
 
-For pinned automation, prefer a released tag such as `v0.1.1`. Use the untagged repository install path when you want the latest `main`.
+For pinned automation, prefer a released tag such as `v0.1.2`. Use the untagged repository install path when you want the latest `main`.

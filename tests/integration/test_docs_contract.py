@@ -92,17 +92,17 @@ def test_public_docs_cover_git_backed_uv_distribution(project_root):
 
     assert "uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help" in readme
     assert "uv tool install git+https://github.com/momocloud/pizhi.git" in readme
-    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help" in readme
-    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1" in readme
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help" in readme
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2" in readme
     assert "uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help" in package_readme
     assert "uv tool install git+https://github.com/momocloud/pizhi.git" in package_readme
-    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help" in package_readme
-    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1" in package_readme
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help" in package_readme
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2" in package_readme
     assert "uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help" in runbook
     assert "uv tool install git+https://github.com/momocloud/pizhi.git" in runbook
-    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help" in runbook
-    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1" in runbook
-    caveat = "Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.1` for stable automation and pinned installs."
+    assert "uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help" in runbook
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2" in runbook
+    caveat = "Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.2` for stable automation and pinned installs."
     assert caveat in readme
     assert caveat in package_readme
     assert caveat in runbook
@@ -146,7 +146,7 @@ def test_agent_playbook_markers_cover_execution_and_recovery_contract(project_ro
         "provider not configured",
         "failed run",
         "checkpoint apply --id <checkpoint_id>",
-        "v0.1.1",
+        "v0.1.2",
         "If the session is waiting_apply, apply a checkpoint before resume.",
         "Do not use `pizhi apply --run-id <run_id>` for continue checkpoints.",
     ]:
@@ -178,9 +178,9 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     assert "pizhi checkpoint apply --id <checkpoint_id>\npizhi continue resume --session-id <session_id>" in recovery
 
     assert "uv tool install git+https://github.com/momocloud/pizhi.git\n" in workflow
-    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1" in workflow
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2" in workflow
     assert "`uvx` runs the CLI once without installing a reusable `pizhi` executable." in workflow
-    assert "Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.1` for stable pinned installs." in workflow
+    assert "Use the untagged Git URL when you want the latest `main`. Prefer `@v0.1.2` for stable pinned installs." in workflow
     assert 'pizhi init --project-name "Example Novel"' in workflow
     assert "If the required execute backend configuration is missing, stop and ask before changing it." in workflow
     assert "pizhi init" in commands
@@ -191,9 +191,9 @@ def test_agent_playbook_resources_cover_run_apply_and_install_contract(project_r
     assert "pizhi runs" in examples
     assert "pizhi apply --run-id <run_id>" in examples
     assert "git+https://github.com/momocloud/pizhi.git" in examples
-    assert "git+https://github.com/momocloud/pizhi.git@v0.1.1" in examples
+    assert "git+https://github.com/momocloud/pizhi.git@v0.1.2" in examples
     assert "uv tool install git+https://github.com/momocloud/pizhi.git\n" in examples
-    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1" in examples
+    assert "uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2" in examples
     assert "`uvx` runs the CLI once without installing a reusable `pizhi` executable." in examples
     assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in examples
     assert "pizhi provider configure --provider <provider> --model <model> --base-url <base_url> --api-key-env <env>" in recovery

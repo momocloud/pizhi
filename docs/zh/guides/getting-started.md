@@ -7,11 +7,11 @@
 ```bash
 uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
 uv tool install git+https://github.com/momocloud/pizhi.git
-uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help
-uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2
 ```
 
-未带 tag 的 Git URL 适合跟随最新 `main`。稳定自动化建议使用 `@v0.1.1`。
+未带 tag 的 Git URL 适合跟随最新 `main`。稳定自动化建议使用 `@v0.1.2`。
 
 ## 2. 初始化项目
 

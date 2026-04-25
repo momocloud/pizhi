@@ -25,17 +25,17 @@ Pizhi 是一个 LLM 辅助长篇小说创作工作流，用文件系统保存项
 
 ```bash
 uvx --from git+https://github.com/momocloud/pizhi.git pizhi --help
-uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.1 pizhi --help
+uvx --from git+https://github.com/momocloud/pizhi.git@v0.1.2 pizhi --help
 ```
 
 作为 `uv` 管理的工具安装：
 
 ```bash
 uv tool install git+https://github.com/momocloud/pizhi.git
-uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.1
+uv tool install git+https://github.com/momocloud/pizhi.git@v0.1.2
 ```
 
-未带 tag 的 Git URL 适合跟随最新 `main`。自动化脚本和稳定安装建议固定到 `@v0.1.1`。
+未带 tag 的 Git URL 适合跟随最新 `main`。自动化脚本和稳定安装建议固定到 `@v0.1.2`。
 
 ## 中文文档
 
