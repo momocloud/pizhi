@@ -121,9 +121,11 @@ def test_visible_oss_artifacts_have_expected_markers(project_root):
 
 def test_distribution_metadata_contract(project_root):
     pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
+    package_init = (project_root / "src" / "pizhi" / "__init__.py").read_text(encoding="utf-8")
 
     assert 'name = "pizhi"' in pyproject
     assert 'version = "0.1.2"' in pyproject
+    assert '__version__ = "0.1.2"' in package_init
     assert 'pizhi = "pizhi.cli:main"' in pyproject
 
 
